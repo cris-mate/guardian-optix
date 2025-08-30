@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+guardian-optix-backend/node_modules/
+
+# Production build
+build/
+
+# IDE and OS files
+.idea
+.DS_Store
+
+# Environment variables
+.env
