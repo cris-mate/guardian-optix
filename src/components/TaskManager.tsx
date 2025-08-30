@@ -4,7 +4,10 @@ import { createTask, fetchTasks } from '../utils/api';
 interface Task {
   _id: string;
   taskName: string;
-  assignedTo: string;
+  assignedTo: {
+    _id: string;
+    username: string;
+  };
   dueDate: string;
   priority: string;
   status: string;
@@ -15,7 +18,7 @@ const TaskManager: React.FC = () => {
   const [taskName, setTaskName] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [priority, setPriority] = useState('Medium');
+  const [priority, setPriority] = useState('Low');
 
   const loadTasks = async () => {
     try {
@@ -33,15 +36,15 @@ const TaskManager: React.FC = () => {
       setTaskName('');
       setAssignedTo('');
       setDueDate('');
-      setPriority('Medium');
-      loadTasks(); // Refresh the list after creation
+      setPriority('Low');
+      await loadTasks(); // Refresh the list after creation
     } catch (error) {
       console.error('Error creating task:', error);
     }
   };
 
   useEffect(() => {
-    loadTasks();
+    void loadTasks();
   }, []);
 
   return (
@@ -57,7 +60,7 @@ const TaskManager: React.FC = () => {
         />
         <input
           type="text"
-          placeholder="Assigned To"
+          placeholder="Assigned To (User ID)"
           value={assignedTo}
           onChange={(e) => setAssignedTo(e.target.value)}
           required
@@ -80,7 +83,7 @@ const TaskManager: React.FC = () => {
       <ul>
         {tasks.map((task) => (
           <li key={task._id}>
-            {task.taskName} - Assigned to: {task.assignedTo} - Due: {task.dueDate} - Status: {task.status}
+            {task.taskName} - Assigned to: {task.assignedTo?.username || 'N/A'} - Due: {task.dueDate} - Status: {task.status}
           </li>
         ))}
       </ul>
