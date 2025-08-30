@@ -10,7 +10,11 @@ exports.createTask = async (req, res) => {
         await newTask.save();
         res.status(201).json(newTask);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating task', error });
+        console.error( 'Error creating task', error );
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: 'Invalid task data provided', errors: error.errors });
+        }
+        res.status(500).json({ message: 'An unexpected error occurred on the server.'});
     }
 };
 
@@ -19,9 +23,10 @@ exports.createTask = async (req, res) => {
 // @access Private
 exports.getAllTasks = async (req, res) => {
     try {
-        const tasks = await Task.find().populate('assignedTo', 'username');
+        const tasks = await Task.find().populate('assignedTo', 'username').exec();
         res.status(200).json(tasks);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching tasks', error });
+        console.error('Error creating task', error);
+        res.status(500).json({ message: 'An unexpected error occurred on the server.'});
     }
 };
