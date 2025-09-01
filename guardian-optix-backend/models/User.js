@@ -4,8 +4,8 @@ const UserSchema = new mongoose.Schema({
   username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['guard', 'manager', 'client'], default: 'guard' },
-  guardType: { type: String, enum: ['Static Guard', 'Dog Handler Guard', 'Close Protection Guard'], required: false },
+  role: { type: String, enum: ['Manager', 'Client', 'Guard'], default: 'Manager' },
+  guardType: { type: String, enum: ['Static', 'Dog Handler', 'Close Protection'], required: false },
   createdAt: { type: Date, default: Date.now }
 });
 

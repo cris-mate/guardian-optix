@@ -8,7 +8,7 @@ const Register: React.FC = () => {
     email: '',
     password: '',
     role: 'guard',
-    guardType: 'Static Guard',
+    guardType: 'Static',
   });
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');

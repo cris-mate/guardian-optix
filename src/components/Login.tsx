@@ -36,7 +36,7 @@ const Login: React.FC = () => {
       {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
       <form onSubmit={handleSubmit}>
         <input
-          type="usernamel"
+          type="text"
           name="username"
           placeholder="Username"
           onChange={handleChange}
