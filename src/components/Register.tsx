@@ -11,6 +11,7 @@ const Register: React.FC = () => {
     guardType: 'Static Guard',
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -21,8 +22,12 @@ const Register: React.FC = () => {
     e.preventDefault();
     try {
       await register(formData.username, formData.email, formData.password, formData.role, formData.guardType);
-      alert('Registration successful!');
-      navigate('/login');
+      setError('');
+      setSuccessMessage('Registration successful! Redirecting to login...');
+
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
       setError('Registration failed. Please try again.');
     }
@@ -32,6 +37,7 @@ const Register: React.FC = () => {
     <div>
       <h2>Register</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+      {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
       <form onSubmit={handleSubmit}>
         <input type="text" name="username" placeholder="Username" onChange={handleChange} required />
         <input type="email" name="email" placeholder="Email" onChange={handleChange} required />

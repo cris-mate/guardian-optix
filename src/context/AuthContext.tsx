@@ -1,39 +1,47 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+// Define blueprint for User object
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  password: string;
+  role: 'guard' | 'manager' | 'client';
+  guardType: 'Static' | 'Dog Handler' | 'Close Protection';
+}
 
 // Define the types for the AuthContext
 interface AuthContextType {
-  user: any | null;
-  login: (user: any) => void;
+  user: User | null;
+  login: (userData: User) => void;
   logout: () => void;
 }
 
-// Create the context with the correct type or undefined initially
+// Create the context with the initial type or undefined
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Create a provider component
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(() => {
-    // Retrieve user from local storage on initialization
+  const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
+    try {
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (error) {
+      console.error('Error parsing user from local storage:', error);
+      return null;
+    }
   });
 
-  const login = (user: any) => {
-    setUser(user);
-    localStorage.setItem('user', JSON.stringify(user)); // Save user to local storage
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData)); // Save user to local storage
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user'); // Remove user from local storage
+    localStorage.removeItem('token'); // Remove token from local storage
   };
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser)); // Restore user from local storage on page load
-    }
-  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
