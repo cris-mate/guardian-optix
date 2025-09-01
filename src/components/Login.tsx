@@ -4,8 +4,9 @@ import { login } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
   const { login: authLogin } = useAuth(); // Get the login function from the AuthContext
 
@@ -16,12 +17,15 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const user = await login(formData.email, formData.password); // Authenticate user
-      authLogin(user); // Set user in the AuthContext
-      alert('Login successful!');
-      navigate('/dashboard'); // Redirect to dashboard after successful login
+      const response = await login(formData.username, formData.password); // Authenticate user
+      authLogin(response.user); // Login function also stores the token
+      setError('');
+      setSuccessMessage('Login successful! Redirecting to dashboard...');
+      setTimeout(() => {
+        navigate('/dashboard'); // Redirect to dashboard after successful login
+      }, 2000);
     } catch (error) {
-      setError('Login failed. Please check your email and password.');
+      setError('Login failed. Please check your username or password.');
     }
   };
 
@@ -29,11 +33,12 @@ const Login: React.FC = () => {
     <div>
       <h2>Login</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+      {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
       <form onSubmit={handleSubmit}>
         <input
-          type="email"
-          name="email"
-          placeholder="Email"
+          type="usernamel"
+          name="username"
+          placeholder="Username"
           onChange={handleChange}
           required
         />
