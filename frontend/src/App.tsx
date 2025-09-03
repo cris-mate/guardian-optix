@@ -1,6 +1,8 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+
+import LandingPage from "./components/LandingPage";
 import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -11,16 +13,19 @@ import PerformanceMonitoring from './components/PerformanceMonitoring';
 import Analytics from './components/Analytics';
 import Compliance from './components/Compliance';
 import ProtectedRoute from './components/ProtectedRoute';
-import LandingPage from "./components/LandingPage";
+
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/" element={<Register />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+
+          {/* Protected Routes */}
           <Route
             path="/dashboard"
             element={
