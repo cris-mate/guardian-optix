@@ -6,8 +6,9 @@ interface User {
   username: string;
   email: string;
   password: string;
-  role: 'guard' | 'manager' | 'client';
-  guardType: 'Static' | 'Dog Handler' | 'Close Protection';
+  role: 'admin' | 'guard' | 'manager' | 'client';
+  //guardType: 'Static' | 'Dog Handler' | 'Close Protection';
+  guardType?: string;
 }
 
 // Define the types for the AuthContext

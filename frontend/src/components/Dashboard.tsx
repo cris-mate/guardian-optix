@@ -1,13 +1,23 @@
 import React from 'react';
 import Navbar from './Navbar';
-import './Dashboard.css'; // Import the new CSS styles
+import './Dashboard.css';
+import {useAuth} from "../context/AuthContext";
+import {useNavigate} from "react-router-dom"; // Import the new CSS styles
 
 const Dashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <div className="dashboard-container">
       <Navbar />
       <div className="dashboard-header">
-        <h2>Welcome to the Guardian Optix Dashboard</h2>
+        <h2>Welcome to your Dashboard, {user?.username || 'User'}!</h2>
+        <p>This is a protected area of the application.</p>
         <p>Select a feature from the options below to get started.</p>
       </div>
       <div className="feature-links">
@@ -30,7 +40,7 @@ const Dashboard: React.FC = () => {
           <a href="/compliance">Compliance</a>
         </div>
         <div className="feature-card">
-          <button onClick={() => alert('Logout feature coming soon!')}>Logout</button>
+          <button onClick={handleLogout}>Logout</button>
         </div>
       </div>
     </div>

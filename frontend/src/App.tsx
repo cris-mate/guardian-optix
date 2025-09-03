@@ -11,12 +11,14 @@ import PerformanceMonitoring from './components/PerformanceMonitoring';
 import Analytics from './components/Analytics';
 import Compliance from './components/Compliance';
 import ProtectedRoute from './components/ProtectedRoute';
+import LandingPage from "./components/LandingPage";
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route
