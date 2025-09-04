@@ -2,7 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 
-import LandingPage from "./components/LandingPage";
+import Homepage from "./components/Homepage";
 import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -21,7 +21,7 @@ const App: React.FC = () => {
       <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Homepage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
 
