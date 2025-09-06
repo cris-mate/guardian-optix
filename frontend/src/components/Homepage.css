@@ -17,13 +17,13 @@
 }
 
 .homepage-header h1 {
-    font-size: 3rem; /* or 48px */
+    font-size: 3rem;
     color: #212529;
     margin-bottom: 10px;
 }
 
 .homepage-header p {
-    font-size: 1.2rem; /* or 20px */
+    font-size: 1.2rem;
     color: #6c757d; /* Muted text */
 }
 
@@ -37,7 +37,7 @@
 }
 
 .homepage-section h2 {
-    font-size: 3rem; /* or 28px */
+    font-size: 2.4rem;
     color: #343a40;
     margin-bottom: 15px;
 }
@@ -52,7 +52,7 @@
 .homepage-actions {
     display: flex;
     gap: 20px;
-    justify-content: center; /* or space-between */
+    justify-content: center;
 }
 
 /* General button styling */
