@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 
+import MainLayout from './components/MainLayout';
 import Homepage from "./components/Homepage";
 import Register from './components/Register';
 import Login from './components/Login';
@@ -30,7 +31,9 @@ const App: React.FC = () => {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -38,7 +41,9 @@ const App: React.FC = () => {
             path="/employee-scheduling"
             element={
               <ProtectedRoute>
-                <EmployeeScheduling />
+                <MainLayout>
+                  <EmployeeScheduling />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -46,7 +51,9 @@ const App: React.FC = () => {
             path="/people-management"
             element={
               <ProtectedRoute>
-                <PeopleManagement />
+                <MainLayout>
+                  <PeopleManagement />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -54,7 +61,9 @@ const App: React.FC = () => {
             path="/task-manager"
             element={
               <ProtectedRoute>
-                <TaskManager />
+                <MainLayout>
+                  <TaskManager />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -62,7 +71,9 @@ const App: React.FC = () => {
             path="/performance-monitoring"
             element={
               <ProtectedRoute>
-                <PerformanceMonitoring />
+                <MainLayout>
+                  <PerformanceMonitoring />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -70,7 +81,9 @@ const App: React.FC = () => {
             path="/analytics"
             element={
               <ProtectedRoute>
-                <Analytics />
+                <MainLayout>
+                  <Analytics />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -78,7 +91,9 @@ const App: React.FC = () => {
             path="/compliance"
             element={
               <ProtectedRoute>
-                <Compliance />
+                <MainLayout>
+                  <Compliance />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
