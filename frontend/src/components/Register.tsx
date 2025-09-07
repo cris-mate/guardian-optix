@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import { register } from '../utils/api';
+import axios from "axios";
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -44,7 +45,14 @@ const Register: React.FC = () => {
         navigate('/login');
       }, 1500);
     } catch (error) {
-      setError('Registration failed. Please check the details and try again.');
+      // Checks if the error is a network response from our server
+      if (axios.isAxiosError(error) && error.response) {
+        // Displays the specific error sent by the backend
+        setError(error.response.data.message);
+      } else {
+        // Otherwise, send  generic error message
+        setError('An unexpected error occurred. Please check the details and try again.');
+      }
     }
   };
 
@@ -55,8 +63,8 @@ const Register: React.FC = () => {
           <h2>Create an Account</h2>
         </header>
 
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
+        {error && <p style={{ color: 'red', marginBottom: "1.25rem"}}>{error}</p>}
+        {successMessage && <p style={{ color: 'green', marginBottom: "1.25rem" }}>{successMessage}</p>}
 
         <form onSubmit={handleSubmit} className="public-form">
           <div className="public-form-group">

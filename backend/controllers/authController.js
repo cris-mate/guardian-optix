@@ -6,11 +6,18 @@ const jwt = require('jsonwebtoken');
 exports.registerUser = async (req, res) => {
   const { username, email, password, role, guardType } = req.body;
   try {
-    // noinspection JSCheckFunctionSignatures
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'A user with this email already exists' });
+    // Check if email is already in use
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
+      return res.status(400).json({ error: 'Registration failed. Email already in use' });
     }
+
+    // Check if username is already in use
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({ error: 'Registration failed. Username already in use' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ username, email, password: hashedPassword, role, guardType });
     await newUser.save();
@@ -30,7 +37,7 @@ exports.loginUser = async (req, res) => {
     // noinspection JSCheckFunctionSignatures
     const user = await User.findOne({
       $or: [{ username: identifier }, { email: identifier}],
-      });
+    });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: 'Invalid credentials' });
