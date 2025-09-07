@@ -21,9 +21,18 @@ api.interceptors.request.use(config => {
 /// --- AUTHENTICATION FUNCTIONS ---
 // These use the basic axios instance, they don't need a token
 
-export const register = async (username: string, email: string, password: string, role: string, guardType: string) => {
+export const register = async (
+  fullName: string,
+  username: string,
+  email: string,
+  phoneNumber: string,
+  postCode: string,
+  password: string,
+  role: string,
+  guardType: string) => {
   try {
-    const response = await axios.post(`${API_URL}/register`, { username, email, password, role, guardType });
+    const response = await axios.post(`${API_URL}/register`,
+      { fullName, username, email, phoneNumber, postCode, password, role, guardType });
     return response.data;
   } catch (error) {
     console.error('Registration request failed: ', error);

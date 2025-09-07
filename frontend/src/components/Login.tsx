@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import './Login.css';
 import {Link} from "react-router-dom";
 
 const Login: React.FC = () => {
@@ -32,20 +31,20 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className={"form-container"}>
-      <div className="form-card">
-        <header className="form-header">
+    <div className={"public-container"}>
+      <div className="public-content-card public-content-card--auth">
+        <header className="public-header">
           <h2>Login</h2>
         </header>
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="identifier">Username or Email</label>
+        <form onSubmit={handleSubmit} className="public-form">
+          <div className="public-form-group">
+            <label htmlFor="identifier">Username or Email:</label>
             <input
-              className="form-input"
+              className="public-form-input"
               type="text"
               name="identifier"
               value={formData.identifier}
@@ -53,10 +52,10 @@ const Login: React.FC = () => {
               required
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
+          <div className="public-form-group">
+            <label htmlFor="password">Password:</label>
             <input
-              className="form-input"
+              className="public-form-input"
               type="password"
               name="password"
               value={formData.password}
@@ -64,12 +63,14 @@ const Login: React.FC = () => {
               required
             />
           </div>
-          <button type="submit" className="form-button">Login</button>
+          <button type="submit" className="public-button public-button--primary single-button">Login</button>
         </form>
 
-        <p className="form-footer">
+        <p className="public-footer">
           Don't have an account?{' '}
-          <Link to="/register">Register here</Link>
+          <Link to="/register">
+            Register here
+          </Link>
         </p>
       </div>
     </div>

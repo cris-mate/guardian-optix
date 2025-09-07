@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import { register } from '../utils/api';
-import './Register.css';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
+    fullName: '',
     username: '',
     email: '',
+    phoneNumber: '',
+    postCode: '',
     password: '',
     role: 'Manager',
     guardType: 'Static',
@@ -26,7 +28,16 @@ const Register: React.FC = () => {
       if (dataToSend.role !== 'Guard') {
         delete (dataToSend as any).guardType;
       }
-      await register(dataToSend.username, dataToSend.email, dataToSend.password, dataToSend.role, dataToSend.guardType);
+      await register(
+        dataToSend.fullName,
+        dataToSend.username,
+        dataToSend.email,
+        dataToSend.phoneNumber,
+        dataToSend.postCode,
+        dataToSend.password,
+        dataToSend.role,
+        dataToSend.guardType);
+
       setError('');
       setSuccessMessage('Registration successful! Redirecting to login...');
       setTimeout(() => {
@@ -38,40 +49,52 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="form-container">
-      <div className="form-card">
-        <header className="form-header">
+    <div className="public-container">
+      <div className="public-content-card public-content-card--auth">
+        <header className="public-header">
           <h2>Create an Account</h2>
         </header>
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
 
-        <form onSubmit={handleSubmit} className="register-form">
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className="public-form">
+          <div className="public-form-group">
+            <label htmlFor="fullName">Full Name:</label>
+            <input type="text" name="fullName" className="public-form-input" onChange={handleChange} required />
+          </div>
+          <div className="public-form-group">
             <label htmlFor="username">Username:</label>
-            <input type="text" name="username" className="form-input" onChange={handleChange} required />
+            <input type="text" name="username" className="public-form-input" onChange={handleChange} required />
           </div>
-          <div className="form-group">
+          <div className="public-form-group">
             <label htmlFor="email" >Email:</label>
-            <input type="email" name="email" className="form-input" onChange={handleChange} required />
+            <input type="email" name="email" className="public-form-input" onChange={handleChange} required />
           </div>
-          <div className="form-group">
+          <div className="public-form-group">
+            <label htmlFor="phoneNumber">Phone Number:</label>
+            <input type="text" name="phoneNumber" className="public-form-input" onChange={handleChange} required />
+          </div>
+          <div className="public-form-group">
+            <label htmlFor="postCode">Post Code:</label>
+            <input type="text" name="postCode" className="public-form-input" onChange={handleChange} required />
+          </div>
+          <div className="public-form-group">
             <label htmlFor="password" >Password:</label>
-            <input type="password" name="password" className="form-input" onChange={handleChange} required />
+            <input type="password" name="password" className="public-form-input" onChange={handleChange} required />
           </div>
-          <div className="form-group">
+          <div className="public-form-group">
             <label htmlFor="role" >Choose Your Role:</label>
-            <select name="role" value={formData.role} className="form-input" onChange={handleChange} required>
+            <select name="role" value={formData.role} className="public-form-input" onChange={handleChange} required>
               <option value="Manager">Manager</option>
               <option value="Guard">Guard</option>
             </select>
           </div>
 
           {formData.role === 'Guard' && (
-            <div className="form-group">
+            <div className="public-form-group">
               <label htmlFor="guardType">Guard Type:</label>
-              <select id="guardType" name="guardType" value={formData.guardType} className="form-input" onChange={handleChange} required>
+              <select name="guardType" value={formData.guardType} className="public-form-input" onChange={handleChange} required>
                 <option value="Static">Static</option>
                 <option value="Dog Handler">Dog Handler</option>
                 <option value="Close Protection">Close Protection</option>
@@ -79,12 +102,14 @@ const Register: React.FC = () => {
               </select>
             </div>
           )}
-          <button type="submit" className="form-button">Register Account</button>
+          <button type="submit" className="public-button public-button--primary single-button">Register Account</button>
         </form>
-        <p className="form-footer">
+        <footer className="public-footer">
           Already have an account?{' '}
-          <Link to="/login">Sign in here</Link>
-        </p>
+          <Link to="/login">
+            Sign in here
+          </Link>
+        </footer>
       </div>
     </div>
   );

@@ -1,0 +1,175 @@
+/* Public Pages Master Stylesheet */
+
+
+/* LAYOUT & CONTAINER */
+/* Background and centering */
+.public-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 0 2rem;
+  margin: 0 10rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+
+/* CARD */
+/* Reusable white card for holding content */
+.public-content-card {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 0.75rem #0000001A;
+  width: 100%;
+  max-width: 32rem;
+  text-align: center;
+}
+
+.public-content-card--auth {
+  max-width: 24rem;
+}
+
+/* HEADER & TYPOGRAPHY */
+.public-header {
+  max-width: 36rem;
+}
+
+.public-header h1 {
+  font-size: 2.8rem;
+}
+
+.public-header h2 {
+  font-size: 1.8rem;
+}
+
+.public-header p {
+  font-size: 1.25rem;
+  color: #6c757d; /* Muted text */
+}
+
+.public-intro-text {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: #6c757d;
+}
+
+
+/* FORM */
+.public-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+}
+
+.public-form-group {
+  width: 100%;
+}
+
+.public-form-group label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.2rem;
+}
+
+.public-form-input {
+  width: 100%;
+  padding: 0.2rem 1rem;
+  font-size: 1rem;
+  border: 0.05rem solid ;
+  border-radius: 0.4rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.public-form-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem #007BFF40;
+}
+
+
+/* BUTTONS */
+.public-button-container {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+
+.public-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: fit-content;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #007bff;
+}
+
+.public-button:hover {
+  transform: translateY(-2px);
+}
+
+.public-button--primary {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.public-button--primary:hover {
+  background-color: #0056b3;
+}
+
+.public-button--secondary {
+  background-color: #ffffff;
+  color: #007bff;
+  border-color: #007bff;
+}
+
+.public-button--secondary:hover {
+  background-color: #f0f8ff;
+}
+
+.single-button {
+  margin-top: 1rem;
+  align-self: center;
+}
+
+/* FOOTER & LINK */
+.public-footer {
+  font-size: 1rem;
+}
+
+.public-footer a {
+  color: #007bff;
+  font-weight: 600;
+  text-decoration: none;
+  padding-left: 2rem;
+}
+
+.public-footer a:hover {
+  text-decoration: underline;
+}
+
+/* SPACING & SEPARATION */
+
+.homepage-footer {
+  margin-top: 4rem;
+}
+
+.public-header,
+.public-intro-text,
+.single-button {
+  margin-bottom: 2rem;
+}
+
+

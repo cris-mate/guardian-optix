@@ -1,43 +1,42 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './Homepage.css';
 
 const Homepage: React.FC = () => {
   return (
-    <div className="homepage-container">
-      <header className="homepage-header">
-        <h1>Welcome to Guardian Optix,</h1>
-        <p>Your all-in-one solution for modern security operations management.</p>
+    <div className="public-container">
+
+      <header className="public-header">
+        <h1>Welcome to Guardian Optix</h1>
+        <p>A comprehensive solution for security operations management</p>
       </header>
 
-      <main className="homepage-main">
-        <section className="homepage-section">
-          <h2>About the App</h2>
-          <p>
-            Guardian Optix is designed to help security companies streamline their operations,
-            manage guard patrols, schedule tasks, ensure compliance and much more, all from one
-            centralised dashboard.
-          </p>
-        </section>
+      <main className="public-content-card public-content-homepage">
+        <p className="public-intro-text">
+          Guardian Optix web-application is designed to help security companies streamline their operations,
+          manage guard patrols, schedule shifts, ensure compliance and much more, all from one
+          centralised dashboard.
+        </p>
 
-        <section className="homepage-section">
+        <div className="public-header">
           <h2>Get Started</h2>
           <p>Please login or register to continue.</p>
-          <div className="homepage-actions">
-            <Link to="/login" className="homepage-button primary">
-              Login
-            </Link>
-            {' '}
-            <Link to="/register" className="homepage-button secondary">
-              Create an account
-            </Link>
-          </div>
-        </section>
+        </div>
+
+        <div className="public-button-container">
+          <Link to="/login" className="public-button public-button--primary">
+            Login
+          </Link>
+          {' '}
+          <Link to="/register" className="public-button public-button--secondary">
+            Create an account
+          </Link>
+        </div>
       </main>
 
-      <footer className="homepage-footer">
+      <footer className="public-footer homepage-footer">
         <p>&copy; {new Date().getFullYear()} Guardian Optix. All rights reserved.</p>
       </footer>
+
     </div>
   );
 };
