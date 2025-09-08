@@ -1,72 +1,148 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { createSchedule, fetchSchedules } from "../utils/api";
 
 interface Schedule {
   _id: string;
   employeeName: string;
-  shiftTime: string;
+  jobName: string;
+  location: string;
+  shift: string;
   role: string;
 }
 
 const EmployeeScheduling: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [employeeName, setEmployeeName] = useState('');
-  const [shiftTime, setShiftTime] = useState('');
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState('Static');
+  const [jobName, setJobName] = useState('');
+  const [location, setLocation] = useState('');
+  const [shift, setShift] = useState('Morning');
+  const [error, setError] = useState('');
 
-  const fetchSchedules = async () => {
+  const loadSchedules = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/schedules');
-      setSchedules(response.data);
+      const data = await fetchSchedules();
+      setSchedules(data);
     } catch (error) {
       console.error('Error fetching schedules:', error);
+      setError('Failed to load schedules.');
     }
   };
 
-  const createSchedule = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/schedules', { employeeName, shiftTime, role });
-      setSchedules((prevSchedules) => [...prevSchedules, response.data]); // Directly update the state
-      setEmployeeName(''); // Clear input fields
-      setShiftTime('');
-      setRole('');
+      const newSchedule = await createSchedule(employeeName, jobName, location, shift, role);
+      setSchedules((prevSchedules) => [...prevSchedules, newSchedule]); // Directly update the state
+
+      // Clear input fields after creation
+      setEmployeeName('');
+      setRole('Static');
+      setJobName('');
+      setLocation('');
+      setShift('Morning');
     } catch (error) {
       console.error('Error creating schedule:', error);
+      setError('Failed to create schedule.');
     }
   };
 
   useEffect(() => {
-    fetchSchedules();
+    void loadSchedules();
   }, []);
 
   return (
-    <div>
-      <h2>Employee Scheduling</h2>
-      <input
-        type="text"
-        placeholder="Employee Name"
-        value={employeeName}
-        onChange={(e) => setEmployeeName(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Shift Time"
-        value={shiftTime}
-        onChange={(e) => setShiftTime(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Role"
-        value={role}
-        onChange={(e) => setRole(e.target.value)}
-      />
-      <button onClick={createSchedule}>Create Schedule</button>
+    <div className="public-card" style={{ maxWidth: '800px', margin: '2rem auto', textAlign: 'left'}} >
+      <header className="public-header">
+        <h2>Employee Scheduling</h2>
+      </header>
 
-      <h3>Schedule List</h3>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      <form onSubmit={handleSubmit} className="public-form">
+        <div className="public-form-group">
+          <label htmlFor="employeeName">Employee Name</label>
+          <input
+            id="employeeName"
+            type="text"
+            className="public-form-input"
+            placeholder="Employee Name"
+            value={employeeName}
+            onChange={(e) => setEmployeeName(e.target.value)}
+            required={true}
+          />
+        </div>
+
+        <div className="public-form-group">
+          <label htmlFor="role">Role</label>
+          <select
+            id="role"
+            name="role"
+            className="public-form-input"
+            aria-placeholder="Static"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            required={true}
+          >
+            <option value="Static">Static</option>
+            <option value="Dog Handler">Dog Handler</option>
+            <option value="Close Protection">Close Protection</option>
+            <option value="Mobile Patrol">Mobile Patrol</option>
+          </select>
+        </div>
+
+        <div className="public-form-group">
+          <label htmlFor="jobName">Job</label>
+          <input
+            id="jobName"
+            type="text"
+            className="public-form-input"
+            placeholder="Job"
+            value={jobName}
+            onChange={(e) => setJobName(e.target.value)}
+            required={true}
+          />
+        </div>
+
+        <div className="public-form-group">
+          <label htmlFor="location">Location</label>
+          <input
+            id="location"
+            type="text"
+            className="public-form-input"
+            placeholder="Location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            required={true}
+          />
+        </div>
+
+        <div className="public-form-group">
+          <label htmlFor="shift">Shift</label>
+          <select
+            id="shift"
+            name="shift"
+            className="public-form-input"
+            value={shift}
+            onChange={(e) => setShift(e.target.value)}
+            required={true}
+          >
+            <option value="Morning">Morning (06:00 - 14:00)</option>
+            <option value="Afternoon">Afternoon (14:00 - 22:00)</option>
+            <option value="Night">Night (22:00 - 06:00)</option>
+          </select>
+        </div>
+
+        <div className="public-button-container">
+          <button type="submit" className="public-button public-button--primary">Create Schedule</button>
+        </div>
+      </form>
+
+      <h3 style={{ marginTop: '2rem' }}>Current Schedules</h3>
       <ul>
         {schedules.map((schedule) => (
           <li key={schedule._id}>
-            {schedule.employeeName} - Shift: {schedule.shiftTime} - Role: {schedule.role}
+            {schedule.employeeName} - Role: {schedule.role} - Job: {schedule.jobName} - Shift: {schedule.shift}
           </li>
         ))}
       </ul>
