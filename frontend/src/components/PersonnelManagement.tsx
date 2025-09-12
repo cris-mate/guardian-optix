@@ -8,7 +8,7 @@ interface User {
   guardType: string;
 }
 
-const PeopleManagement: React.FC = () => {
+const PersonnelManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
 
   const fetchUsers = async () => {
@@ -26,7 +26,9 @@ const PeopleManagement: React.FC = () => {
 
   return (
     <div>
-      <h2>People Management</h2>
+      <h2>Personnel Management</h2>
+      <p>Insert option to view users - all users or by type</p>
+      <p>Insert option to delete users</p>
       <ul>
         {users.map((user) => (
           <li key={user._id}>{user.name} - Role: {user.role} - Guard Type: {user.guardType}</li>
@@ -36,4 +38,4 @@ const PeopleManagement: React.FC = () => {
   );
 };
 
-export default PeopleManagement;
+export default PersonnelManagement;

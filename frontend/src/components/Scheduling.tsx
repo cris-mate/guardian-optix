@@ -10,7 +10,7 @@ interface Schedule {
   role: string;
 }
 
-const EmployeeScheduling: React.FC = () => {
+const Scheduling: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [employeeName, setEmployeeName] = useState('');
   const [role, setRole] = useState('Static');
@@ -150,4 +150,4 @@ const EmployeeScheduling: React.FC = () => {
   );
 };
 
-export default EmployeeScheduling;
+export default Scheduling;

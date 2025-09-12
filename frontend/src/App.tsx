@@ -7,8 +7,8 @@ import Homepage from "./components/Homepage";
 import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
-import EmployeeScheduling from './components/EmployeeScheduling';
-import PeopleManagement from './components/PeopleManagement';
+import Scheduling from './components/Scheduling';
+import PersonnelManagement from './components/PersonnelManagement';
 import TaskManager from './components/TaskManager';
 import PerformanceMonitoring from './components/PerformanceMonitoring';
 import Analytics from './components/Analytics';
@@ -42,7 +42,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <MainLayout>
-                  <EmployeeScheduling />
+                  <Scheduling />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -52,7 +52,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <MainLayout>
-                  <PeopleManagement />
+                  <PersonnelManagement />
                 </MainLayout>
               </ProtectedRoute>
             }
