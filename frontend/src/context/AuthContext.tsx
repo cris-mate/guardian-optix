@@ -3,12 +3,15 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Define blueprint for User object
 interface User {
   _id: string;
+  fullName: string;
   username: string;
   email: string;
+  phoneNumber: string;
+  postCode: string;
   password: string;
-  role: 'admin' | 'guard' | 'manager' | 'client';
-  //guardType: 'Static' | 'Dog Handler' | 'Close Protection';
+  role: 'Manager' | 'Guard';
   guardType?: string;
+  //guardType: 'Static' | 'Dog Handler' | 'Close Protection' | 'Mobile Patrol';
 }
 
 // Define the types for the AuthContext

@@ -1,7 +1,9 @@
-import { Flex, Heading, Image, Button, Text } from '@chakra-ui/react';
+import { Flex, Heading, IconButton, Button, Text, Icon } from '@chakra-ui/react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {useAuth} from "../context/AuthContext";
+import { useAuth } from '../context/AuthContext';
+import { MdNotificationsNone } from 'react-icons/md';
+import { ReactComponent as Logo } from '../assets/go-logo-transparent.svg';
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -24,28 +26,38 @@ export const Header = () => {
     >
       {/* Brand Section */}
       <Flex align="center" gap={4}>
-        <Image
-          src="/assets/guardian-optix-logo-120px.png"
-          alt="Logo"
-          height="20px" />
-        <Heading size="md">Guardian Optix</Heading>
+        <Icon as={Logo} boxSize="40px" />
+
+        {/* <Logo width="40" height="40" /> */}
+        <Heading size="md">
+        Guardian Optix
+        </Heading>
       </Flex>
 
-      {/* User Section */}
+      {/* Right Side Container */}
       {user && (
-        <Flex align="center" gap={4}>
-          <Text fontSize="lg"
-                color="#ced4da">
-            Logged in as, {user.username}
-          </Text>
-          <Button
-            bg="#495057"
-            fontWeight="medium"
-            _hover={{ bg: '#6c757d' }}
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+        <Flex align="center" gap={6}>
+
+          {/* Notification Section */}
+          <IconButton variant="ghost" aria-label="View notifications" rounded="full">
+            {<MdNotificationsNone />}
+          </IconButton>
+
+          {/* User Info Section */}
+          <Flex align="center" gap={4}>
+            <Text fontSize="lg" color="#ced4da">
+              Logged in as, {user.fullName}
+            </Text>
+
+            <Button
+              bg="#495057"
+              fontWeight="medium"
+              _hover={{ bg: '#6c757d' }}
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </Flex>
         </Flex>
       )}
     </Flex>

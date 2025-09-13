@@ -1,9 +1,0 @@
-.main-content {
-  display: flex;
-  align-items: center;
-  background-color: #34ebe8;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  max-width: 100rem;
-  margin: 0 auto;
-  padding: 2rem;
-}
