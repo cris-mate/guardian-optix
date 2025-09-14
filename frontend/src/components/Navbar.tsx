@@ -11,13 +11,13 @@ export const Navbar = () => {
     <Box
       as="aside"
       bg="#2D3748"
-      color="white"
-      p={4}
+      color="gray.300"
+      p={3}
       gridArea="navbar" // Important for Grid layout
       height="100%"
       overflowY="auto"
     >
-      <VStack align="stretch" gap={3}>
+      <VStack align="stretch" gap={2}>
         <NavItem to='/dashboard' icon={FiHome}>Dashboard</NavItem>
         <NavItem to='/activity' icon={FiActivity}>Activity</NavItem>
         <NavItem to='/clients' icon={FiBriefcase}>Clients</NavItem>
@@ -26,10 +26,10 @@ export const Navbar = () => {
 
         {/* Section Communication */}
         <Heading
-          fontSize="x1"
+          size="lg"
           fontWeight="normal"
           letterSpacing="wider"
-          color="blue.300"
+          color="blue.200"
           opacity={0.7}
         >
           Communication
@@ -40,10 +40,10 @@ export const Navbar = () => {
 
         {/* Section Operations */}
         <Heading
-          fontSize="x1"
+          size="lg"
           fontWeight="normal"
           letterSpacing="wider"
-          color="blue.300"
+          color="blue.200"
           opacity={0.7}
         >
           Operations
@@ -55,10 +55,10 @@ export const Navbar = () => {
 
         {/* Section Analytics */}
         <Heading
-          fontSize="x1"
+          size="lg"
           fontWeight="normal"
           letterSpacing="wider"
-          color="blue.300"
+          color="blue.200"
           opacity={0.7}
         >
           Analytics

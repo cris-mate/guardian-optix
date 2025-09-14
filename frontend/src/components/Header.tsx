@@ -20,25 +20,32 @@ export const Header = () => {
       justify="space-between"
       p={5}
       bg="#212529"
-      color="white"
+      color="gray.300"
       boxShadow="md"
       gridArea="header"
     >
       {/* Brand Section */}
       <Flex align="center" gap={4}>
         <Icon as={Logo} boxSize="40px" />
-
-        <Heading size="xl">
+        <Heading size="2xl"
+        >
         Guardian Optix
         </Heading>
       </Flex>
 
       {/* Right Side Container */}
       {user && (
-        <Flex align="center" gap={6}>
+        <Flex align="center" gap={4}>
 
           {/* Notification Section */}
-          <IconButton variant="ghost" aria-label="View notifications" rounded="full">
+          <IconButton
+            variant="ghost"
+            color="gray.300"
+            aria-label="View notifications"
+            rounded="full"
+            bg="#2D3748"
+            _hover={{ bg: '#6c757d' }}
+          >
             {<FiBell />}
           </IconButton>
 
@@ -46,16 +53,19 @@ export const Header = () => {
 
           {/* User Info Section */}
           <Flex align="center" gap={4}>
-            <Text fontSize="md" color="#ced4da">
+            <Text fontSize="md">
               Logged in as, {user.fullName}
             </Text>
 
             <Separator variant="solid" orientation="vertical" height="10" borderColor="gray.600" />
 
             <Button
-              bg="#495057"
+              bg="#2D3748"
+              color="gray.300"
+              variant="outline"
               fontSize="lg"
               fontWeight="medium"
+              rounded="lg"
               _hover={{ bg: '#6c757d' }}
               onClick={handleLogout}
             >
