@@ -1,7 +1,7 @@
 import { Grid, GridItem } from '@chakra-ui/react';
 import React from 'react';
 import { Header } from './Header';
-import { Sidebar } from './Sidebar';
+import { Navbar } from './Navbar';
 
 interface MainLayoutProps {
   children: React.ReactNode; // Allows the layout to wrap any page content
@@ -13,7 +13,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       templateAreas={`"header header"
                       "sidebar main"`}
       gridTemplateRows={'auto 1fr'} // Header row takes its own height, the rest fills the screen
-      gridTemplateColumns={'250px 1fr'} // Sidebar is 250px wide, main content takes the rest
+      gridTemplateColumns={'250px 1fr'} // Navbar is 250px wide, main content takes the rest
       h="100vh" // Full viewport height
       w="100vw" // Full viewport width
       bg="#34ebe8" // Main background for the app
@@ -22,7 +22,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         <Header />
       </GridItem>
       <GridItem area={'sidebar'}>
-        <Sidebar />
+        <Navbar />
       </GridItem>
       <GridItem area={'main'} p="8" overflowY="auto">
         {/* Page-specific content will be rendered here */}

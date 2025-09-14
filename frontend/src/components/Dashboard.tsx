@@ -12,7 +12,7 @@ const Dashboard: React.FC = () => {
     <div>
 
       <div>
-        <header className="dashboard-header">
+        <header>
           <h2>Welcome to your Dashboard, {user?.username || 'User'}!</h2>
           <p>This is a protected area of the application.</p>
           <p>Select a feature from the options below to get started.</p>

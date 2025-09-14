@@ -8,12 +8,13 @@ import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Scheduling from './components/Scheduling';
-import PersonnelManagement from './components/PersonnelManagement';
+import Personnel from './components/Personnel';
 import TaskManager from './components/TaskManager';
 import PerformanceMonitoring from './components/PerformanceMonitoring';
 import Analytics from './components/Analytics';
 import Compliance from './components/Compliance';
 import ProtectedRoute from './components/ProtectedRoute';
+import {Navbar} from "./components/Navbar";
 
 
 const App: React.FC = () => {
@@ -38,7 +39,7 @@ const App: React.FC = () => {
             }
           />
           <Route
-            path="/employee-scheduling"
+            path="/scheduling"
             element={
               <ProtectedRoute>
                 <MainLayout>
@@ -48,17 +49,17 @@ const App: React.FC = () => {
             }
           />
           <Route
-            path="/people-management"
+            path="/personnel"
             element={
               <ProtectedRoute>
                 <MainLayout>
-                  <PersonnelManagement />
+                  <Personnel />
                 </MainLayout>
               </ProtectedRoute>
             }
           />
           <Route
-            path="/task-manager"
+            path="/taskManager"
             element={
               <ProtectedRoute>
                 <MainLayout>
@@ -68,7 +69,7 @@ const App: React.FC = () => {
             }
           />
           <Route
-            path="/performance-monitoring"
+            path="/performanceMonitoring"
             element={
               <ProtectedRoute>
                 <MainLayout>

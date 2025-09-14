@@ -8,7 +8,7 @@ interface User {
   guardType: string;
 }
 
-const PersonnelManagement: React.FC = () => {
+const Personnel: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
 
   const fetchUsers = async () => {
@@ -38,4 +38,4 @@ const PersonnelManagement: React.FC = () => {
   );
 };
 
-export default PersonnelManagement;
+export default Personnel;
