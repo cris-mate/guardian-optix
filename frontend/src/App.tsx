@@ -3,16 +3,16 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 
 import MainLayout from './components/MainLayout';
-import Homepage from "./components/Homepage";
-import Register from './components/Register';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Scheduling from './components/Scheduling';
-import Personnel from './components/Personnel';
-import TaskManager from './components/TaskManager';
-import PerformanceMonitoring from './components/PerformanceMonitoring';
-import Analytics from './components/Analytics';
-import Compliance from './components/Compliance';
+import Homepage from "./components/pages/Homepage";
+import Register from './components/pages/Register';
+import Login from './components/pages/Login';
+import Dashboard from './components/pages/Dashboard';
+import Scheduling from './components/pages/Scheduling';
+import Personnel from './components/pages/Personnel';
+import TaskManager from './components/pages/TaskManager';
+import PerformanceMonitoring from './components/pages/PerformanceMonitoring';
+import Analytics from './components/pages/Analytics';
+import Compliance from './components/pages/Compliance';
 import ProtectedRoute from './components/ProtectedRoute';
 import {Navbar} from "./components/Navbar";
 

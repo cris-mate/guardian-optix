@@ -2,8 +2,8 @@ import { Box, Heading, VStack, Separator } from '@chakra-ui/react';
 import React from 'react';
 import { NavItem } from "./NavItem";
 import {
-  FiActivity, FiBriefcase, FiHome, FiMessageSquare, FiUsers, FiCheckCircle,
-  FiBookOpen, FiRss, FiCalendar, FiCheckSquare, FiClock, FiFileText, FiTrendingUp, FiPieChart
+  FiActivity, FiBriefcase, FiHome, FiMessageSquare, FiUsers,
+  FiRss, FiCalendar, FiCheckSquare, FiClock, FiFileText, FiTrendingUp, FiPieChart
 } from 'react-icons/fi';
 
 export const Navbar = () => {
@@ -34,7 +34,6 @@ export const Navbar = () => {
         >
           Communication
         </Heading>
-        <NavItem to='/directory' icon={FiBookOpen}>Directory</NavItem>
         <NavItem to='/chat' icon={FiMessageSquare}>Chat</NavItem>
         <NavItem to='/updates' icon={FiRss}>Updates</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
@@ -52,7 +51,6 @@ export const Navbar = () => {
         <NavItem to='/scheduling' icon={FiCalendar}>Scheduling</NavItem>
         <NavItem to='/taskManager' icon={FiCheckSquare}>Task Manager</NavItem>
         <NavItem to='/timeClock' icon={FiClock}>Time Clock</NavItem>
-        <NavItem to='/forms' icon={FiFileText}>Forms</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
         {/* Section Analytics */}
@@ -70,7 +68,7 @@ export const Navbar = () => {
         <Separator variant="solid" borderColor="gray.600" />
 
         {/* Section Compliance */}
-        <NavItem to='/compliance' icon={FiCheckCircle}>Compliance</NavItem>
+        <NavItem to='/compliance' icon={FiFileText}>Compliance</NavItem>
       </VStack>
     </Box>
   );
