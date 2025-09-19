@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const EmployeeSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  role: { type: String, enum: ['Guard', 'Manager', 'Client'], required: true },
+  role: { type: String, enum: ['Guard', 'Manager'], required: true },
+  managerType: { type: String, enum: ['Operations Manager', 'Account Manager', 'Business Support Manager'], default: 'Operations Manager' },
   guardType: { type: String, enum: ['Static', 'Dog Handler', 'Close Protection'], default: 'Static' },
   assignedTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
   availability: { type: Boolean, default: true },

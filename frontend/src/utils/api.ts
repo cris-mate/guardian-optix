@@ -29,10 +29,11 @@ export const register = async (
   postCode: string,
   password: string,
   role: string,
-  guardType: string) => {
+  managerType?: string,
+  guardType?: string) => {
   try {
     const response = await axios.post(`${API_URL}/register`,
-      { fullName, username, email, phoneNumber, postCode, password, role, guardType });
+      { fullName, username, email, phoneNumber, postCode, password, role, managerType, guardType });
     return response.data;
   } catch (error) {
     console.error('Registration request failed: ', error);

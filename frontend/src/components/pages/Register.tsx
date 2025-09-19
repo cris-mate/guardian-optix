@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import { register } from '../../utils/api';
 import axios from "axios";
+import '../PublicPages.css';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const Register: React.FC = () => {
     postCode: '',
     password: '',
     role: 'Manager',
+    managerType: 'Operations Manager',
     guardType: 'Static',
   });
   const [error, setError] = useState('');
@@ -26,8 +28,10 @@ const Register: React.FC = () => {
     e.preventDefault();
     try {
       const dataToSend = { ...formData};
-      if (dataToSend.role !== 'Guard') {
+      if (dataToSend.role === 'Manager') {
         delete (dataToSend as any).guardType;
+      } else if (dataToSend.role === 'Guard') {
+        delete (dataToSend as any).managerType;
       }
       await register(
         dataToSend.fullName,
@@ -37,7 +41,9 @@ const Register: React.FC = () => {
         dataToSend.postCode,
         dataToSend.password,
         dataToSend.role,
-        dataToSend.guardType);
+        dataToSend.managerType,
+        dataToSend.guardType
+      );
 
       setError('');
       setSuccessMessage('Registration successful! Redirecting to login...');
@@ -99,10 +105,21 @@ const Register: React.FC = () => {
             </select>
           </div>
 
+          {formData.role === 'Manager' && (
+            <div className="public-form-group">
+              <label htmlFor="managerType">Manager Type:</label>
+              <select id="managerType" name="managerType" value={formData.managerType} className="public-form-input" onChange={handleChange} required>
+                <option value="Operations Manager">Operations Manager</option>
+                <option value="Account Manager">Account Manager</option>
+                <option value="Business Support Manager">Business Support Manager</option>
+              </select>
+            </div>
+          )}
+
           {formData.role === 'Guard' && (
             <div className="public-form-group">
               <label htmlFor="guardType">Guard Type:</label>
-              <select name="guardType" value={formData.guardType} className="public-form-input" onChange={handleChange} required>
+              <select id="guardType" name="guardType" value={formData.guardType} className="public-form-input" onChange={handleChange} required>
                 <option value="Static">Static</option>
                 <option value="Dog Handler">Dog Handler</option>
                 <option value="Close Protection">Close Protection</option>

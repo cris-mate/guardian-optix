@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema({
   postCode: { type: String, required: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['Admin', 'Manager', 'Guard'], required: true },
+  managerType: { type: String, enum: ['Operations Manager', 'Account Manager', 'Business Support Manager'], required: false },
   guardType: { type: String, enum: ['Static', 'Dog Handler', 'Close Protection', 'Mobile Patrol'], required: false },
   createdAt: { type: Date, default: Date.now }
 });
