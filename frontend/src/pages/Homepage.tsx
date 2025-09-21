@@ -2,6 +2,7 @@ import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, VStack, Heading, Text, Button, HStack, Flex } from '@chakra-ui/react';
 import { Header } from '../layouts/Header';
+import {Footer} from "../layouts/Footer";
 
 const Homepage: React.FC = () => {
   return (
@@ -86,12 +87,7 @@ const Homepage: React.FC = () => {
         </Box>
       </VStack>
 
-      {/* Footer */}
-      <Flex as="footer" justify="center" align="center" p={5}>
-        <Text fontSize="sm" color="gray.300">
-          &copy; {new Date().getFullYear()} Guardian Optix. All rights reserved.
-        </Text>
-      </Flex>
+      <Footer />
     </Flex>
   );
 };
