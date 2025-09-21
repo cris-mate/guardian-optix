@@ -9,3 +9,5 @@ export const Activity: React.FC = () => {
     </div>
   );
 };
+
+export default Activity;

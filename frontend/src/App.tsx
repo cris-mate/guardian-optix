@@ -1,8 +1,11 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { PageTitleProvider } from './context/PageTitleContext';
 import RootLayout from './layouts/RootLayout';
+
+// Pages
 import Homepage from "./pages/Homepage";
 import Register from './components/auth/Register';
 import Login from './components/auth/Login';
@@ -13,9 +16,11 @@ import TaskManager from './pages/TaskManager';
 import PerformanceMonitoring from './pages/PerformanceMonitoring';
 import Analytics from './pages/Analytics';
 import Compliance from './pages/Compliance';
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import {Navbar} from "./layouts/Navbar";
-
+import Activity from "./pages/Activity";
+import Clients from "./pages/Clients";
+import Chat from "./pages/Chat";
+import Updates from "./pages/Updates";
+import TimeClock from "./pages/TimeClock";
 
 const App: React.FC = () => {
   return (
@@ -29,75 +34,28 @@ const App: React.FC = () => {
 
           {/* Protected Routes */}
           <Route
-            path="/dashboard"
             element={
               <ProtectedRoute>
-                <RootLayout>
-                  <Dashboard />
-                </RootLayout>
+                <PageTitleProvider>
+                  <RootLayout />
+                </PageTitleProvider>
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/scheduling"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Scheduling />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/personnel"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Personnel />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/taskManager"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <TaskManager />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/performanceMonitoring"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <PerformanceMonitoring />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Analytics />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/compliance"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Compliance />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/clients" element={<Clients/>} />
+            <Route path="/personnel" element={<Personnel />} />
+            <Route path="/scheduling" element={<Scheduling />} />
+            <Route path="/taskManager" element={<TaskManager />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/updates" element={<Updates />} />
+            <Route path="/timeClock" element={<TimeClock />} />
+            <Route path="/performanceMonitoring" element={<PerformanceMonitoring />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/compliance" element={<Compliance />} />
+
+          </Route>
         </Routes>
       </Router>
     </AuthProvider>

@@ -1,11 +1,13 @@
 import React from 'react';
 
-export const Clients: React.FC = () => {
+const Clients: React.FC = () => {
   return (
     <div>
-      <h2>Clients</h2>
+      <h2>Compliance and Risk Management</h2>
       <p>This feature will ensure adherence to compliance standards and risk management.</p>
-      {/* Add current clients here */}
+      {/* Add compliance checklists and forms here */}
     </div>
   );
 };
+
+export default Clients;
