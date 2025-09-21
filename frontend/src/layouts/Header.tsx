@@ -19,7 +19,7 @@ export const Header = () => {
       align="center"
       justify="space-between"
       p={5}
-      bg="#212529"
+      bg="#1b1b60"
       color="gray.300"
       boxShadow="md"
       gridArea="header"

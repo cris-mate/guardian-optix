@@ -10,8 +10,8 @@ interface User {
   postCode: string;
   password: string;
   role: 'Manager' | 'Guard';
+  managerType?: string;
   guardType?: string;
-  //guardType: 'Static' | 'Dog Handler' | 'Close Protection' | 'Mobile Patrol';
 }
 
 // Define the types for the AuthContext

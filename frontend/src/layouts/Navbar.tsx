@@ -1,6 +1,6 @@
 import { Box, Heading, VStack, Separator } from '@chakra-ui/react';
 import React from 'react';
-import { NavItem } from "./NavItem";
+import { NavItem } from "../components/custom ui/NavItem";
 import {
   FiActivity, FiBriefcase, FiHome, FiMessageSquare, FiUsers,
   FiRss, FiCalendar, FiCheckSquare, FiClock, FiFileText, FiTrendingUp, FiPieChart
@@ -10,7 +10,7 @@ export const Navbar = () => {
   return (
     <Box
       as="aside"
-      bg="#2D3748"
+      bg="#2626d9"
       color="gray.300"
       p={3}
       gridArea="navbar" // Important for Grid layout

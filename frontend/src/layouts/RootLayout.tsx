@@ -2,16 +2,18 @@ import { Grid, GridItem } from '@chakra-ui/react';
 import React from 'react';
 import { Header } from './Header';
 import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 
 interface MainLayoutProps {
   children: React.ReactNode; // Allows the layout to wrap any page content
 }
 
-export const MainLayout = ({ children }: MainLayoutProps) => {
+export const RootLayout = ({ children }: MainLayoutProps) => {
   return (
     <Grid
       templateAreas={`"header header"
-                      "sidebar main"`}
+                      "sidebar main"
+                      "footer footer"`}
       gridTemplateRows={'auto 1fr'} // Header row takes its own height, the rest fills the screen
       gridTemplateColumns={'250px 1fr'} // Navbar is 250px wide, main content takes the rest
       h="100vh" // Full viewport height
@@ -28,8 +30,11 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         {/* Page-specific content will be rendered here */}
         {children}
       </GridItem>
+      <GridItem area={'footer'}>
+        <Footer />
+      </GridItem>
     </Grid>
   );
 };
 
-export default MainLayout;
+export default RootLayout;

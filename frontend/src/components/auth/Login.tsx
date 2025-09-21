@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
+import { login } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 import {Link} from "react-router-dom";
 
 const Login: React.FC = () => {

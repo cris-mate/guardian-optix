@@ -6,16 +6,11 @@ const jwt = require('jsonwebtoken');
 exports.registerUser = async (req, res) => {
   const { fullName, username, email, phoneNumber, postCode, password, role, managerType, guardType } = req.body;
   try {
-    // Check if email is already in use
-    const emailExists = await User.findOne({ email });
-    if (emailExists) {
-      return res.status(400).json({ error: 'Registration failed. Email already in use' });
-    }
-
-    // Check if username is already in use
-    const usernameExists = await User.findOne({ username });
-    if (usernameExists) {
-      return res.status(400).json({ error: 'Registration failed. Username already in use' });
+    // Check if email or username is already in use
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      const field = existingUser.email === email ? 'Email' : 'Username';
+      return res.status(400).json({ error: `Registration failed. ${field} already in use` });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -40,10 +35,6 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
   const { identifier, password } = req.body;
   try {
-    /**
-    * @type {import('../models/User').Document | null}
-    */
-    // noinspection JSCheckFunctionSignatures
     const user = await User.findOne({
       $or: [{ username: identifier }, { email: identifier}],
     });
