@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createSchedule, fetchSchedules } from "../../utils/api";
+import { createSchedule, fetchSchedules } from "../utils/api";
 
 interface Schedule {
   _id: string;

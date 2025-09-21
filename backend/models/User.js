@@ -10,6 +10,7 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['Admin', 'Manager', 'Guard'], required: true },
   managerType: { type: String, enum: ['Operations Manager', 'Account Manager', 'Business Support Manager'], required: false },
   guardType: { type: String, enum: ['Static', 'Dog Handler', 'Close Protection', 'Mobile Patrol'], required: false },
+  status: { type: String, enum: ['Pending', 'Approved'], default: 'Pending' },
   createdAt: { type: Date, default: Date.now }
 });
 
