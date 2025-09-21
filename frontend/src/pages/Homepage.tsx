@@ -1,43 +1,98 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, VStack, Heading, Text, Button, HStack, Flex } from '@chakra-ui/react';
+import { Header } from '../layouts/Header';
 
 const Homepage: React.FC = () => {
   return (
-    <div className="public-container">
+    <Flex direction="column" minH="100vh" bg="#1b1b60">
+      {/* On a public page, the 'user' object is null, so the user-specific
+          details will automatically be hidden. */}
+      <Header />
 
-      <header className="public-header">
-        <h1>Welcome to Guardian Optix</h1>
-        <p>A comprehensive solution for security operations management</p>
-      </header>
+      {/* Main content area */}
+      <VStack
+        flex="4"
+        align="center"
+        justify="center"
+        gap={8}
+        p={{ base: 4, md: 8 }} // responsive padding
+        textAlign="center"
+      >
+        <Box
+          bg="whiteAlpha.900"
+          p={{ base: 6, md: 10 }}
+          borderRadius="xl"
+          boxShadow="lg"
+          w="full"
+          maxW={{ base: '100%', md: '3xl' }} // responsive max-width
+        >
+          <VStack gap={6}>
+            <Heading
+              as="h1"
+              fontSize={{ base: '3xl', md: '5xl' }} // responsive font size
+              color="gray.700"
+            >
+              Welcome to Guardian Optix!
+            </Heading>
 
-      <main className="public-content-card public-content-homepage">
-        <p className="public-intro-text">
-          Guardian Optix web-application is designed to help security companies streamline their operations,
-          manage guard patrols, schedule shifts, ensure compliance and much more, all from one
-          centralised dashboard.
-        </p>
+            <Text fontSize={{ base: 'md', md: 'lg' }} color="gray.500">
+              A comprehensive solution for security operations management.
+            </Text>
 
-        <div className="public-header">
-          <h2>Get Started</h2>
-          <p>Please login or register to continue.</p>
-        </div>
+            <Text fontSize={{ base: 'lg', md: 'xl' }} color="gray.600" lineHeight="1.6">
+              Our application is designed to help security companies streamline their operations,
+              manage guard patrols, schedule shifts, ensure compliance and much more, all from one
+              centralised dashboard.
+            </Text>
 
-        <div className="public-button-container">
-          <Link to="/login" className="public-button public-button--primary">
-            Login
-          </Link>
-          {' '}
-          <Link to="/register" className="public-button public-button--secondary">
-            Create an account
-          </Link>
-        </div>
-      </main>
+            <Heading as="h2" size="lg" color="gray.700" pt={4}>
+              Get Started
+            </Heading>
+            <Text fontSize="md" color="gray.500">
+              Please login or register to continue.
+            </Text>
 
-      <footer className="public-footer homepage-footer">
-        <p>&copy; {new Date().getFullYear()} Guardian Optix. All rights reserved.</p>
-      </footer>
+            {/* Buttons */}
+            <HStack gap={4} pt={4}>
+              <RouterLink to="login">
+                <Button
+                  bg="#1b1b60"
+                  color="gray.300"
+                  rounded="md"
+                  size="lg"
+                  px={8}
+                  variant="surface"
+                >
+                  Login
+                </Button>
+              </RouterLink>
 
-    </div>
+              <RouterLink to="register">
+                <Button
+                  color="#1b1b60"
+                  rounded="md"
+                  size="lg"
+                  px={8}
+                  variant="outline"
+                  _hover= {{bg: "#6c757d", color: "gray.300"}}
+                >
+                  Register
+                </Button>
+              </RouterLink>
+            </HStack>
+          </VStack>
+
+        </Box>
+      </VStack>
+
+      {/* Footer */}
+      <Flex as="footer" justify="center" align="center" p={5}>
+        <Text fontSize="sm" color="gray.300">
+          &copy; {new Date().getFullYear()} Guardian Optix. All rights reserved.
+        </Text>
+      </Flex>
+    </Flex>
   );
 };
 
