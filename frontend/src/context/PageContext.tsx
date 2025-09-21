@@ -7,22 +7,22 @@ interface PageTitleContextType {
 }
 
 // Create the context with a default value
-const PageTitleContext = createContext<PageTitleContextType | undefined>(undefined);
+const PageContext = createContext<PageTitleContextType | undefined>(undefined);
 
 // Create a provider component that will wrap our app
 export const PageTitleProvider = ({ children }: { children: ReactNode }) => {
   const [title, setTitle] = useState('Dashboard'); // Default title
 
   return (
-    <PageTitleContext.Provider value={{ title, setTitle }}>
+    <PageContext.Provider value={{ title, setTitle }}>
       {children}
-    </PageTitleContext.Provider>
+    </PageContext.Provider>
   );
 };
 
 // Create a custom hook to easily use the context
 export const usePageTitle = () => {
-  const context = useContext(PageTitleContext);
+  const context = useContext(PageContext);
   if (context === undefined) {
     throw new Error('usePageTitle must be used within a PageTitleProvider');
   }

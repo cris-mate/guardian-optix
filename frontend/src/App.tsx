@@ -2,7 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import { PageTitleProvider } from './context/PageTitleContext';
+import { PageTitleProvider } from './context/PageContext';
 import RootLayout from './layouts/RootLayout';
 
 // Pages
