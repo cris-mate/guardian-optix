@@ -9,7 +9,7 @@ interface User {
   phoneNumber: string;
   postCode: string;
   password: string;
-  role: 'Manager' | 'Guard';
+  role: 'Admin' | 'Manager' | 'Guard';
   managerType?: string;
   guardType?: string;
 }

@@ -16,7 +16,7 @@ const Scheduling: React.FC = () => {
   const [role, setRole] = useState('Static');
   const [jobName, setJobName] = useState('');
   const [location, setLocation] = useState('');
-  const [shiftTime, setShift] = useState('Morning');
+  const [shiftTime, setShiftTime] = useState('Morning');
   const [error, setError] = useState('');
 
   const loadSchedules = async () => {
@@ -40,7 +40,7 @@ const Scheduling: React.FC = () => {
       setRole('Static');
       setJobName('');
       setLocation('');
-      setShift('Morning');
+      setShiftTime('Morning');
     } catch (error) {
       console.error('Error creating schedule:', error);
       setError('Failed to create schedule.');
@@ -124,7 +124,7 @@ const Scheduling: React.FC = () => {
             name="shift"
             className="public-form-input"
             value={shiftTime}
-            onChange={(e) => setShift(e.target.value)}
+            onChange={(e) => setShiftTime(e.target.value)}
             required={true}
           >
             <option value="Morning">Morning (06:00 - 14:00)</option>

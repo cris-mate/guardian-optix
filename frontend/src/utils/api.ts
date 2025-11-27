@@ -76,7 +76,7 @@ export const fetchTasks = async () => {
 
 // Create new schedule
 export const createSchedule = async (employeeName: string, role: string, jobName: string, location: string, shiftTime: string ) => {
-  const response = await api.post('/schedules', { employeeName, role, jobName, location, shiftTime, createdAt:new Date () });
+  const response = await api.post('/schedules', { employeeName, role, jobName, location, shiftTime } );
   return response.data;
 };
 

@@ -18,11 +18,12 @@ mongoose.connect(dbURI)
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
-const peopleRoutes = require('./routes/guardsRoutes');
+const guardsRoutes = require('./routes/guardsRoutes');
+
 app.use('/api', authRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', scheduleRoutes);
-app.use('/api', peopleRoutes);
+app.use('/api', guardsRoutes);
 
 // Server setup
 const PORT = process.env.PORT || 5000;
