@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { createSchedule, fetchSchedules } from "../utils/api";
+import { createSchedule, fetchSchedules } from "@/utils/api";
 
 interface Schedule {
   _id: string;
   employeeName: string;
+  role: string;
   jobName: string;
   location: string;
-  shift: string;
-  role: string;
+  shiftTime: string;
 }
 
 const Scheduling: React.FC = () => {
@@ -16,7 +16,7 @@ const Scheduling: React.FC = () => {
   const [role, setRole] = useState('Static');
   const [jobName, setJobName] = useState('');
   const [location, setLocation] = useState('');
-  const [shift, setShift] = useState('Morning');
+  const [shiftTime, setShift] = useState('Morning');
   const [error, setError] = useState('');
 
   const loadSchedules = async () => {
@@ -32,7 +32,7 @@ const Scheduling: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newSchedule = await createSchedule(employeeName, jobName, location, shift, role);
+      const newSchedule = await createSchedule(employeeName, role, jobName, location, shiftTime );
       setSchedules((prevSchedules) => [...prevSchedules, newSchedule]); // Directly update the state
 
       // Clear input fields after creation
@@ -123,7 +123,7 @@ const Scheduling: React.FC = () => {
             id="shift"
             name="shift"
             className="public-form-input"
-            value={shift}
+            value={shiftTime}
             onChange={(e) => setShift(e.target.value)}
             required={true}
           >
@@ -142,7 +142,7 @@ const Scheduling: React.FC = () => {
       <ul>
         {schedules.map((schedule) => (
           <li key={schedule._id}>
-            {schedule.employeeName} - Role: {schedule.role} - Job: {schedule.jobName} - Shift: {schedule.shift}
+            {schedule.employeeName} - Role: {schedule.role} - Job: {schedule.jobName} - Shift: {schedule.shiftTime}
           </li>
         ))}
       </ul>

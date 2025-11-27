@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { fetchEmployees } from '../utils/api';
 
 interface User {
   _id: string;
@@ -13,10 +13,10 @@ const Personnel: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/users');
-      setUsers(response.data);
+      const data = await fetchEmployees();
+      setUsers(data);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching employees:', error);
     }
   };
 
@@ -26,9 +26,10 @@ const Personnel: React.FC = () => {
 
   return (
     <div>
+
       <h2>Personnel Management</h2>
-      <p>Insert option to view users - all users or by type</p>
-      <p>Insert option to delete users</p>
+      <p> TODO: Insert option to view users - all users or by type</p>
+      <p> TODO: Insert option to delete users</p>
       <ul>
         {users.map((user) => (
           <li key={user._id}>{user.name} - Role: {user.role} - Guard Type: {user.guardType}</li>

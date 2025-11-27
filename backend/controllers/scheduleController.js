@@ -7,8 +7,8 @@ const Schedule = require("../models/Schedule.js");
  */
 exports.createSchedule = async (req, res) => {
   try {
-    const { employeeName, role, jobName, location, shiftTime, createdAt } = req.body;
-    const newSchedule = new Schedule({ employeeName, role, jobName, location, shiftTime, createdAt });
+    const { employeeName, role, jobName, location, shiftTime } = req.body;
+    const newSchedule = new Schedule({ employeeName, role, jobName, location, shiftTime });
     await newSchedule.save();
     res.status(201).json(newSchedule);
   } catch (error) {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import scheduling from "@/pages/Scheduling";
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -74,13 +75,19 @@ export const fetchTasks = async () => {
 };
 
 // Create new schedule
-export const createSchedule = async (employeeName: string, role: string, jobName: string, location: string, shift: string) => {
-  const response = await api.post('/schedules', { employeeName, role, jobName, location, shift });
+export const createSchedule = async (employeeName: string, role: string, jobName: string, location: string, shiftTime: string ) => {
+  const response = await api.post('/schedules', { employeeName, role, jobName, location, shiftTime, createdAt:new Date () });
   return response.data;
 };
 
 // Fetch all schedules
 export const fetchSchedules = async () => {
   const response = await api.get('/schedules');
+  return response.data;
+};
+
+// Fetch all employees
+export const fetchEmployees = async () => {
+  const response = await api.get('/employees');
   return response.data;
 };

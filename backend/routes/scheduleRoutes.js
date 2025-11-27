@@ -1,27 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const Schedule = require('../models/Schedule');
+const authMiddleware = require('../middleware/authMiddleware');
+const {createSchedule, getAllSchedules} = require("../controllers/scheduleController");
 
 // Create a new schedule
-router.post('/schedules', async (req, res) => {
-  try {
-    const { employeeName, shiftTime, role } = req.body;
-    const newSchedule = new Schedule({ employeeName, role, jobName, location, shiftTime, createdAt });
-    await newSchedule.save();
-    res.status(201).json(newSchedule);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating schedule', error });
-  }
-});
+router.post('/schedules', authMiddleware, createSchedule);
 
 // Get all schedules
-router.get('/schedules', async (req, res) => {
-  try {
-    const schedules = await Schedule.find();
-    res.status(200).json(schedules);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching schedules', error });
-  }
-});
+router.get('/schedules', authMiddleware, getAllSchedules);
 
 module.exports = router;
