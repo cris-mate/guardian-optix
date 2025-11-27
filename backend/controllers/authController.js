@@ -43,7 +43,12 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, user });
+
+    // Exclude password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json({ token, user: userResponse });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

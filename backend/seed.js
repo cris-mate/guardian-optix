@@ -1,43 +1,38 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
-require('dotenv').config(); // Load environment variables
+require('dotenv').config();
 
-// --- CONFIGURATION  VIA ENVIRONMENT VARIABLES ---
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@guardianoptix.co.uk';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+// --- CONFIGURATION ---
+const ADMIN_USERNAME = 'admin';
+const ADMIN_EMAIL = 'admin@guardianoptix.co.uk';
+const ADMIN_PASSWORD = 'secret';
 
 const dbURI = process.env.DB_URI || 'mongodb://localhost:27017/guardian-optix-db';
 
 const seedAdmin = async () => {
-  if (!ADMIN_PASSWORD) {
-    console.error('ERROR: ADMIN_PASSWORD environment variable is required.');
-    console.error('Set it in your .env file.');
-    process.exit(1);
-  }
-
   try {
     await mongoose.connect(dbURI);
     console.log('MongoDB connected for seeding...');
 
-    // Check if an admin user already exists
-    const existingAdmin = await User.findOne({ email: ADMIN_USERNAME });
-    if (existingAdmin) {
-      console.log('Admin user already exists. No action taken.');
-      return;
+    // Delete existing admin first
+    const deleted = await User.findOneAndDelete({
+      $or: [{ email: ADMIN_EMAIL }, { username: ADMIN_USERNAME }]
+    });
+
+    if (deleted) {
+      console.log('Existing admin deleted.');
     }
 
-    // If no admin exists, create one
-    console.log('Admin user not found, creating one...');
-    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
+    // Create fresh admin
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
     const adminUser = new User({
       fullName: 'Guardian Optix Admin',
       username: ADMIN_USERNAME,
       email: ADMIN_EMAIL,
-      phoneNumber: '00000000',
-      postCode: 'XX0 0XX',
+      phoneNumber: '12345678',
+      postCode: 'NN1 1AA',
       password: hashedPassword,
       role: 'Admin',
     });
@@ -45,9 +40,8 @@ const seedAdmin = async () => {
     await adminUser.save();
     console.log('Admin user created successfully.');
 
-
   } catch (error) {
-    console.log('Error during admin seeding: ', error);
+    console.error('Error during admin seeding:', error);
   } finally {
     await mongoose.connection.close();
     console.log('MongoDB connection closed.');
