@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { createTask, getAllTasks } = require('../controllers/taskController');
 const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+const { createTask, getAllTasks } = require('../controllers/taskController');
 
-// Create a new task
-router.post('/tasks', authMiddleware, createTask);
-
-// Get all tasks
+// Any logged-in user can view tasks
 router.get('/tasks', authMiddleware, getAllTasks);
+
+// Only Admin/Manager can create tasks
+router.post('/tasks', authMiddleware,  roleMiddleware('Admin', 'Manager'), createTask);
+
 
 module.exports = router;
