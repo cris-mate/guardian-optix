@@ -16,7 +16,7 @@ exports.createSchedule = async (req, res) => {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ message: 'Invalid schedule data provided.', errors: error.errors });
     }
-    res.status(500).json({ message: 'An unexpected error occurred on the server.' });
+    res.status(500).json({ message: 'Server error', errors: error.errors });
   }
 };
 

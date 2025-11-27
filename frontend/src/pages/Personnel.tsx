@@ -7,21 +7,26 @@ interface Employee {
   role: string;
   managerType?: string;
   guardType?: string;
-  availability: string;
+  availability: boolean;
   shiftTime?: string;
 }
 
 const Personnel: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const loadEmployees = async () => {
     try {
+      setLoading(true);
       const data = await fetchEmployees();
       setEmployees(data);
+      setError('');
     } catch (error) {
       console.error('Error fetching employees:', error);
       setError('Failed to load employees.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -29,6 +34,8 @@ const Personnel: React.FC = () => {
   useEffect(() => {
     loadEmployees();
   }, []);
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div>
@@ -43,6 +50,7 @@ const Personnel: React.FC = () => {
             {emp.fullName} - Role: {emp.role}
             {emp.guardType && ` - Type: ${emp.guardType}`}
             {emp.managerType && ` - Type: ${emp.managerType}`}
+            {!emp.availability && ' - Currently Assigned'}
           </li>
         ))}
       </ul>

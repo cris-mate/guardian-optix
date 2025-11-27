@@ -120,8 +120,8 @@ const Scheduling: React.FC = () => {
         <div className="public-form-group">
           <label htmlFor="shift">Shift</label>
           <select
-            id="shift"
-            name="shift"
+            id="shiftTime"
+            name="shiftTime"
             className="public-form-input"
             value={shiftTime}
             onChange={(e) => setShiftTime(e.target.value)}
@@ -142,7 +142,7 @@ const Scheduling: React.FC = () => {
       <ul>
         {schedules.map((schedule) => (
           <li key={schedule._id}>
-            {schedule.employeeName} - Role: {schedule.role} - Job: {schedule.jobName} - Shift: {schedule.shiftTime}
+            {schedule.employeeName} - Role: {schedule.role} - Job: {schedule.jobName} - Location: {schedule.location} - Shift: {schedule.shiftTime}
           </li>
         ))}
       </ul>
