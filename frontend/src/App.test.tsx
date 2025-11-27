@@ -1,9 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
-test('renders homepage heading', () => {
-  render(<App />);
-  const heading = screen.getByText(/Welcome to Guardian Optix/i);
-  expect(heading).toBeInTheDocument();
+test('renders homepage welcome heading', () => {
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>
+  );
+  const headingElement = screen.getByText(/Welcome to Guardian Optix/i);
+  expect(headingElement).toBeInTheDocument();
 });

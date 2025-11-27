@@ -18,7 +18,7 @@ mongoose.connect(dbURI)
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
-const peopleRoutes = require('./routes/peopleRoutes');
+const peopleRoutes = require('./routes/guardsRoutes');
 app.use('/api', authRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', scheduleRoutes);

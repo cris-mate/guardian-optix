@@ -1,20 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const Employee = require('../models/Employee');
+const Employee = require('../models/User');
 const Task = require('../models/Task');
+const authMiddleware = require('../middleware/authMiddleware');
 
-// Get all employees
-router.get('/employees', async (req, res) => {
+// Get all guard employees
+router.get('/employees', authMiddleware, async (req, res) => {
   try {
-    const employees = await Employee.find().populate('assignedTask');
+    const employees = await User.find('Guard')
+      .select('-password')  // Exclude password from response
+      .populate('assignedTask');
     res.status(200).json(employees);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching employees', error });
+    res.status(500).json({ message: 'Error fetching guard employees', error });
   }
 });
 
 // Assign a task to an employee
-router.post('/assign-task', async (req, res) => {
+router.post('/assign-task', authMiddleware, async (req, res) => {
   try {
     const { employeeId, taskId } = req.body;
     const employee = await Employee.findById(employeeId);

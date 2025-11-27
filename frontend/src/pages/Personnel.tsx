@@ -1,38 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { fetchEmployees } from '../utils/api';
 
-interface User {
+interface Employee {
   _id: string;
-  name: string;
+  fullName: string;
   role: string;
-  guardType: string;
+  managerType?: string;
+  guardType?: string;
+  availability: string;
+  shiftTime?: string;
 }
 
 const Personnel: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [error, setError] = useState('');
 
-  const fetchUsers = async () => {
+  const loadEmployees = async () => {
     try {
       const data = await fetchEmployees();
-      setUsers(data);
+      setEmployees(data);
     } catch (error) {
       console.error('Error fetching employees:', error);
+      setError('Failed to load employees.');
     }
   };
 
+
   useEffect(() => {
-    fetchUsers();
+    loadEmployees();
   }, []);
 
   return (
     <div>
 
       <h2>Personnel Management</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <p> TODO: Insert option to view users - all users or by type</p>
       <p> TODO: Insert option to delete users</p>
       <ul>
-        {users.map((user) => (
-          <li key={user._id}>{user.name} - Role: {user.role} - Guard Type: {user.guardType}</li>
+        {employees.map((emp) => (
+          <li key={emp._id}>
+            {emp.fullName} - Role: {emp.role}
+            {emp.guardType && ` - Type: ${emp.guardType}`}
+            {emp.managerType && ` - Type: ${emp.managerType}`}
+          </li>
         ))}
       </ul>
     </div>
