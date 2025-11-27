@@ -6,7 +6,7 @@ const Schedule = require('../models/Schedule');
 router.post('/schedules', async (req, res) => {
   try {
     const { employeeName, shiftTime, role } = req.body;
-    const newSchedule = new Schedule({ employeeName, shiftTime, role });
+    const newSchedule = new Schedule({ employeeName, role, jobName, location, shiftTime, createdAt });
     await newSchedule.save();
     res.status(201).json(newSchedule);
   } catch (error) {

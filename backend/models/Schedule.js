@@ -5,7 +5,7 @@ const ScheduleSchema = new mongoose.Schema({
   role: { type: String, enum: ['Static', 'Dog Handler', 'Close Protection', 'Mobile Patrol'], required: true },
   jobName: { type: String, required: true },
   location: { type: String, required: true },
-  shift: { type: String, enum: ['Morning', 'Afternoon', 'Night'], required: true },
+  shiftTimne: { type: String, enum: ['Morning', 'Afternoon', 'Night'], required: true },
   createdAt: { type: Date, default: Date.now }
 });
 

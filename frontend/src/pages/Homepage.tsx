@@ -16,8 +16,7 @@ const Homepage: React.FC = () => {
         flex="4"
         align="center"
         justify="center"
-        gap={8}
-        p={{ base: 4, md: 8 }} // responsive padding
+        p={{ base: 4, md: 8 }}
         textAlign="center"
       >
         <Box
@@ -26,13 +25,14 @@ const Homepage: React.FC = () => {
           borderRadius="xl"
           boxShadow="lg"
           w="full"
-          maxW={{ base: '100%', md: '3xl' }} // responsive max-width
+          maxW={{ base: '100%', md: '3xl' }}
         >
           <VStack gap={6}>
             <Heading
               as="h1"
-              fontSize={{ base: '3xl', md: '5xl' }} // responsive font size
+              fontSize={{ base: '3xl', md: '5xl' }}
               color="gray.700"
+              p={6}
             >
               Welcome to Guardian Optix!
             </Heading>
@@ -83,7 +83,6 @@ const Homepage: React.FC = () => {
               </RouterLink>
             </HStack>
           </VStack>
-
         </Box>
       </VStack>
 
