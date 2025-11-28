@@ -1,4 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  VStack,
+  HStack,
+  Circle,
+  Button,
+  Spinner,
+  Alert,
+  Badge,
+  Separator,
+} from '@chakra-ui/react';
 import { api } from '../../../utils/api';
 
 interface AuditEntry {
@@ -30,7 +43,7 @@ const AuditTrail: React.FC = () => {
       if (page === 1) {
         setAudits(response.data);
       } else {
-        setAudits(prev => [...prev, ...response.data]);
+        setAudits((prev) => [...prev, ...response.data]);
       }
 
       setHasMore(response.data.length === limit);
@@ -50,7 +63,7 @@ const AuditTrail: React.FC = () => {
       'cert-verified': '✅',
       'incident-reported': '🚨',
       'checklist-completed': '☑️',
-      'policy-acknowledged': '📋'
+      'policy-acknowledged': '📋',
     };
     return icons[action] || '📝';
   };
@@ -58,7 +71,7 @@ const AuditTrail: React.FC = () => {
   const getActionLabel = (action: string): string => {
     return action
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -80,64 +93,98 @@ const AuditTrail: React.FC = () => {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  if (loading && page === 1) return <div className="loading">Loading audit trail...</div>;
+  if (loading && page === 1) {
+    return (
+      <Box textAlign="center" py={10}>
+        <Spinner size="lg" color="blue.500" />
+        <Text mt={4} color="gray.500">Loading audit trail...</Text>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert.Root status="error" borderRadius="md">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Title>{error}</Alert.Title>
+        </Alert.Content>
+      </Alert.Root>
+    );
+  }
 
   return (
-    <div className="audit-trail">
-      <div className="section-header">
-        <h2>Compliance Audit Trail</h2>
-        <p className="section-subtitle">
+    <Box>
+      {/* Header */}
+      <Box mb={5}>
+        <Heading as="h2" size="md" color="gray.800">
+          Compliance Audit Trail
+        </Heading>
+        <Text fontSize="sm" color="gray.500" mt={1}>
           Complete log of all compliance-related activities
-        </p>
-      </div>
+        </Text>
+      </Box>
 
-      {error && <div className="error-banner">{error}</div>}
-
-      <div className="audit-list">
+      {/* Audit List */}
+      <VStack gap={0} align="stretch" separator={<Separator />}>
         {audits.length === 0 ? (
-          <p className="no-data">No audit entries found</p>
+          <Box textAlign="center" py={10} color="gray.400">
+            No audit entries found
+          </Box>
         ) : (
-          <>
-            {audits.map(entry => (
-              <div key={entry._id} className="audit-entry">
-                <div className="audit-icon">
-                  {getActionIcon(entry.action)}
-                </div>
-                <div className="audit-content">
-                  <div className="audit-header">
-                    <span className="audit-action">{getActionLabel(entry.action)}</span>
-                    <span className="audit-target-type">{entry.targetType}</span>
-                  </div>
-                  <p className="audit-details">{entry.details}</p>
-                  <div className="audit-meta">
-                    <span className="audit-user">
-                      By: {entry.performedBy?.fullName || 'System'}
-                    </span>
-                    <span className="audit-timestamp">
-                      {formatTimestamp(entry.timestamp)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {hasMore && (
-              <button
-                className="btn-load-more"
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Load More'}
-              </button>
-            )}
-          </>
+          audits.map((entry) => (
+            <HStack key={entry._id} py={4} gap={4} align="flex-start">
+              <Circle size="40px" bg="gray.100" fontSize="lg">
+                {getActionIcon(entry.action)}
+              </Circle>
+              <Box flex={1}>
+                <HStack gap={2} mb={1}>
+                  <Text fontWeight="semibold" fontSize="sm" color="gray.800">
+                    {getActionLabel(entry.action)}
+                  </Text>
+                  <Badge
+                    fontSize="xs"
+                    colorPalette="gray"
+                    variant="subtle"
+                    borderRadius="sm"
+                  >
+                    {entry.targetType}
+                  </Badge>
+                </HStack>
+                <Text fontSize="sm" color="gray.600" mb={2}>
+                  {entry.details}
+                </Text>
+                <HStack gap={4} fontSize="xs" color="gray.400">
+                  <Text>By: {entry.performedBy?.fullName || 'System'}</Text>
+                  <Text>{formatTimestamp(entry.timestamp)}</Text>
+                </HStack>
+              </Box>
+            </HStack>
+          ))
         )}
-      </div>
-    </div>
+      </VStack>
+
+      {/* Load More */}
+      {hasMore && audits.length > 0 && (
+        <Button
+          variant="ghost"
+          width="100%"
+          mt={4}
+          onClick={() => setPage((prev) => prev + 1)}
+          loading={loading}
+          loadingText="Loading..."
+          borderStyle="dashed"
+          borderWidth="1px"
+          borderColor="gray.200"
+        >
+          Load More
+        </Button>
+      )}
+    </Box>
   );
 };
 

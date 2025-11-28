@@ -1,4 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Heading,
+  Button,
+  VStack,
+  HStack,
+  Text,
+  Badge,
+  Field,
+  Input,
+  NativeSelect,
+  Textarea,
+  SimpleGrid,
+  Spinner,
+  Alert,
+  Flex,
+  Collapsible,
+  Separator,
+} from '@chakra-ui/react';
 import { api } from '../../../utils/api';
 import { Incident } from '../types/compliance.types';
 
@@ -15,7 +34,7 @@ const IncidentReports: React.FC = () => {
     incidentType: 'security-breach',
     severity: 'medium',
     description: '',
-    witnesses: ''
+    witnesses: '',
   });
 
   useEffect(() => {
@@ -40,7 +59,7 @@ const IncidentReports: React.FC = () => {
     try {
       const payload = {
         ...formData,
-        witnesses: formData.witnesses.split(',').map(w => w.trim()).filter(Boolean)
+        witnesses: formData.witnesses.split(',').map((w) => w.trim()).filter(Boolean),
       };
       await api.post('/compliance/incidents', payload);
       setShowForm(false);
@@ -49,9 +68,9 @@ const IncidentReports: React.FC = () => {
         incidentType: 'security-breach',
         severity: 'medium',
         description: '',
-        witnesses: ''
+        witnesses: '',
       });
-      fetchIncidents();
+      await fetchIncidents();
     } catch (err) {
       setError('Failed to submit incident report');
     }
@@ -61,183 +80,247 @@ const IncidentReports: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const filteredIncidents = filter === 'all'
     ? incidents
-    : incidents.filter(i => i.status === filter);
+    : incidents.filter((i) => i.status === filter);
 
-  const getSeverityClass = (severity: string) => {
-    const classes: Record<string, string> = {
-      low: 'severity-low',
-      medium: 'severity-medium',
-      high: 'severity-high',
-      critical: 'severity-critical'
+  const getSeverityColor = (severity: string) => {
+    const colors: Record<string, string> = {
+      low: 'blue',
+      medium: 'orange',
+      high: 'red',
+      critical: 'red',
     };
-    return classes[severity] || 'severity-medium';
+    return colors[severity] || 'gray';
   };
 
-  const getStatusClass = (status: string) => {
-    const classes: Record<string, string> = {
-      open: 'status-open',
-      'under-review': 'status-review',
-      resolved: 'status-resolved',
-      closed: 'status-closed'
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      open: 'blue',
+      'under-review': 'orange',
+      resolved: 'green',
+      closed: 'gray',
     };
-    return classes[status] || 'status-open';
+    return colors[status] || 'gray';
   };
 
-  if (loading) return <div className="loading">Loading incidents...</div>;
+  if (loading) {
+    return (
+      <Box textAlign="center" py={10}>
+        <Spinner size="lg" color="blue.500" />
+        <Text mt={4} color="gray.500">Loading incidents...</Text>
+      </Box>
+    );
+  }
 
   return (
-    <div className="incident-reports">
-      <div className="section-header">
-        <h2>Incident Reports</h2>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
+    <Box>
+      {/* Header */}
+      <Flex justify="space-between" align="center" mb={5}>
+        <Heading as="h2" size="md" color="gray.800">
+          Incident Reports
+        </Heading>
+        <Button
+          colorPalette={showForm ? 'gray' : 'blue'}
+          size="sm"
+          onClick={() => setShowForm(!showForm)}
+        >
           {showForm ? 'Cancel' : '+ Report Incident'}
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
-      {error && <div className="error-banner">{error}</div>}
-
-      {/* Incident Report Form */}
-      {showForm && (
-        <div className="incident-form-container">
-          <h3>New Incident Report</h3>
-          <form onSubmit={handleSubmit} className="incident-form">
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="location">Location *</label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Main Entrance, Building A"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="incidentType">Incident Type *</label>
-                <select
-                  id="incidentType"
-                  name="incidentType"
-                  value={formData.incidentType}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="security-breach">Security Breach</option>
-                  <option value="injury">Injury</option>
-                  <option value="property-damage">Property Damage</option>
-                  <option value="unauthorized-access">Unauthorized Access</option>
-                  <option value="equipment-failure">Equipment Failure</option>
-                  <option value="policy-violation">Policy Violation</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="severity">Severity *</label>
-                <select
-                  id="severity"
-                  name="severity"
-                  value={formData.severity}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="witnesses">Witnesses (comma-separated)</label>
-                <input
-                  type="text"
-                  id="witnesses"
-                  name="witnesses"
-                  value={formData.witnesses}
-                  onChange={handleInputChange}
-                  placeholder="e.g., John Smith, Jane Doe"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description *</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
-                placeholder="Provide detailed description of the incident..."
-                required
-              />
-            </div>
-
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary">
-                Submit Report
-              </button>
-            </div>
-          </form>
-        </div>
+      {error && (
+        <Alert.Root status="error" borderRadius="md" mb={4}>
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{error}</Alert.Title>
+          </Alert.Content>
+        </Alert.Root>
       )}
 
+      {/* Incident Form */}
+      <Collapsible.Root open={showForm}>
+        <Collapsible.Content>
+          <Box bg="gray.50" p={6} borderRadius="lg" mb={6} borderWidth="1px" borderColor="gray.200">
+            <Heading as="h3" size="sm" mb={4} color="gray.700">
+              New Incident Report
+            </Heading>
+            <form onSubmit={handleSubmit}>
+              <VStack gap={4} align="stretch">
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                  <Field.Root required>
+                    <Field.Label fontSize="sm" color="gray.600">Location</Field.Label>
+                    <Input
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Main Entrance, Building A"
+                      bg="white"
+                    />
+                  </Field.Root>
+                  <Field.Root required>
+                    <Field.Label fontSize="sm" color="gray.600">Incident Type</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field
+                        name="incidentType"
+                        value={formData.incidentType}
+                        onChange={handleInputChange}
+                        bg="white"
+                      >
+                        <option value="security-breach">Security Breach</option>
+                        <option value="injury">Injury</option>
+                        <option value="property-damage">Property Damage</option>
+                        <option value="unauthorized-access">Unauthorized Access</option>
+                        <option value="equipment-failure">Equipment Failure</option>
+                        <option value="policy-violation">Policy Violation</option>
+                        <option value="other">Other</option>
+                      </NativeSelect.Field>
+                    </NativeSelect.Root>
+                  </Field.Root>
+                </SimpleGrid>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                  <Field.Root required>
+                    <Field.Label fontSize="sm" color="gray.600">Severity</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field
+                        name="severity"
+                        value={formData.severity}
+                        onChange={handleInputChange}
+                        bg="white"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </NativeSelect.Field>
+                    </NativeSelect.Root>
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label fontSize="sm" color="gray.600">Witnesses (comma-separated)</Field.Label>
+                    <Input
+                      name="witnesses"
+                      value={formData.witnesses}
+                      onChange={handleInputChange}
+                      placeholder="e.g., John Smith, Jane Doe"
+                      bg="white"
+                    />
+                  </Field.Root>
+                </SimpleGrid>
+
+                <Field.Root required>
+                  <Field.Label fontSize="sm" color="gray.600">Description</Field.Label>
+                  <Textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="Provide detailed description of the incident..."
+                    bg="white"
+                  />
+                </Field.Root>
+
+                <HStack justify="flex-end" gap={3} pt={2}>
+                  <Button variant="ghost" onClick={() => setShowForm(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" colorPalette="blue">
+                    Submit Report
+                  </Button>
+                </HStack>
+              </VStack>
+            </form>
+          </Box>
+        </Collapsible.Content>
+      </Collapsible.Root>
+
       {/* Filter Controls */}
-      <div className="filter-controls">
-        {(['all', 'open', 'under-review', 'resolved', 'closed'] as FilterStatus[]).map(status => (
-          <button
+      <HStack mb={5} flexWrap="wrap" gap={2}>
+        {(['all', 'open', 'under-review', 'resolved', 'closed'] as FilterStatus[]).map((status) => (
+          <Button
             key={status}
-            className={`filter-btn ${filter === status ? 'active' : ''}`}
             onClick={() => setFilter(status)}
+            colorPalette={filter === status ? 'blue' : 'gray'}
+            variant={filter === status ? 'solid' : 'outline'}
           >
             {status.replace('-', ' ').toUpperCase()}
-          </button>
+          </Button>
         ))}
-      </div>
+      </HStack>
 
       {/* Incidents List */}
-      <div className="incidents-list">
+      <VStack gap={4} align="stretch">
         {filteredIncidents.length === 0 ? (
-          <p className="no-data">No incidents found</p>
+          <Box textAlign="center" py={10} color="gray.400">
+            No incidents found
+          </Box>
         ) : (
-          filteredIncidents.map(incident => (
-            <div key={incident._id} className="incident-card">
-              <div className="incident-header">
-                <span className={`severity-badge ${getSeverityClass(incident.severity)}`}>
+          filteredIncidents.map((incident) => (
+            <Box
+              key={incident._id}
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+              borderRadius="lg"
+              p={5}
+              transition="all 0.2s"
+              _hover={{ shadow: 'md' }}
+            >
+              <HStack gap={3} mb={3} flexWrap="wrap">
+                <Badge
+                  colorPalette={getSeverityColor(incident.severity)}
+                  variant="solid"
+                  fontSize="xs"
+                  px={2}
+                  py={1}
+                  borderRadius="sm"
+                >
                   {incident.severity.toUpperCase()}
-                </span>
-                <span className={`status-badge ${getStatusClass(incident.status)}`}>
+                </Badge>
+                <Badge
+                  colorPalette={getStatusColor(incident.status)}
+                  variant="subtle"
+                  fontSize="xs"
+                  px={2}
+                  py={1}
+                  borderRadius="sm"
+                  textTransform="capitalize"
+                >
                   {incident.status.replace('-', ' ')}
-                </span>
-                <span className="incident-date">
+                </Badge>
+                <Text fontSize="xs" color="gray.500" ml="auto">
                   {new Date(incident.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="incident-body">
-                <h4>{incident.incidentType.replace('-', ' ')}</h4>
-                <p className="incident-location">📍 {incident.location}</p>
-                <p className="incident-description">{incident.description}</p>
-              </div>
-              <div className="incident-footer">
-                <span>Reported by: {incident.reportedBy.fullName}</span>
-                <button className="btn-sm">View Details</button>
-              </div>
-            </div>
+                </Text>
+              </HStack>
+
+              <Heading as="h4" size="sm" mb={2} textTransform="capitalize">
+                {incident.incidentType.replace('-', ' ')}
+              </Heading>
+              <Text fontSize="sm" color="gray.500" mb={2}>
+                📍 {incident.location}
+              </Text>
+              <Text fontSize="sm" color="gray.600" lineClamp={3}>
+                {incident.description}
+              </Text>
+
+              <Separator my={4} />
+
+              <Flex justify="space-between" align="center">
+                <Text fontSize="sm" color="gray.500">
+                  Reported by: {incident.reportedBy.fullName}
+                </Text>
+                <Button size="xs" variant="outline">
+                  View Details
+                </Button>
+              </Flex>
+            </Box>
           ))
         )}
-      </div>
-    </div>
+      </VStack>
+    </Box>
   );
 };
 

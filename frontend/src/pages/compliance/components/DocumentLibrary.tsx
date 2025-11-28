@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  Input,
+  InputGroup,
+  Button,
+  SimpleGrid,
+  VStack,
+  HStack,
+  Badge,
+  Link,
+  Spinner,
+  Alert,
+  Flex,
+} from '@chakra-ui/react';
 import { api } from '../../../utils/api';
 
 interface ComplianceDocument {
@@ -55,7 +71,7 @@ const DocumentLibrary: React.FC = () => {
       procedure: '📋',
       manual: '📖',
       form: '📄',
-      certificate: '🏆'
+      certificate: '🏆',
     };
     return icons[category] || '📁';
   };
@@ -64,98 +80,140 @@ const DocumentLibrary: React.FC = () => {
     return category.charAt(0).toUpperCase() + category.slice(1);
   };
 
-  const filteredDocuments = documents.filter(doc => {
+  const filteredDocuments = documents.filter((doc) => {
     const matchesFilter = filter === 'all' || doc.category === filter;
-    const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
   const categories: CategoryFilter[] = ['all', 'policy', 'procedure', 'manual', 'form', 'certificate'];
 
-  if (loading) return <div className="loading">Loading documents...</div>;
+  if (loading) {
+    return (
+      <Box textAlign="center" py={10}>
+        <Spinner size="lg" color="blue.500" />
+        <Text mt={4} color="gray.500">Loading documents...</Text>
+      </Box>
+    );
+  }
 
   return (
-    <div className="document-library">
-      <div className="section-header">
-        <h2>Document Library</h2>
-        <p className="section-subtitle">
+    <Box>
+      {/* Header */}
+      <Box mb={5}>
+        <Heading as="h2" size="md" color="gray.800">
+          Document Library
+        </Heading>
+        <Text fontSize="sm" color="gray.500" mt={1}>
           Access policies, procedures, and compliance documentation
-        </p>
-      </div>
+        </Text>
+      </Box>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && (
+        <Alert.Root status="error" borderRadius="md" mb={4}>
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{error}</Alert.Title>
+          </Alert.Content>
+        </Alert.Root>
+      )}
 
       {/* Search and Filter */}
-      <div className="library-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Search documents..."
+      <Flex gap={4} mb={6} flexWrap="wrap">
+        <InputGroup maxW={{ base: '100%', md: '300px' }}>
+          <Input
+            placeholder="🔍 Search documents..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            bg="white"
           />
-        </div>
-        <div className="filter-controls">
-          {categories.map(cat => (
-            <button
+        </InputGroup>
+        <HStack mb={5} flexWrap="wrap" gap={2}>
+          {categories.map((cat) => (
+            <Button
               key={cat}
-              className={`filter-btn ${filter === cat ? 'active' : ''}`}
               onClick={() => setFilter(cat)}
+              colorPalette={filter === cat ? 'blue' : 'gray'}
+              variant={filter === cat ? 'solid' : 'outline'}
             >
               {cat === 'all' ? 'All' : getCategoryLabel(cat)}
-            </button>
+            </Button>
           ))}
-        </div>
-      </div>
+        </HStack>
+      </Flex>
 
       {/* Documents Grid */}
-      <div className="documents-grid">
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={5}>
         {filteredDocuments.length === 0 ? (
-          <p className="no-data">No documents found</p>
+          <Box gridColumn="1 / -1" textAlign="center" py={10} color="gray.400">
+            No documents found
+          </Box>
         ) : (
-          filteredDocuments.map(doc => (
-            <div key={doc._id} className="document-card">
-              <div className="document-icon">
-                {getCategoryIcon(doc.category)}
-              </div>
-              <div className="document-content">
-                <h4 className="document-title">{doc.title}</h4>
-                <span className="document-category">
-                  {getCategoryLabel(doc.category)}
-                </span>
-                <p className="document-description">{doc.description}</p>
-                <div className="document-meta">
-                  <span className="document-version">v{doc.version}</span>
-                  <span className="document-date">
-                    Updated: {new Date(doc.lastUpdated).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-              <div className="document-actions">
-
-                href={doc.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-sm btn-primary"
-              <a>
-                View
-              </a>
-              <button className="btn-sm">Download</button>
-              {doc.requiresAcknowledgment && (
-                <button
-                  className="btn-sm btn-acknowledge"
-                  onClick={() => handleAcknowledge(doc._id)}
-                >
-                  Acknowledge
-                </button>
-              )}
-            </div>
-          </div>
+          filteredDocuments.map((doc) => (
+            <Box
+              key={doc._id}
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+              borderRadius="lg"
+              p={5}
+              transition="all 0.2s"
+              _hover={{ shadow: 'md' }}
+            >
+              <VStack align="stretch" gap={3}>
+                <Text fontSize="2xl">{getCategoryIcon(doc.category)}</Text>
+                <Box>
+                  <Heading as="h4" size="sm" mb={1}>
+                    {doc.title}
+                  </Heading>
+                  <Badge
+                    fontSize="xs"
+                    colorPalette="gray"
+                    variant="subtle"
+                    borderRadius="sm"
+                  >
+                    {getCategoryLabel(doc.category)}
+                  </Badge>
+                </Box>
+                <Text fontSize="sm" color="gray.500" lineClamp={2}>
+                  {doc.description}
+                </Text>
+                <HStack fontSize="xs" color="gray.400" gap={3}>
+                  <Text>v{doc.version}</Text>
+                  <Text>Updated: {new Date(doc.lastUpdated).toLocaleDateString()}</Text>
+                </HStack>
+                <HStack pt={2} borderTopWidth="1px" borderColor="gray.100" gap={2}>
+                  <Link
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button size="xs" colorPalette="blue">
+                      View
+                    </Button>
+                  </Link>
+                  <Button size="xs" variant="outline">
+                    Download
+                  </Button>
+                  {doc.requiresAcknowledgment && (
+                    <Button
+                      size="xs"
+                      colorPalette="green"
+                      variant="outline"
+                      onClick={() => handleAcknowledge(doc._id)}
+                    >
+                      Acknowledge
+                    </Button>
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
           ))
-          )}
-      </div>
-    </div>
+        )}
+      </SimpleGrid>
+    </Box>
   );
 };
 
