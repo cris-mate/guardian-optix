@@ -15,7 +15,7 @@ import Personnel from './pages/Personnel';
 import TaskManager from './pages/TaskManager';
 import PerformanceMonitoring from './pages/PerformanceMonitoring';
 import Analytics from './pages/Analytics';
-import Compliance from './pages/Compliance';
+import Compliance from './pages/compliance/Compliance';
 import Activity from "./pages/Activity";
 import Clients from "./pages/Clients";
 import Chat from "./pages/Chat";

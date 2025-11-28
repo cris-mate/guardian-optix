@@ -4,7 +4,7 @@ import scheduling from "@/pages/Scheduling";
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Create a new Axios instance
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL
 });
 

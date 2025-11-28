@@ -28,11 +28,13 @@ const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const guardsRoutes = require('./routes/guardsRoutes');
+const complianceRoutes = require('./routes/complianceRoutes');
 
 app.use('/api', authRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', scheduleRoutes);
 app.use('/api', guardsRoutes);
+app.use('/api/compliance', complianceRoutes);
 
 // SERVER STARTUP
 const PORT = process.env.PORT || 5000;
