@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api } from '@/utils/api';
+import { api } from '../../../utils/api';
 import { Certification } from '@/pages/compliance/types/compliance.types';
 
 const CertificationTracker: React.FC = () => {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import ComplianceDashboard from '@/pages/compliance/components/ComplianceDashboard';
-import CertificationTracker from '@/pages/compliance/components/CertificationTracker';
-import IncidentReports from '@/pages/compliance/components/IncidentReports';
-import AuditTrail from '@/pages/compliance/components/AuditTrail';
-import DocumentLibrary from '@/pages/compliance/components/DocumentLibrary';
+import { useAuth } from '../../context/AuthContext';
+import ComplianceDashboard from './components/ComplianceDashboard';
+import CertificationTracker from './components/CertificationTracker';
+import IncidentReports from './components/IncidentReports';
+import AuditTrail from './components/AuditTrail';
+import DocumentLibrary from './components/DocumentLibrary';
 import './Compliance.css';
 
 type TabType = 'dashboard' | 'certifications' | 'incidents' | 'documents' | 'audit';
