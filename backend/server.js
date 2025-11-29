@@ -25,12 +25,14 @@ mongoose.connect(dbURI)
 
 // ROUTES
 const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const guardsRoutes = require('./routes/guardsRoutes');
 const complianceRoutes = require('./routes/complianceRoutes');
 
 app.use('/api', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', scheduleRoutes);
 app.use('/api', guardsRoutes);

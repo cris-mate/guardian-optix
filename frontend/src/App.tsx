@@ -9,7 +9,7 @@ import RootLayout from './layouts/RootLayout';
 import Homepage from "./pages/Homepage";
 import Register from './components/auth/Register';
 import Login from './components/auth/Login';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashboard/Dashboard';
 import Scheduling from './pages/Scheduling';
 import Personnel from './pages/Personnel';
 import TaskManager from './pages/TaskManager';
