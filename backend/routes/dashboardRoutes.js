@@ -7,7 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 const {
   getMetrics,
   getAlerts,
@@ -21,7 +21,7 @@ const {
 } = require('../controllers/dashboardController');
 
 // All dashboard routes require authentication
-router.use(protect);
+router.use(authMiddleware);
 
 // ============================================
 // Dashboard Data Routes

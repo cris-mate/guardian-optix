@@ -5,7 +5,7 @@
  * Optimized for performance with parallel queries and minimal data transfer.
  */
 
-const asyncHandler = require('../middleware/asyncHandler');
+const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
 const Schedule = require('../models/Schedule');
 const Task = require('../models/Task');

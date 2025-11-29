@@ -28,6 +28,7 @@ const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
+const clientRoutes = require('./routes/clientRoutes');
 const guardsRoutes = require('./routes/guardsRoutes');
 const complianceRoutes = require('./routes/complianceRoutes');
 
@@ -35,6 +36,7 @@ app.use('/api', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', scheduleRoutes);
+app.use('/api/clients', clientRoutes);
 app.use('/api', guardsRoutes);
 app.use('/api/compliance', complianceRoutes);
 
