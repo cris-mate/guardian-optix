@@ -7,8 +7,6 @@ import {Footer} from "../layouts/Footer";
 const Homepage: React.FC = () => {
   return (
     <Flex direction="column" minH="100vh" bg="#1b1b60">
-      {/* On a public page, the 'user' object is null, so the user-specific
-          details will automatically be hidden. */}
       <Header />
 
       {/* Main content area */}
