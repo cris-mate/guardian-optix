@@ -12,7 +12,7 @@ import Login from './components/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import Activity from "./pages/Activity";
 import Clients from './pages/clients';
-import Personnel from './pages/Personnel';
+import Personnel from './pages/personnel/Personnel';
 import Scheduling from './pages/Scheduling';
 import TaskManager from './pages/TaskManager';
 import PerformanceMonitoring from './pages/PerformanceMonitoring';

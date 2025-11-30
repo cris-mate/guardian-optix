@@ -1,0 +1,374 @@
+/**
+ * PersonnelTable Component
+ *
+ * Displays personnel in a sortable, interactive table.
+ * Uses Chakra UI v3 Table components.
+ */
+
+import React from 'react';
+import {
+  Box,
+  Table,
+  Badge,
+  Avatar,
+  HStack,
+  Text,
+  IconButton,
+  Flex,
+  Menu,
+  Spinner,
+} from '@chakra-ui/react';
+import {
+  LuMoveVertical,
+  LuEye,
+  LuPencil,
+  LuPhone,
+  LuMail,
+  LuChevronUp,
+  LuChevronDown,
+  LuTriangleAlert,
+} from 'react-icons/lu';
+import {
+  Personnel,
+  PersonnelFilters,
+  PersonnelStatus,
+  LicenceStatus,
+} from '../types/personnel.types';
+
+interface PersonnelTableProps {
+  personnel: Personnel[];
+  isLoading: boolean;
+  selectedId?: string;
+  filters: PersonnelFilters;
+  onFiltersChange: (filters: Partial<PersonnelFilters>) => void;
+  onSelect: (id: string) => void;
+  onEdit?: (personnel: Personnel) => void;
+}
+
+// Status badge colour mapping
+const getStatusColor = (status: PersonnelStatus): string => {
+  const colors: Record<PersonnelStatus, string> = {
+    active: 'green',
+    'on-leave': 'yellow',
+    'off-duty': 'gray',
+    suspended: 'red',
+  };
+  return colors[status] || 'gray';
+};
+
+// Licence status colour mapping
+const getLicenceColor = (status?: LicenceStatus): string => {
+  if (!status) return 'gray';
+  const colors: Record<LicenceStatus, string> = {
+    valid: 'green',
+    'expiring-soon': 'orange',
+    expired: 'red',
+    pending: 'blue',
+  };
+  return colors[status] || 'gray';
+};
+
+// Format date for display
+const formatDate = (dateString?: string): string => {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+// Get relative time description
+const getRelativeTime = (dateString?: string): string => {
+  if (!dateString) return 'Never';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 5) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(dateString);
+};
+
+// Sortable column header
+interface SortHeaderProps {
+  label: string;
+  sortKey: PersonnelFilters['sortBy'];
+  currentSort: PersonnelFilters['sortBy'];
+  currentOrder: PersonnelFilters['sortOrder'];
+  onSort: (key: PersonnelFilters['sortBy']) => void;
+}
+
+const SortHeader: React.FC<SortHeaderProps> = ({
+                                                 label,
+                                                 sortKey,
+                                                 currentSort,
+                                                 currentOrder,
+                                                 onSort,
+                                               }) => {
+  const isActive = currentSort === sortKey;
+
+  return (
+    <Flex
+      align="center"
+      gap={1}
+      cursor="pointer"
+      userSelect="none"
+      onClick={() => onSort(sortKey)}
+      _hover={{ color: 'blue.600' }}
+      color={isActive ? 'blue.600' : 'inherit'}
+    >
+      <Text>{label}</Text>
+      {isActive && (
+        currentOrder === 'asc' ? <LuChevronUp size={14} /> : <LuChevronDown size={14} />
+      )}
+    </Flex>
+  );
+};
+
+const PersonnelTable: React.FC<PersonnelTableProps> = ({
+                                                         personnel,
+                                                         isLoading,
+                                                         selectedId,
+                                                         filters,
+                                                         onFiltersChange,
+                                                         onSelect,
+                                                         onEdit,
+                                                       }) => {
+  const handleSort = (sortBy: PersonnelFilters['sortBy']) => {
+    if (filters.sortBy === sortBy) {
+      // Toggle order if same column
+      onFiltersChange({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' });
+    } else {
+      // New column, default to ascending
+      onFiltersChange({ sortBy, sortOrder: 'asc' });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Flex justify="center" align="center" py={16}>
+        <Spinner size="xl" color="blue.500" />
+      </Flex>
+    );
+  }
+
+  return (
+    <Box overflowX="auto">
+      <Table.Root size="sm" variant="line">
+        <Table.Header>
+          <Table.Row bg="gray.50">
+            <Table.ColumnHeader>
+              <SortHeader
+                label="Officer"
+                sortKey="name"
+                currentSort={filters.sortBy}
+                currentOrder={filters.sortOrder}
+                onSort={handleSort}
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>
+              <SortHeader
+                label="Status"
+                sortKey="status"
+                currentSort={filters.sortBy}
+                currentOrder={filters.sortOrder}
+                onSort={handleSort}
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>
+              <SortHeader
+                label="Role"
+                sortKey="role"
+                currentSort={filters.sortBy}
+                currentOrder={filters.sortOrder}
+                onSort={handleSort}
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>Shift</Table.ColumnHeader>
+            <Table.ColumnHeader>Location</Table.ColumnHeader>
+            <Table.ColumnHeader>
+              <SortHeader
+                label="SIA Licence"
+                sortKey="licenceExpiry"
+                currentSort={filters.sortBy}
+                currentOrder={filters.sortOrder}
+                onSort={handleSort}
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>
+              <SortHeader
+                label="Last Active"
+                sortKey="lastActive"
+                currentSort={filters.sortBy}
+                currentOrder={filters.sortOrder}
+                onSort={handleSort}
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader width="50px"></Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+
+        <Table.Body>
+          {personnel.map((officer) => (
+            <Table.Row
+              key={officer._id}
+              cursor="pointer"
+              onClick={() => onSelect(officer._id)}
+              bg={selectedId === officer._id ? 'blue.50' : 'white'}
+              _hover={{ bg: selectedId === officer._id ? 'blue.50' : 'gray.50' }}
+              transition="background 0.15s"
+            >
+              {/* Officer Info */}
+              <Table.Cell>
+                <HStack gap={3}>
+                  <Avatar.Root size="sm">
+                    <Avatar.Image src={officer.profileImage} />
+                    <Avatar.Fallback name={officer.fullName} />
+                  </Avatar.Root>
+                  <Box>
+                    <Text fontWeight="medium" fontSize="sm">
+                      {officer.fullName}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      {officer.badgeNumber || officer.email}
+                    </Text>
+                  </Box>
+                </HStack>
+              </Table.Cell>
+
+              {/* Status */}
+              <Table.Cell>
+                <HStack gap={2}>
+                  <Badge
+                    colorPalette={getStatusColor(officer.status)}
+                    variant="subtle"
+                    size="sm"
+                  >
+                    {officer.status.replace('-', ' ')}
+                  </Badge>
+                  {officer.availability && officer.status === 'active' && (
+                    <Box w={2} h={2} borderRadius="full" bg="green.400" title="Available" />
+                  )}
+                </HStack>
+              </Table.Cell>
+
+              {/* Role */}
+              <Table.Cell>
+                <Box>
+                  <Text fontSize="sm">{officer.role === 'Guard' ? 'Security Officer' : officer.role}</Text>
+                  {officer.guardType && (
+                    <Text fontSize="xs" color="gray.500">{officer.guardType}</Text>
+                  )}
+                  {officer.managerType && (
+                    <Text fontSize="xs" color="gray.500">{officer.managerType}</Text>
+                  )}
+                </Box>
+              </Table.Cell>
+
+              {/* Shift */}
+              <Table.Cell>
+                {officer.shift ? (
+                  <Badge variant="outline" size="sm">
+                    {officer.shift}
+                  </Badge>
+                ) : (
+                  <Text fontSize="sm" color="gray.400">-</Text>
+                )}
+              </Table.Cell>
+
+              {/* Location (Postcode) */}
+              <Table.Cell>
+                <Box>
+                  <Text fontSize="sm" fontFamily="mono">
+                    {officer.postCode}
+                  </Text>
+                  {officer.assignedSite && (
+                    <Text fontSize="xs" color="gray.500" truncate maxW="150px">
+                      {officer.assignedSite}
+                    </Text>
+                  )}
+                </Box>
+              </Table.Cell>
+
+              {/* SIA Licence */}
+              <Table.Cell>
+                {officer.siaLicence ? (
+                  <HStack gap={2}>
+                    <Badge
+                      colorPalette={getLicenceColor(officer.siaLicence.status)}
+                      variant="subtle"
+                      size="sm"
+                    >
+                      {officer.siaLicence.status === 'expiring-soon' ? 'Expiring' : officer.siaLicence.status}
+                    </Badge>
+                    {(officer.siaLicence.status === 'expired' || officer.siaLicence.status === 'expiring-soon') && (
+                      <Box color={officer.siaLicence.status === 'expired' ? 'red.500' : 'orange.500'}>
+                        <LuTriangleAlert size={14} />
+                      </Box>
+                    )}
+                    <Text fontSize="xs" color="gray.500">
+                      {formatDate(officer.siaLicence.expiryDate)}
+                    </Text>
+                  </HStack>
+                ) : (
+                  <Text fontSize="sm" color="gray.400">N/A</Text>
+                )}
+              </Table.Cell>
+
+              {/* Last Active */}
+              <Table.Cell>
+                <Text fontSize="sm" color="gray.600">
+                  {getRelativeTime(officer.lastActiveAt)}
+                </Text>
+              </Table.Cell>
+
+              {/* Actions */}
+              <Table.Cell onClick={(e) => e.stopPropagation()}>
+                <Menu.Root>
+                  <Menu.Trigger asChild>
+                    <IconButton
+                      variant="ghost"
+                      size="xs"
+                      aria-label="Actions"
+                    >
+                      <LuMoveVertical size={16} />
+                    </IconButton>
+                  </Menu.Trigger>
+                  <Menu.Content>
+                    <Menu.Item value="view" onClick={() => onSelect(officer._id)}>
+                      <LuEye size={14} />
+                      <Text ml={2}>View Details</Text>
+                    </Menu.Item>
+                    {onEdit && (
+                      <Menu.Item value="edit" onClick={() => onEdit(officer)}>
+                        <LuPencil size={14} />
+                        <Text ml={2}>Edit</Text>
+                      </Menu.Item>
+                    )}
+                    <Menu.Item value="call" onClick={() => window.open(`tel:${officer.phoneNumber}`)}>
+                      <LuPhone size={14} />
+                      <Text ml={2}>Call</Text>
+                    </Menu.Item>
+                    <Menu.Item value="email" onClick={() => window.open(`mailto:${officer.email}`)}>
+                      <LuMail size={14} />
+                      <Text ml={2}>Email</Text>
+                    </Menu.Item>
+                  </Menu.Content>
+                </Menu.Root>
+              </Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </Box>
+  );
+};
+
+export default PersonnelTable;
