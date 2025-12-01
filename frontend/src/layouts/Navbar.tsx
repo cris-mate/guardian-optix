@@ -2,8 +2,7 @@ import { Box, Heading, VStack, Separator } from '@chakra-ui/react';
 import React from 'react';
 import { NavItem } from "../components/custom ui/NavItem";
 import {
-  FiActivity, FiBriefcase, FiHome, FiMessageSquare, FiUsers,
-  FiRss, FiCalendar, FiCheckSquare, FiClock, FiFileText, FiTrendingUp, FiPieChart
+  FiActivity, FiBriefcase, FiHome, FiUsers, FiCalendar, FiClock, FiFileText, FiSettings, FiTrendingUp, FiPieChart
 } from 'react-icons/fi';
 
 export const Navbar = () => {
@@ -13,18 +12,18 @@ export const Navbar = () => {
       bg="#2626d9"
       color="gray.300"
       p={3}
-      gridArea="navbar" // Important for Grid layout
+      gridArea="navbar"
       height="100%"
       overflowY="auto"
     >
       <VStack align="stretch" gap={2}>
         <NavItem to='/dashboard' icon={FiHome}>Dashboard</NavItem>
-        <NavItem to='/activity' icon={FiActivity}>Activity</NavItem>
+        <NavItem to='/activity' icon={FiActivity}>Activity Hub</NavItem>
         <NavItem to='/clients' icon={FiBriefcase}>Clients</NavItem>
-        <NavItem to='/personnel' icon={FiUsers}>Personnel</NavItem>
+
         <Separator variant="solid" borderColor="gray.600" />
 
-        {/* Section Communication */}
+        {/* Section Workforce */}
         <Heading
           size="lg"
           fontWeight="normal"
@@ -32,10 +31,10 @@ export const Navbar = () => {
           color="blue.200"
           opacity={0.7}
         >
-          Communication
+          Workforce
         </Heading>
-        <NavItem to='/chat' icon={FiMessageSquare}>Chat</NavItem>
-        <NavItem to='/updates' icon={FiRss}>Updates</NavItem>
+        <NavItem to='/personnel' icon={FiUsers}>Guards</NavItem>
+        <NavItem to='/compliance' icon={FiFileText}>Compliance</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
         {/* Section Operations */}
@@ -49,7 +48,6 @@ export const Navbar = () => {
           Operations
         </Heading>
         <NavItem to='/scheduling' icon={FiCalendar}>Scheduling</NavItem>
-        <NavItem to='/taskManager' icon={FiCheckSquare}>Task Manager</NavItem>
         <NavItem to='/timeClock' icon={FiClock}>Time Clock</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
@@ -63,12 +61,12 @@ export const Navbar = () => {
         >
           Analytics
         </Heading>
-        <NavItem to='/performanceMonitoring' icon={FiTrendingUp}>Performance Monitoring</NavItem>
-        <NavItem to='/analytics' icon={FiPieChart}>Analytics</NavItem>
+        <NavItem to='/performance' icon={FiTrendingUp}>Performance</NavItem>
+        <NavItem to='/analytics' icon={FiPieChart}>Reports</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
-        {/* Section Compliance */}
-        <NavItem to='/compliance' icon={FiFileText}>Compliance</NavItem>
+        {/* Section Settings */}
+        <NavItem to='/updates' icon={FiSettings}>Settings</NavItem>
       </VStack>
     </Box>
   );

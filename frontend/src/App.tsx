@@ -14,7 +14,6 @@ import Activity from "./pages/Activity";
 import Clients from './pages/clients';
 import Personnel from './pages/personnel/Personnel';
 import Scheduling from './pages/scheduling/Scheduling';
-import TaskManager from './pages/TaskManager';
 import PerformanceMonitoring from './pages/PerformanceMonitoring';
 import Analytics from './pages/Analytics';
 import Compliance from './pages/compliance/Compliance';
@@ -47,7 +46,6 @@ const App: React.FC = () => {
             <Route path="/clients" element={<Clients/>} />
             <Route path="/personnel" element={<Personnel />} />
             <Route path="/scheduling" element={<Scheduling />} />
-            <Route path="/taskManager" element={<TaskManager />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/timeClock" element={<TimeClock />} />
