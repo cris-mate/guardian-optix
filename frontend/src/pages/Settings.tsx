@@ -95,18 +95,6 @@ const Settings: React.FC = () => {
       color: 'purple',
     },
     {
-      icon: FiGlobe,
-      title: 'Regional Settings',
-      description: 'Language, timezone, date format, and currency preferences',
-      color: 'teal',
-    },
-    {
-      icon: FiMail,
-      title: 'Email Preferences',
-      description: 'Manage email subscriptions and communication settings',
-      color: 'pink',
-    },
-    {
       icon: FiDatabase,
       title: 'Data Management',
       description: 'Export data, backup settings, and storage usage',
