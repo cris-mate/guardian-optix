@@ -13,7 +13,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 import Activity from "./pages/Activity";
 import Clients from './pages/clients';
 import Personnel from './pages/personnel/Personnel';
-import Scheduling from './pages/Scheduling';
+import Scheduling from './pages/scheduling/Scheduling';
 import TaskManager from './pages/TaskManager';
 import PerformanceMonitoring from './pages/PerformanceMonitoring';
 import Analytics from './pages/Analytics';
