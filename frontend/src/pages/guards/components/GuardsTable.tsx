@@ -1,7 +1,7 @@
 /**
- * PersonnelTable Component
+ * GuardsTable Component
  *
- * Displays personnel in a sortable, interactive table.
+ * Displays guards in a sortable, interactive table.
  * Uses Chakra UI v3 Table components.
  */
 
@@ -29,25 +29,25 @@ import {
   LuTriangleAlert,
 } from 'react-icons/lu';
 import {
-  Personnel,
-  PersonnelFilters,
-  PersonnelStatus,
+  Guards,
+  GuardsFilters,
+  GuardsStatus,
   LicenceStatus,
-} from '../types/personnel.types';
+} from '../types/guards.types';
 
-interface PersonnelTableProps {
-  personnel: Personnel[];
+interface GuardsTableProps {
+  guards: Guards[];
   isLoading: boolean;
   selectedId?: string;
-  filters: PersonnelFilters;
-  onFiltersChange: (filters: Partial<PersonnelFilters>) => void;
+  filters: GuardsFilters;
+  onFiltersChange: (filters: Partial<GuardsFilters>) => void;
   onSelect: (id: string) => void;
-  onEdit?: (personnel: Personnel) => void;
+  onEdit?: (guards: Guards) => void;
 }
 
 // Status badge colour mapping
-const getStatusColor = (status: PersonnelStatus): string => {
-  const colors: Record<PersonnelStatus, string> = {
+const getStatusColor = (status: GuardsStatus): string => {
+  const colors: Record<GuardsStatus, string> = {
     active: 'green',
     'on-leave': 'yellow',
     'off-duty': 'gray',
@@ -99,10 +99,10 @@ const getRelativeTime = (dateString?: string): string => {
 // Sortable column header
 interface SortHeaderProps {
   label: string;
-  sortKey: PersonnelFilters['sortBy'];
-  currentSort: PersonnelFilters['sortBy'];
-  currentOrder: PersonnelFilters['sortOrder'];
-  onSort: (key: PersonnelFilters['sortBy']) => void;
+  sortKey: GuardsFilters['sortBy'];
+  currentSort: GuardsFilters['sortBy'];
+  currentOrder: GuardsFilters['sortOrder'];
+  onSort: (key: GuardsFilters['sortBy']) => void;
 }
 
 const SortHeader: React.FC<SortHeaderProps> = ({
@@ -132,8 +132,8 @@ const SortHeader: React.FC<SortHeaderProps> = ({
   );
 };
 
-const PersonnelTable: React.FC<PersonnelTableProps> = ({
-                                                         personnel,
+const GuardsTable: React.FC<> = ({
+                                                         guards,
                                                          isLoading,
                                                          selectedId,
                                                          filters,
@@ -141,7 +141,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({
                                                          onSelect,
                                                          onEdit,
                                                        }) => {
-  const handleSort = (sortBy: PersonnelFilters['sortBy']) => {
+  const handleSort = (sortBy: GuardsFilters['sortBy']) => {
     if (filters.sortBy === sortBy) {
       // Toggle order if same column
       onFiltersChange({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' });
@@ -216,7 +216,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({
         </Table.Header>
 
         <Table.Body>
-          {personnel.map((officer) => (
+          {guards.map((officer) => (
             <Table.Row
               key={officer._id}
               cursor="pointer"
@@ -371,4 +371,4 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({
   );
 };
 
-export default PersonnelTable;
+export default GuardsTable;

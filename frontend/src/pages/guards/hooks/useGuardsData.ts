@@ -1,20 +1,20 @@
 /**
- * usePersonnelData Hook
+ * useGuardsData Hook
  *
- * Centralised data fetching and state management for Personnel page.
+ * Centralised data fetching and state management for Guards page.
  * Toggle USE_MOCK_DATA to switch between mock and API data.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../utils/api';
 import {
-  Personnel,
+  Guards,
   PersonnelFilters,
   PersonnelStats,
-  PersonnelFormData,
+  GuardsFormData,
   Pagination,
   DEFAULT_FILTERS,
-} from '../types/personnel.types';
+} from '../types/guards.types';
 
 // Toggle this to switch between mock data and API calls
 const USE_MOCK_DATA = true;
@@ -23,7 +23,7 @@ const USE_MOCK_DATA = true;
 // Mock Data
 // ============================================
 
-const MOCK_PERSONNEL: Personnel[] = [
+const MOCK_PERSONNEL: Guards[] = [
   {
     _id: '1',
     fullName: 'James Wilson',
@@ -238,8 +238,8 @@ const MOCK_PERSONNEL: Personnel[] = [
 // ============================================
 
 interface UsePersonnelDataReturn {
-  personnel: Personnel[];
-  selectedOfficer: Personnel | null;
+  guards: Guards[];
+  selectedOfficer: Guards | null;
   isLoading: boolean;
   isLoadingDetails: boolean;
   isMutating: boolean;
@@ -252,15 +252,15 @@ interface UsePersonnelDataReturn {
   setFilters: (filters: Partial<PersonnelFilters>) => void;
   resetFilters: () => void;
   selectOfficer: (id: string | null) => void;
-  createOfficer: (data: PersonnelFormData) => Promise<void>;
-  updateOfficer: (id: string, data: Partial<PersonnelFormData>) => Promise<void>;
+  createOfficer: (data: GuardsFormData) => Promise<void>;
+  updateOfficer: (id: string, data: Partial<GuardsFormData>) => Promise<void>;
   deleteOfficer: (id: string) => Promise<void>;
   refetch: () => void;
 }
 
-export const usePersonnelData = (): UsePersonnelDataReturn => {
-  const [personnel, setPersonnel] = useState<Personnel[]>([]);
-  const [selectedOfficer, setSelectedOfficer] = useState<Personnel | null>(null);
+export const useGuardsData = (): UsePersonnelDataReturn => {
+  const [personnel, setPersonnel] = useState<Guards[]>([]);
+  const [selectedOfficer, setSelectedOfficer] = useState<Guards | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -398,8 +398,8 @@ export const usePersonnelData = (): UsePersonnelDataReturn => {
         setPersonnel(response.data.data || response.data);
       }
     } catch (err) {
-      setError('Failed to load personnel data');
-      console.error('Error fetching personnel:', err);
+      setError('Failed to load guards data');
+      console.error('Error fetching guards:', err);
     } finally {
       setIsLoading(false);
     }
@@ -450,7 +450,7 @@ export const usePersonnelData = (): UsePersonnelDataReturn => {
     }
   }, [fetchOfficerDetails]);
 
-  const createOfficer = useCallback(async (data: PersonnelFormData) => {
+  const createOfficer = useCallback(async (data: GuardsFormData) => {
     setIsMutating(true);
 
     try {
@@ -469,7 +469,7 @@ export const usePersonnelData = (): UsePersonnelDataReturn => {
     }
   }, [fetchPersonnel]);
 
-  const updateOfficer = useCallback(async (id: string, data: Partial<PersonnelFormData>) => {
+  const updateOfficer = useCallback(async (id: string, data: Partial<GuardsFormData>) => {
     setIsMutating(true);
 
     try {
@@ -520,7 +520,7 @@ export const usePersonnelData = (): UsePersonnelDataReturn => {
   }, [fetchPersonnel]);
 
   return {
-    personnel: paginatedPersonnel,
+    guards: paginatedPersonnel,
     selectedOfficer,
     isLoading,
     isLoadingDetails,

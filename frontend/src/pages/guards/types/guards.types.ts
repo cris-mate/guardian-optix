@@ -1,7 +1,7 @@
 /**
- * Personnel Types
+ * Guards Types
  *
- * TypeScript interfaces for the Personnel page.
+ * TypeScript interfaces for the Guards page.
  * Aligned with the unified User model structure.
  */
 
@@ -17,8 +17,8 @@ export type UserRole = 'Admin' | 'Manager' | 'Guard';
 // Shift types
 export type ShiftType = 'Morning' | 'Afternoon' | 'Night' | null;
 
-// Personnel status for filtering
-export type PersonnelStatus = 'active' | 'on-leave' | 'off-duty' | 'suspended';
+// Guards status for filtering
+export type GuardsStatus = 'active' | 'on-leave' | 'off-duty' | 'suspended';
 
 // SIA Licence status
 export type LicenceStatus = 'valid' | 'expiring-soon' | 'expired' | 'pending';
@@ -53,10 +53,10 @@ export interface EmergencyContact {
 }
 
 /**
- * Personnel/Officer interface
+ * Guards/Officer interface
  * Extends the User model with operational fields
  */
-export interface Personnel {
+export interface Guards {
   _id: string;
   fullName: string;
   username: string;
@@ -66,7 +66,7 @@ export interface Personnel {
   role: UserRole;
   guardType?: GuardType;
   managerType?: ManagerType;
-  status: PersonnelStatus;
+  status: GuardsStatus;
 
   // Operational fields
   badgeNumber?: string;
@@ -92,11 +92,11 @@ export interface Personnel {
 }
 
 /**
- * Personnel list filters
+ * Guards list filters
  */
-export interface PersonnelFilters {
+export interface GuardsFilters {
   search: string;
-  status: 'all' | PersonnelStatus;
+  status: 'all' | GuardsStatus;
   role: 'all' | UserRole;
   guardType: 'all' | GuardType;
   shift: 'all' | ShiftType;
@@ -119,9 +119,9 @@ export interface Pagination {
 }
 
 /**
- * Personnel summary statistics
+ * Guards summary statistics
  */
-export interface PersonnelStats {
+export interface GuardsStats {
   total: number;
   active: number;
   onLeave: number;
@@ -130,9 +130,9 @@ export interface PersonnelStats {
 }
 
 /**
- * Form data for adding/editing personnel
+ * Form data for adding/editing guards
  */
-export interface PersonnelFormData {
+export interface GuardsFormData {
   fullName: string;
   email: string;
   phoneNumber: string;
@@ -153,7 +153,7 @@ export interface PersonnelFormData {
 /**
  * Default filter values
  */
-export const DEFAULT_FILTERS: PersonnelFilters = {
+export const DEFAULT_FILTERS: GuardsFilters = {
   search: '',
   status: 'all',
   role: 'all',

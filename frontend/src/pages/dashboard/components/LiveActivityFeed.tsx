@@ -35,7 +35,7 @@ interface LiveActivityFeedProps {
 }
 
 // ============================================
-// Activity Type Configuration
+// ActivityHub Type Configuration
 // ============================================
 
 const activityConfig: Record<ActivityType, {
@@ -101,7 +101,7 @@ const activityConfig: Record<ActivityType, {
 };
 
 // ============================================
-// Activity Item Component
+// ActivityHub Item Component
 // ============================================
 
 interface ActivityItemProps {
@@ -114,7 +114,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, isFirst }) => {
     icon: FiActivity,
     color: 'gray.500',
     bgColor: 'gray.50',
-    label: 'Activity',
+    label: 'ActivityHub',
   };
 
   const formatTimestamp = (timestamp: Date | string) => {
@@ -278,7 +278,7 @@ const LiveActivityFeed: React.FC<LiveActivityFeedProps> = ({
         )}
       </HStack>
 
-      {/* Activity List */}
+      {/* ActivityHub List */}
       {activities.length === 0 ? (
         <VStack py={8} gap={2}>
           <Icon as={FiActivity} boxSize={8} color="gray.300" />

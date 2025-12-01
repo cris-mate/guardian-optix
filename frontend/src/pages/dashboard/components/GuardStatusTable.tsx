@@ -184,7 +184,7 @@ const GuardRow: React.FC<GuardRowProps> = ({ guard, onClick }) => {
         )}
       </Table.Cell>
 
-      {/* Last Activity */}
+      {/* Last ActivityHub */}
       <Table.Cell>
         <Text
           fontSize="xs"

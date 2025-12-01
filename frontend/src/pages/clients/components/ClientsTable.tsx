@@ -175,7 +175,7 @@ const ClientsTable: React.FC<ClientTableProps> = ({
           </Table.ColumnHeader>
           <Table.ColumnHeader width="100px">Guards</Table.ColumnHeader>
           <Table.ColumnHeader width="130px">
-            <SortHeader label="Last Activity" sortKey="lastActivityAt" currentSort={filters.sortBy} currentOrder={filters.sortOrder} onSort={handleSort} />
+            <SortHeader label="Last ActivityHub" sortKey="lastActivityAt" currentSort={filters.sortBy} currentOrder={filters.sortOrder} onSort={handleSort} />
           </Table.ColumnHeader>
           <Table.ColumnHeader width="160px">Primary Contact</Table.ColumnHeader>
           <Table.ColumnHeader width="80px">Actions</Table.ColumnHeader>
@@ -242,7 +242,7 @@ const ClientsTable: React.FC<ClientTableProps> = ({
               </HStack>
             </Table.Cell>
 
-            {/* Last Activity */}
+            {/* Last ActivityHub */}
             <Table.Cell>
               <Text fontSize="sm" color="gray.600">{formatTimeAgo(client.lastActivityAt)}</Text>
             </Table.Cell>

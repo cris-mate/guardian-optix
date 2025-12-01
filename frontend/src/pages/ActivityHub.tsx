@@ -2,7 +2,7 @@ import React, {useEffect} from 'react';
 import {usePageTitle} from "../context/PageContext";
 import {Box, Heading, Text, VStack} from "@chakra-ui/react";
 
-export const Activity: React.FC = () => {
+export const ActivityHub: React.FC = () => {
   const { setTitle } = usePageTitle();
 
   // Set the title for this page when the component loads
@@ -25,4 +25,4 @@ export const Activity: React.FC = () => {
   );
 };
 
-export default Activity;
+export default ActivityHub;

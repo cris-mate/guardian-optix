@@ -1,5 +1,5 @@
 /**
- * Personnel Page
+ * Guards Page
  *
  * Main page for managing security officers and staff.
  * Provides search, filtering, and detailed officer views.
@@ -18,17 +18,17 @@ import {
 } from '@chakra-ui/react';
 import { LuUsers, LuUserPlus, LuRefreshCw } from 'react-icons/lu';
 import { useAuth } from '../../context/AuthContext';
-import { usePersonnelData } from './hooks/usePersonnelData';
-import PersonnelFilters from './components/PersonnelFilters';
-import PersonnelTable from './components/PersonnelTable';
-import PersonnelDrawer from './components/PersonnelDrawer';
-import AddPersonnelModal from './components/AddPersonnelModal';
-import { Personnel as PersonnelType } from './types/personnel.types';
+import { useGuardsData } from './hooks/useGuardsData';
+import GuardsFilters from './components/GuardsFilters';
+import GuardsTable from './components/GuardsTable';
+import GuardsDrawer from './components/GuardsDrawer';
+import AddGuardsModal from './components/AddGuardsModal';
+import { Guard } from './types/guards.types';
 
-const Personnel: React.FC = () => {
+const Guards: React.FC = () => {
   const { user } = useAuth();
   const {
-    personnel,
+    guards,
     selectedOfficer,
     isLoading,
     isLoadingDetails,
@@ -42,7 +42,7 @@ const Personnel: React.FC = () => {
     selectOfficer,
     createOfficer,
     refetch,
-  } = usePersonnelData();
+  } = useGuardsData();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -64,7 +64,7 @@ const Personnel: React.FC = () => {
   };
 
   // Handle edit (placeholder)
-  const handleEdit = (officer: PersonnelType) => {
+  const handleEdit = (officer: GuardsType) => {
     console.log('Edit officer:', officer._id);
     // TODO: Implement edit modal
   };
@@ -131,7 +131,7 @@ const Personnel: React.FC = () => {
 
       {/* Filters */}
       <Box mb={6}>
-        <PersonnelFilters
+        <GuardsFilters
           filters={filters}
           stats={stats}
           onFiltersChange={setFilters}
@@ -158,12 +158,12 @@ const Personnel: React.FC = () => {
           borderColor="gray.200"
         >
           <Text fontSize="sm" color="gray.600">
-            Showing {personnel.length} of {pagination.total} officers
+            Showing {guards.length} of {pagination.total} officers
           </Text>
         </Flex>
 
         {/* Empty State */}
-        {!isLoading && personnel.length === 0 ? (
+        {!isLoading && guards.length === 0 ? (
           <Flex justify="center" align="center" py={16}>
             <VStack gap={4}>
               <Box color="gray.400">
@@ -191,8 +191,8 @@ const Personnel: React.FC = () => {
             </VStack>
           </Flex>
         ) : (
-          <PersonnelTable
-            personnel={personnel}
+          <GuardsTable
+            guards={guards}
             isLoading={isLoading}
             selectedId={selectedOfficer?._id}
             filters={filters}
@@ -203,7 +203,7 @@ const Personnel: React.FC = () => {
         )}
 
         {/* Pagination */}
-        {personnel.length > 0 && pagination.totalPages > 1 && (
+        {guards.length > 0 && pagination.totalPages > 1 && (
           <Flex
             justify="space-between"
             align="center"
@@ -239,7 +239,7 @@ const Personnel: React.FC = () => {
       </Box>
 
       {/* Officer Details Drawer */}
-      <PersonnelDrawer
+      <GuardsDrawer
         officer={selectedOfficer}
         isOpen={isDrawerOpen}
         onClose={handleDrawerClose}
@@ -248,7 +248,7 @@ const Personnel: React.FC = () => {
       />
 
       {/* Add Officer Modal */}
-      <AddPersonnelModal
+      <AddGuardsModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={createOfficer}
@@ -258,4 +258,4 @@ const Personnel: React.FC = () => {
   );
 };
 
-export default Personnel;
+export default Guards;

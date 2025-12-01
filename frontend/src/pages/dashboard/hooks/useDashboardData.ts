@@ -178,7 +178,7 @@ export const useDashboardData = (
   ]);
 
   // ----------------------------------------
-  // Refresh Activity Feed Only (more frequent)
+  // Refresh ActivityHub Feed Only (more frequent)
   // ----------------------------------------
 
   const refreshActivityFeed = useCallback(async () => {
@@ -190,7 +190,7 @@ export const useDashboardData = (
         setState(prev => ({ ...prev, activityFeed }));
       }
     } catch (err) {
-      console.error('Activity feed refresh error:', err);
+      console.error('ActivityHub feed refresh error:', err);
     }
   }, [fetchActivityFeed]);
 

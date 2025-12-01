@@ -1,5 +1,5 @@
 /**
- * AddPersonnelModal Component
+ * AddGuardsModal Component
  *
  * Modal form for adding new security officers.
  * Uses Chakra UI v3 Dialog components.
@@ -20,12 +20,13 @@ import {
   Select, FieldLabel,
 } from '@chakra-ui/react';
 import { LuX, LuUserPlus } from 'react-icons/lu';
-import { PersonnelFormData, UserRole, GuardType, ShiftType, SIALicenceType } from '../types/personnel.types';
+import { GuardsFormData, UserRole, GuardType, ShiftType, SIALicenceType } from '../types/guards.types';
+import Guards from "../pages/guards";
 
-interface AddPersonnelModalProps {
+interface AddGuardsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PersonnelFormData) => Promise<void>;
+  onSubmit: (data: GuardsFormData) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -73,7 +74,7 @@ const licenceTypeOptions = createListCollection({
 });
 
 // Initial form state
-const initialFormData: PersonnelFormData = {
+const initialFormData: GuardsFormData = {
   fullName: '',
   email: '',
   phoneNumber: '',
@@ -94,14 +95,14 @@ const initialFormData: PersonnelFormData = {
   },
 };
 
-const AddPersonnelModal: React.FC<AddPersonnelModalProps> = ({
+const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                                                                isOpen,
                                                                onClose,
                                                                onSubmit,
                                                                isSubmitting = false,
                                                              }) => {
-  const [formData, setFormData] = useState<PersonnelFormData>(initialFormData);
-  const [errors, setErrors] = useState<Partial<Record<keyof PersonnelFormData, string>>>({});
+  const [formData, setFormData] = useState<GuardsFormData>(initialFormData);
+  const [errors, setErrors] = useState<Partial<Record<keyof GuardsFormData, string>>>({});
 
   // Reset form when modal closes
   const handleClose = () => {
@@ -483,4 +484,4 @@ const AddPersonnelModal: React.FC<AddPersonnelModalProps> = ({
   );
 };
 
-export default AddPersonnelModal;
+export default AddGuardsModal;

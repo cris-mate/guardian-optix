@@ -1,5 +1,5 @@
 /**
- * PersonnelDrawer Component
+ * GuardsDrawer Component
  *
  * Side panel displaying detailed officer information.
  * Uses Chakra UI v3 Drawer components.
@@ -30,24 +30,23 @@ import {
   LuClock,
   LuUser,
   LuTriangleAlert,
-  LuCircleCheck,
   LuPencil,
   LuBadgeCheck,
   LuFileText,
 } from 'react-icons/lu';
-import { Personnel, LicenceStatus, PersonnelStatus } from '../types/personnel.types';
+import { Guards, LicenceStatus, GuardsStatus } from '../types/guards.types';
 
-interface PersonnelDrawerProps {
-  officer: Personnel | null;
+interface GuardsDrawerProps {
+  officer: Guards | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: (officer: Personnel) => void;
+  onEdit?: (officer: Guards) => void;
   isLoading?: boolean;
 }
 
 // Status colour mapping
-const getStatusColor = (status: PersonnelStatus): string => {
-  const colors: Record<PersonnelStatus, string> = {
+const getStatusColor = (status: GuardslStatus): string => {
+  const colors: Record<GuardsStatus, string> = {
     active: 'green',
     'on-leave': 'yellow',
     'off-duty': 'gray',
@@ -110,7 +109,7 @@ const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value }) => (
   </Flex>
 );
 
-const PersonnelDrawer: React.FC<PersonnelDrawerProps> = ({
+const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                                                            officer,
                                                            isOpen,
                                                            onClose,
@@ -424,4 +423,4 @@ const PersonnelDrawer: React.FC<PersonnelDrawerProps> = ({
   );
 };
 
-export default PersonnelDrawer;
+export default GuardsDrawer;

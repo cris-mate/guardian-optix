@@ -231,7 +231,7 @@ const Dashboard: React.FC = () => {
           {/* Right Column - Secondary Content */}
           <GridItem>
             <VStack gap={6} align="stretch">
-              {/* Live Activity Feed */}
+              {/* Live ActivityHub Feed */}
               <LiveActivityFeed
                 activities={activityFeed}
                 maxVisible={8}

@@ -109,7 +109,7 @@ export interface TodayScheduleOverview {
 }
 
 // ============================================
-// Guard/Personnel Status
+// Guard/Guards Status
 // ============================================
 
 export interface GuardStatusEntry {
@@ -137,7 +137,7 @@ export interface GuardStatusEntry {
 }
 
 // ============================================
-// Activity Feed
+// ActivityHub Feed
 // ============================================
 
 export interface ActivityEvent {

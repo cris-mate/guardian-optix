@@ -1,7 +1,7 @@
 /**
- * Personnel Controller
+ * Guards Controller
  *
- * Handles API requests for personnel/officer management.
+ * Handles API requests for guards/officer management.
  * Uses the unified User model with role-based filtering.
  */
 
@@ -9,11 +9,11 @@ const User = require('../models/User');
 const asyncHandler = require('../utils/asyncHandler');
 
 /**
- * @route   GET /api/personnel
- * @desc    Get all personnel (Guards and Managers)
+ * @route   GET /api/guards
+ * @desc    Get all guards (Guards and Managers)
  * @access  Private
  */
-const getPersonnel = asyncHandler(async (req, res) => {
+const getGuards = asyncHandler(async (req, res) => {
   const {
     search,
     status,
@@ -30,7 +30,7 @@ const getPersonnel = asyncHandler(async (req, res) => {
 
   // Build query
   const query = {
-    // Exclude Admin users from personnel list (they are system admins, not field staff)
+    // Exclude Admin users from guards list (they are system admins, not field staff)
     role: { $in: ['Guard', 'Manager'] },
   };
 
@@ -93,7 +93,7 @@ const getPersonnel = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: personnel,
+    data: guards,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -104,11 +104,11 @@ const getPersonnel = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/personnel/stats
- * @desc    Get personnel statistics
+ * @route   GET /api/guards/stats
+ * @desc    Get guards statistics
  * @access  Private
  */
-const getPersonnelStats = asyncHandler(async (req, res) => {
+const getGuardsStats = asyncHandler(async (req, res) => {
   const stats = await User.aggregate([
     { $match: { role: { $in: ['Guard', 'Manager'] } } },
     {
@@ -144,7 +144,7 @@ const getPersonnelStats = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/personnel/:id
+ * @route   GET /api/guards/:id
  * @desc    Get single officer by ID
  * @access  Private
  */
@@ -163,7 +163,7 @@ const getOfficerById = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   POST /api/personnel
+ * @route   POST /api/guards
  * @desc    Create new officer
  * @access  Private (Admin/Manager)
  */
@@ -236,7 +236,7 @@ const createOfficer = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   PUT /api/personnel/:id
+ * @route   PUT /api/guards/:id
  * @desc    Update officer
  * @access  Private (Admin/Manager)
  */
@@ -264,7 +264,7 @@ const updateOfficer = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/personnel/:id
+ * @route   DELETE /api/guards/:id
  * @desc    Delete officer (soft delete by setting status to 'suspended')
  * @access  Private (Admin only)
  */
@@ -288,7 +288,7 @@ const deleteOfficer = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   PATCH /api/personnel/:id/status
+ * @route   PATCH /api/guards/:id/status
  * @desc    Update officer status
  * @access  Private (Admin/Manager)
  */
@@ -322,7 +322,7 @@ const updateOfficerStatus = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/personnel/available
+ * @route   GET /api/guards/available
  * @desc    Get available officers for assignment
  * @access  Private
  */
@@ -349,8 +349,8 @@ const getAvailableOfficers = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getPersonnel,
-  getPersonnelStats,
+  getGuards: getGuards,
+  getGuardsStats,
   getOfficerById,
   createOfficer,
   updateOfficer,

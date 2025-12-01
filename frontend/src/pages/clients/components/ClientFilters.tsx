@@ -25,7 +25,7 @@ const statusOptions: { value: ClientStatus | 'all'; label: string }[] = [
 const sortOptions: { value: ClientFiltersType['sortBy']; label: string }[] = [
   { value: 'companyName', label: 'Company Name' },
   { value: 'createdAt', label: 'Date Added' },
-  { value: 'lastActivityAt', label: 'Last Activity' },
+  { value: 'lastActivityAt', label: 'Last ActivityHub' },
   { value: 'totalSites', label: 'Number of Sites' },
 ];
 

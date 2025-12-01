@@ -1,7 +1,7 @@
 /**
- * PersonnelFilters Component
+ * GuardsFilters Component
  *
- * Filter controls for the personnel list.
+ * Filter controls for the guards list.
  * Uses Chakra UI v3 components.
  */
 
@@ -18,7 +18,7 @@ import {
   createListCollection,
 } from '@chakra-ui/react';
 import { LuSearch, LuX, LuFilter } from 'react-icons/lu';
-import { PersonnelFilters as FiltersType, PersonnelStats } from '../types/personnel.types';
+import { PersonnelFilters as FiltersType, PersonnelStats } from '../types/guards.types';
 
 interface PersonnelFiltersProps {
   filters: FiltersType;
@@ -83,7 +83,7 @@ const licenceStatusOptions = createListCollection({
   ],
 });
 
-const PersonnelFilters: React.FC<PersonnelFiltersProps> = ({
+const GuardsFilters: React.FC<PersonnelFiltersProps> = ({
                                                              filters,
                                                              stats,
                                                              onFiltersChange,
@@ -287,4 +287,4 @@ const PersonnelFilters: React.FC<PersonnelFiltersProps> = ({
   );
 };
 
-export default PersonnelFilters;
+export default GuardsFilters;

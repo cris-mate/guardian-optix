@@ -89,8 +89,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       action: () => navigate('/schedules'),
     },
     {
-      id: 'view-personnel',
-      label: 'Personnel',
+      id: 'view-guards',
+      label: 'Guards',
       icon: FiUsers,
       colorScheme: 'gray',
       variant: 'ghost',

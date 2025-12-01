@@ -136,7 +136,7 @@ const ComplianceDashboard: React.FC = () => {
         </Box>
       )}
 
-      {/* Recent Activity Placeholder */}
+      {/* Recent ActivityHub Placeholder */}
       <Box>
         <Heading as="h3" size="sm" mb={3} color="gray.700">
           Recent Compliance Activity

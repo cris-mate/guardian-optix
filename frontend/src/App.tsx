@@ -10,15 +10,14 @@ import Homepage from "./pages/Homepage";
 import Register from './components/auth/Register';
 import Login from './components/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
-import Activity from "./pages/Activity";
+import ActivityHub from "./pages/ActivityHub";
 import Clients from './pages/clients';
-import Personnel from './pages/personnel/Personnel';
+import Guards from './pages/guards/Guards';
 import Scheduling from './pages/scheduling/Scheduling';
-import PerformanceMonitoring from './pages/PerformanceMonitoring';
+import Performance from './pages/Performance';
 import Analytics from './pages/Analytics';
 import Compliance from './pages/compliance/Compliance';
 import Chat from "./pages/Chat";
-import Updates from "./pages/Updates";
 import TimeClock from "./pages/TimeClock";
 
 const App: React.FC = () => {
@@ -42,14 +41,13 @@ const App: React.FC = () => {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/activity" element={<Activity />} />
+            <Route path="/activityHub" element={<ActivityHub />} />
             <Route path="/clients" element={<Clients/>} />
-            <Route path="/personnel" element={<Personnel />} />
+            <Route path="/guards" element={<Guards/>} />
             <Route path="/scheduling" element={<Scheduling />} />
             <Route path="/chat" element={<Chat />} />
-            <Route path="/updates" element={<Updates />} />
             <Route path="/timeClock" element={<TimeClock />} />
-            <Route path="/performanceMonitoring" element={<PerformanceMonitoring />} />
+            <Route path="/performance" element={<Performance />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/compliance" element={<Compliance />} />
 

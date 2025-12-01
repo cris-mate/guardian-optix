@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Container, Flex, VStack, Text, Badge } from '@chakra-ui/react';
 import { LuActivity } from 'react-icons/lu';
 
-const PerformanceMonitoring: React.FC = () => {
+const Performance: React.FC = () => {
   return (
     <Container maxW="container.xl" py={6}>
       <Flex justify="center" align="center" minH="60vh">
@@ -34,4 +34,4 @@ const PerformanceMonitoring: React.FC = () => {
   );
 };
 
-export default PerformanceMonitoring;
+export default Performance;
