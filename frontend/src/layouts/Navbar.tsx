@@ -51,7 +51,7 @@ export const Navbar = () => {
         <NavItem to='/timeClock' icon={FiClock}>Time Clock</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
-        {/* Section Analytics */}
+        {/* Section Reports */}
         <Heading
           size="lg"
           fontWeight="normal"
@@ -62,7 +62,7 @@ export const Navbar = () => {
           Analytics
         </Heading>
         <NavItem to='/performance' icon={FiTrendingUp}>Performance</NavItem>
-        <NavItem to='/analytics' icon={FiPieChart}>Reports</NavItem>
+        <NavItem to='/reports' icon={FiPieChart}>Reports</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
         {/* Section Settings */}

@@ -45,7 +45,7 @@ interface GuardsDrawerProps {
 }
 
 // Status colour mapping
-const getStatusColor = (status: GuardsStats): string => {
+const getStatusColor = (status: GuardsStatus): string => {
   const colors: Record<GuardsStatus, string> = {
     active: 'green',
     'on-leave': 'yellow',

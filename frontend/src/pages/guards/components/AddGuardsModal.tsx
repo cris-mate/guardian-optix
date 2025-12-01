@@ -21,7 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { LuX, LuUserPlus } from 'react-icons/lu';
 import { GuardsFormData, UserRole, GuardType, ShiftType, SIALicenceType } from '../types/guards.types';
-import Guards from "../pages/guards";
+import Guards from '../Guards';
 
 interface AddGuardsModalProps {
   isOpen: boolean;

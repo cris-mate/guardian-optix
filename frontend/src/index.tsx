@@ -4,7 +4,6 @@ import App from './App';
 import { Provider } from "./components/ui/provider"
 import reportWebVitals from './reportWebVitals';
 import './index.css';
-import './components/PublicPages.css';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

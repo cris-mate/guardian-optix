@@ -11,14 +11,15 @@ import Register from './components/auth/Register';
 import Login from './components/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import ActivityHub from "./pages/ActivityHub";
-import Clients from './pages/clients';
+import Clients from './pages/clients/Clients';
 import Guards from './pages/guards/Guards';
-import Scheduling from './pages/scheduling/Scheduling';
-import Performance from './pages/Performance';
-import Analytics from './pages/Analytics';
 import Compliance from './pages/compliance/Compliance';
-import Chat from "./pages/Chat";
+import Scheduling from './pages/scheduling/Scheduling';
 import TimeClock from "./pages/TimeClock";
+import Performance from './pages/Performance';
+import Reports from './pages/Reports';
+import Settings from "./pages/Settings";
+import Chat from "./pages/Chat";
 
 const App: React.FC = () => {
   return (
@@ -42,15 +43,15 @@ const App: React.FC = () => {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/activityHub" element={<ActivityHub />} />
-            <Route path="/clients" element={<Clients/>} />
-            <Route path="/guards" element={<Guards/>} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/guards" element={<Guards />} />
+            <Route path="/compliance" element={<Compliance />} />
             <Route path="/scheduling" element={<Scheduling />} />
-            <Route path="/chat" element={<Chat />} />
             <Route path="/timeClock" element={<TimeClock />} />
             <Route path="/performance" element={<Performance />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/compliance" element={<Compliance />} />
-
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/chat" element={<Chat />} />
           </Route>
         </Routes>
       </Router>
