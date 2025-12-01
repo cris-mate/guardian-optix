@@ -132,7 +132,7 @@ const SortHeader: React.FC<SortHeaderProps> = ({
   );
 };
 
-const GuardsTable: React.FC<> = ({
+const GuardsTable: React.FC<GuardsTableProps> = ({
                                                          guards,
                                                          isLoading,
                                                          selectedId,

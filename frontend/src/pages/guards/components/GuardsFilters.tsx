@@ -18,11 +18,11 @@ import {
   createListCollection,
 } from '@chakra-ui/react';
 import { LuSearch, LuX, LuFilter } from 'react-icons/lu';
-import { PersonnelFilters as FiltersType, PersonnelStats } from '../types/guards.types';
+import { GuardsFilters as FiltersType, GuardsStats } from '../types/guards.types';
 
-interface PersonnelFiltersProps {
+interface GuardsFiltersProps {
   filters: FiltersType;
-  stats: PersonnelStats;
+  stats: GuardsStats;
   onFiltersChange: (filters: Partial<FiltersType>) => void;
   onReset: () => void;
 }
@@ -83,7 +83,7 @@ const licenceStatusOptions = createListCollection({
   ],
 });
 
-const GuardsFilters: React.FC<PersonnelFiltersProps> = ({
+const GuardsFilters: React.FC<GuardsFiltersProps> = ({
                                                              filters,
                                                              stats,
                                                              onFiltersChange,

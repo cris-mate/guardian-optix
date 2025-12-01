@@ -112,7 +112,7 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
   };
 
   // Handle input change
-  const handleChange = (field: keyof PersonnelFormData, value: string | undefined) => {
+  const handleChange = (field: keyof GuardsFormData, value: string | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when field is edited
     if (errors[field]) {
@@ -133,7 +133,7 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
 
   // Validate form
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof PersonnelFormData, string>> = {};
+    const newErrors: Partial<Record<keyof GuardsFormData, string>> = {};
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';

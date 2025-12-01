@@ -9,8 +9,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../utils/api';
 import {
   Guards,
-  PersonnelFilters,
-  PersonnelStats,
+  GuardsFilters,
+  GuardsStats,
   GuardsFormData,
   Pagination,
   DEFAULT_FILTERS,
@@ -23,7 +23,7 @@ const USE_MOCK_DATA = true;
 // Mock Data
 // ============================================
 
-const MOCK_PERSONNEL: Guards[] = [
+const MOCK_GUARDS: Guards[] = [
   {
     _id: '1',
     fullName: 'James Wilson',
@@ -237,19 +237,19 @@ const MOCK_PERSONNEL: Guards[] = [
 // Hook Implementation
 // ============================================
 
-interface UsePersonnelDataReturn {
+interface UseGuardsDataReturn {
   guards: Guards[];
   selectedOfficer: Guards | null;
   isLoading: boolean;
   isLoadingDetails: boolean;
   isMutating: boolean;
   error: string | null;
-  filters: PersonnelFilters;
+  filters: GuardsFilters;
   pagination: Pagination;
-  stats: PersonnelStats;
+  stats: GuardsStats;
 
   // Actions
-  setFilters: (filters: Partial<PersonnelFilters>) => void;
+  setFilters: (filters: Partial<GuardsFilters>) => void;
   resetFilters: () => void;
   selectOfficer: (id: string | null) => void;
   createOfficer: (data: GuardsFormData) => Promise<void>;
@@ -258,37 +258,37 @@ interface UsePersonnelDataReturn {
   refetch: () => void;
 }
 
-export const useGuardsData = (): UsePersonnelDataReturn => {
-  const [personnel, setPersonnel] = useState<Guards[]>([]);
+export const useGuardsData = (): UseGuardsDataReturn => {
+  const [guards, setGuards] = useState<Guards[]>([]);
   const [selectedOfficer, setSelectedOfficer] = useState<Guards | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFiltersState] = useState<PersonnelFilters>(DEFAULT_FILTERS);
+  const [filters, setFiltersState] = useState<GuardsFilters>(DEFAULT_FILTERS);
 
   // ============================================
   // Computed Statistics
   // ============================================
 
-  const stats = useMemo<PersonnelStats>(() => {
-    const total = personnel.length;
-    const active = personnel.filter(p => p.status === 'active').length;
-    const onLeave = personnel.filter(p => p.status === 'on-leave').length;
-    const offDuty = personnel.filter(p => p.status === 'off-duty').length;
-    const expiringLicences = personnel.filter(
+  const stats = useMemo<GuardsStats>(() => {
+    const total = guards.length;
+    const active = guards.filter(p => p.status === 'active').length;
+    const onLeave = guards.filter(p => p.status === 'on-leave').length;
+    const offDuty = guards.filter(p => p.status === 'off-duty').length;
+    const expiringLicences = guards.filter(
       p => p.siaLicence?.status === 'expiring-soon' || p.siaLicence?.status === 'expired'
     ).length;
 
     return { total, active, onLeave, offDuty, expiringLicences };
-  }, [personnel]);
+  }, [guards]);
 
   // ============================================
   // Filtered & Paginated Data
   // ============================================
 
-  const filteredPersonnel = useMemo(() => {
-    let result = [...personnel];
+  const filteredGuards = useMemo(() => {
+    let result = [...guards];
 
     // Search filter
     if (filters.search) {
@@ -360,11 +360,11 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
     });
 
     return result;
-  }, [personnel, filters]);
+  }, [guards, filters]);
 
   // Pagination
   const pagination = useMemo<Pagination>(() => {
-    const total = filteredPersonnel.length;
+    const total = filteredGuards.length;
     const totalPages = Math.ceil(total / filters.limit);
     return {
       page: filters.page,
@@ -372,19 +372,19 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
       total,
       totalPages,
     };
-  }, [filteredPersonnel.length, filters.page, filters.limit]);
+  }, [filteredGuards.length, filters.page, filters.limit]);
 
-  const paginatedPersonnel = useMemo(() => {
+  const paginatedGuards = useMemo(() => {
     const start = (filters.page - 1) * filters.limit;
     const end = start + filters.limit;
-    return filteredPersonnel.slice(start, end);
-  }, [filteredPersonnel, filters.page, filters.limit]);
+    return filteredGuards.slice(start, end);
+  }, [filteredGuards, filters.page, filters.limit]);
 
   // ============================================
   // Data Fetching
   // ============================================
 
-  const fetchPersonnel = useCallback(async () => {
+  const fetchGuards = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -392,10 +392,10 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
       if (USE_MOCK_DATA) {
         // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 500));
-        setPersonnel(MOCK_PERSONNEL);
+        setGuards(MOCK_GUARDS);
       } else {
-        const response = await api.get('/api/personnel');
-        setPersonnel(response.data.data || response.data);
+        const response = await api.get('/api/guards');
+        setGuards(response.data.data || response.data);
       }
     } catch (err) {
       setError('Failed to load guards data');
@@ -411,10 +411,10 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
     try {
       if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 300));
-        const officer = MOCK_PERSONNEL.find(p => p._id === id);
+        const officer = MOCK_GUARDS.find(p => p._id === id);
         setSelectedOfficer(officer || null);
       } else {
-        const response = await api.get(`/api/personnel/${id}`);
+        const response = await api.get(`/api/guards/${id}`);
         setSelectedOfficer(response.data.data || response.data);
       }
     } catch (err) {
@@ -429,7 +429,7 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
   // Actions
   // ============================================
 
-  const setFilters = useCallback((newFilters: Partial<PersonnelFilters>) => {
+  const setFilters = useCallback((newFilters: Partial<GuardsFilters>) => {
     setFiltersState(prev => ({
       ...prev,
       ...newFilters,
@@ -458,16 +458,16 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
         await new Promise(resolve => setTimeout(resolve, 500));
         // In mock mode, just refetch
       } else {
-        await api.post('/api/personnel', data);
+        await api.post('/api/guards', data);
       }
-      await fetchPersonnel();
+      await fetchGuards();
     } catch (err) {
       console.error('Error creating officer:', err);
       throw err;
     } finally {
       setIsMutating(false);
     }
-  }, [fetchPersonnel]);
+  }, [fetchGuards]);
 
   const updateOfficer = useCallback(async (id: string, data: Partial<GuardsFormData>) => {
     setIsMutating(true);
@@ -476,9 +476,9 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
       if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
-        await api.put(`/api/personnel/${id}`, data);
+        await api.put(`/api/guards/${id}`, data);
       }
-      await fetchPersonnel();
+      await fetchGuards();
       if (selectedOfficer?._id === id) {
         await fetchOfficerDetails(id);
       }
@@ -488,7 +488,7 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
     } finally {
       setIsMutating(false);
     }
-  }, [fetchPersonnel, fetchOfficerDetails, selectedOfficer]);
+  }, [fetchGuards, fetchOfficerDetails, selectedOfficer]);
 
   const deleteOfficer = useCallback(async (id: string) => {
     setIsMutating(true);
@@ -497,9 +497,9 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
       if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
-        await api.delete(`/api/personnel/${id}`);
+        await api.delete(`/api/guards/${id}`);
       }
-      await fetchPersonnel();
+      await fetchGuards();
       if (selectedOfficer?._id === id) {
         setSelectedOfficer(null);
       }
@@ -509,18 +509,18 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
     } finally {
       setIsMutating(false);
     }
-  }, [fetchPersonnel, selectedOfficer]);
+  }, [fetchGuards, selectedOfficer]);
 
   // ============================================
   // Effects
   // ============================================
 
   useEffect(() => {
-    fetchPersonnel();
-  }, [fetchPersonnel]);
+    fetchGuards();
+  }, [fetchGuards]);
 
   return {
-    guards: paginatedPersonnel,
+    guards: paginatedGuards,
     selectedOfficer,
     isLoading,
     isLoadingDetails,
@@ -535,6 +535,6 @@ export const useGuardsData = (): UsePersonnelDataReturn => {
     createOfficer,
     updateOfficer,
     deleteOfficer,
-    refetch: fetchPersonnel,
+    refetch: fetchGuards,
   };
 };

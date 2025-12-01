@@ -108,7 +108,7 @@ const GuardRow: React.FC<GuardRowProps> = ({ guard, onClick }) => {
   const handleMenuAction = (value: string) => {
     switch (value) {
       case 'profile':
-        navigate(`/personnel/${guard.id}`);
+        navigate(`/guards/${guard.id}`);
         break;
       case 'call':
         if (guard.contactInfo?.phone) {
@@ -302,7 +302,7 @@ const GuardStatusTable: React.FC<GuardStatusTableProps> = ({
           <HStack gap={2}>
             <Icon as={FiUser} color="blue.500" />
             <Text fontWeight="semibold" color="gray.800">
-              Personnel Status
+              Guards Status
             </Text>
             <Badge colorScheme="blue" variant="subtle">
               {guards.filter(g => g.status === 'on-duty').length} active
@@ -312,7 +312,7 @@ const GuardStatusTable: React.FC<GuardStatusTableProps> = ({
             size="xs"
             variant="ghost"
             colorScheme="blue"
-            onClick={() => navigate('/personnel')}
+            onClick={() => navigate('/guards')}
           >
             <Text>View All</Text>
             <Icon as={FiChevronRight} ml={1} />
@@ -405,7 +405,7 @@ const GuardStatusTable: React.FC<GuardStatusTableProps> = ({
             size="sm"
             variant="ghost"
             colorScheme="gray"
-            onClick={() => navigate('/personnel')}
+            onClick={() => navigate('/guards')}
           >
             <Text>View {filteredGuards.length - maxVisible} more guards</Text>
           </Button>

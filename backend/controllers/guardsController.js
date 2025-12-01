@@ -82,7 +82,7 @@ const getGuards = asyncHandler(async (req, res) => {
   // Execute query with pagination
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
-  const [personnel, total] = await Promise.all([
+  const [guards, total] = await Promise.all([
     User.find(query)
       .select('-password')
       .sort(sortObj)

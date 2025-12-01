@@ -94,7 +94,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       icon: FiUsers,
       colorScheme: 'gray',
       variant: 'ghost',
-      action: () => navigate('/personnel'),
+      action: () => navigate('/guards'),
     },
     {
       id: 'view-reports',

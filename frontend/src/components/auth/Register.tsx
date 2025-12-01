@@ -145,7 +145,7 @@ const Register: React.FC = () => {
                 <LuUsers size={20} />
               </Box>
               <Text fontSize="md" color="gray.200">
-                Efficient personnel tracking
+                Efficient workforce tracking
               </Text>
             </HStack>
             <HStack gap={3}>

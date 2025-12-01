@@ -23,7 +23,7 @@ import GuardsFilters from './components/GuardsFilters';
 import GuardsTable from './components/GuardsTable';
 import GuardsDrawer from './components/GuardsDrawer';
 import AddGuardsModal from './components/AddGuardsModal';
-import { Guard } from './types/guards.types';
+import { Guards as GuardsType} from './types/guards.types';
 
 const Guards: React.FC = () => {
   const { user } = useAuth();
@@ -84,7 +84,7 @@ const Guards: React.FC = () => {
           </Box>
           <Box>
             <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-              Personnel
+              Guards
             </Text>
             <Text fontSize="sm" color="gray.500">
               Manage security officers and staff

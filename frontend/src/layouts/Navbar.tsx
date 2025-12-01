@@ -18,7 +18,7 @@ export const Navbar = () => {
     >
       <VStack align="stretch" gap={2}>
         <NavItem to='/dashboard' icon={FiHome}>Dashboard</NavItem>
-        <NavItem to='/activity' icon={FiActivity}>Activity Hub</NavItem>
+        <NavItem to='/activityHub' icon={FiActivity}>Activity Hub</NavItem>
         <NavItem to='/clients' icon={FiBriefcase}>Clients</NavItem>
 
         <Separator variant="solid" borderColor="gray.600" />
@@ -33,7 +33,7 @@ export const Navbar = () => {
         >
           Workforce
         </Heading>
-        <NavItem to='/personnel' icon={FiUsers}>Guards</NavItem>
+        <NavItem to='/guards' icon={FiUsers}>Guards</NavItem>
         <NavItem to='/compliance' icon={FiFileText}>Compliance</NavItem>
         <Separator variant="solid" borderColor="gray.600" />
 
@@ -66,7 +66,7 @@ export const Navbar = () => {
         <Separator variant="solid" borderColor="gray.600" />
 
         {/* Section Settings */}
-        <NavItem to='/updates' icon={FiSettings}>Settings</NavItem>
+        <NavItem to='/settings' icon={FiSettings}>Settings</NavItem>
       </VStack>
     </Box>
   );
