@@ -26,17 +26,19 @@ mongoose.connect(dbURI)
 // ROUTES
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-const schedulingRoutes = require('./routes/schedulingRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const guardsRoutes = require('./routes/guardsRoutes');
 const complianceRoutes = require('./routes/complianceRoutes');
+const schedulingRoutes = require('./routes/schedulingRoutes');
+const timeClockRoutes = require('./routes/timeClockRoutes');
 
 app.use('/api', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api', schedulingRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/guards', guardsRoutes);
 app.use('/api/compliance', complianceRoutes);
+app.use('/api', schedulingRoutes);
+app.use('/api/timeClock', timeClockRoutes);
 
 // SERVER STARTUP
 const PORT = process.env.PORT || 5000;

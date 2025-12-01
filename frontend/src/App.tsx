@@ -15,7 +15,7 @@ import Clients from './pages/clients/Clients';
 import Guards from './pages/guards/Guards';
 import Compliance from './pages/compliance/Compliance';
 import Scheduling from './pages/scheduling/Scheduling';
-import TimeClock from "./pages/TimeClock";
+import TimeClock from "./pages/timeClock/TimeClock";
 import Performance from './pages/Performance';
 import Reports from './pages/Reports';
 import Settings from "./pages/Settings";
