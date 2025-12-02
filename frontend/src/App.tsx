@@ -16,10 +16,9 @@ import Guards from './pages/guards/Guards';
 import Compliance from './pages/compliance/Compliance';
 import Scheduling from './pages/scheduling/Scheduling';
 import TimeClock from "./pages/timeClock/TimeClock";
-import Performance from './pages/Performance';
-import Reports from './pages/Reports';
+import Performance from './pages/performance/Performance';
+import Reports from './pages/reports/Reports';
 import Settings from "./pages/Settings";
-import Chat from "./pages/Chat";
 
 const App: React.FC = () => {
   return (
@@ -51,7 +50,6 @@ const App: React.FC = () => {
             <Route path="/performance" element={<Performance />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/chat" element={<Chat />} />
           </Route>
         </Routes>
       </Router>
