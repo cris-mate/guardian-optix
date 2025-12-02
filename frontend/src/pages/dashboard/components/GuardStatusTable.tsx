@@ -55,10 +55,20 @@ const statusConfig: Record<GuardStatus, {
     label: 'Off Duty',
     dotColor: 'gray.400',
   },
-  'break': {
+  'on-break': {
     colorScheme: 'purple',
     label: 'On Break',
     dotColor: 'purple.400',
+  },
+  break: {
+    colorScheme: 'yellow',
+    label: 'On Break',
+    dotColor: 'yellow.500'
+  },
+  scheduled: {
+    colorScheme: 'blue',
+    label: 'Scheduled',
+    dotColor: 'blue.500'
   },
   'late': {
     colorScheme: 'orange',
@@ -85,15 +95,17 @@ const GuardRow: React.FC<GuardRowProps> = ({ guard, onClick }) => {
   const config = statusConfig[guard.status];
   const navigate = useNavigate();
 
-  const formatLastActivity = (activity?: GuardStatusEntry['lastActivity']) => {
-    if (!activity) return 'No recent activity';
-    const date = new Date(activity.timestamp);
+  const formatLastActivity = (lastActivity?: string) => {
+    if (!lastActivity) return 'No recent activity';
+    const date = new Date(lastActivity);
     const now = new Date();
-    const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffMins < 1) return activity.description;
-    if (diffMins < 60) return `${activity.description} (${diffMins}m ago)`;
-    return `${activity.description} (${Math.floor(diffMins / 60)}h ago)`;
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    return date.toLocaleDateString();
   };
 
   const getInitials = (name: string) => {

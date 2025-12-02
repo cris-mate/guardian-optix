@@ -1,3 +1,10 @@
+/**
+ * useDashboardData Hook
+ *
+ * Custom hook for fetching and managing dashboard data.
+ * Supports auto-refresh and provides actions for alerts/tasks.
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../../../utils/api';
 import type {
@@ -10,33 +17,13 @@ import type {
   Task,
   IncidentSummary,
 } from '../types/dashboard.types';
+import {
+  REFRESH_INTERVALS,
+  DEFAULT_DASHBOARD_STATE,
+} from '../types/dashboard.types';
 
 // ============================================
-// Configuration
-// ============================================
-
-const REFRESH_INTERVAL = 30000; // 30 seconds
-const ACTIVITY_POLL_INTERVAL = 10000; // 10 seconds for activity feed
-
-// ============================================
-// Initial State
-// ============================================
-
-const initialState: DashboardState = {
-  metrics: null,
-  alerts: [],
-  scheduleOverview: null,
-  guardStatuses: [],
-  activityFeed: [],
-  pendingTasks: [],
-  recentIncidents: [],
-  isLoading: true,
-  error: null,
-  lastUpdated: null,
-};
-
-// ============================================
-// Custom Hook
+// Hook Options & Return Types
 // ============================================
 
 interface UseDashboardDataOptions {
@@ -51,15 +38,19 @@ interface UseDashboardDataReturn extends DashboardState {
   completeTask: (taskId: string) => Promise<void>;
 }
 
+// ============================================
+// Main Hook
+// ============================================
+
 export const useDashboardData = (
   options: UseDashboardDataOptions = {}
 ): UseDashboardDataReturn => {
   const {
     autoRefresh = true,
-    refreshInterval = REFRESH_INTERVAL
+    refreshInterval = REFRESH_INTERVALS.metrics,
   } = options;
 
-  const [state, setState] = useState<DashboardState>(initialState);
+  const [state, setState] = useState<DashboardState>(DEFAULT_DASHBOARD_STATE);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
@@ -116,7 +107,7 @@ export const useDashboardData = (
   const fetchAllData = useCallback(async () => {
     if (!mountedRef.current) return;
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       // Parallel fetch for performance
@@ -155,17 +146,14 @@ export const useDashboardData = (
     } catch (err) {
       if (!mountedRef.current) return;
 
-      const errorMessage = err instanceof Error
-        ? err.message
-        : 'Failed to load dashboard data';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load dashboard data';
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: errorMessage,
       }));
-
-      console.error('Dashboard data fetch error:', err);
     }
   }, [
     fetchMetrics,
@@ -178,7 +166,7 @@ export const useDashboardData = (
   ]);
 
   // ----------------------------------------
-  // Refresh ActivityHub Feed Only (more frequent)
+  // Activity Feed Refresh (More Frequent)
   // ----------------------------------------
 
   const refreshActivityFeed = useCallback(async () => {
@@ -186,11 +174,14 @@ export const useDashboardData = (
 
     try {
       const activityFeed = await fetchActivityFeed();
-      if (mountedRef.current) {
-        setState(prev => ({ ...prev, activityFeed }));
-      }
+      if (!mountedRef.current) return;
+
+      setState((prev) => ({
+        ...prev,
+        activityFeed,
+      }));
     } catch (err) {
-      console.error('ActivityHub feed refresh error:', err);
+      console.error('Failed to refresh activity feed:', err);
     }
   }, [fetchActivityFeed]);
 
@@ -201,9 +192,9 @@ export const useDashboardData = (
   const dismissAlert = useCallback(async (alertId: string) => {
     try {
       await api.patch(`/dashboard/alerts/${alertId}/dismiss`);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        alerts: prev.alerts.map(alert =>
+        alerts: prev.alerts.map((alert) =>
           alert.id === alertId ? { ...alert, isDismissed: true } : alert
         ),
       }));
@@ -216,9 +207,9 @@ export const useDashboardData = (
   const markAlertRead = useCallback(async (alertId: string) => {
     try {
       await api.patch(`/dashboard/alerts/${alertId}/read`);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        alerts: prev.alerts.map(alert =>
+        alerts: prev.alerts.map((alert) =>
           alert.id === alertId ? { ...alert, isRead: true } : alert
         ),
       }));
@@ -234,10 +225,10 @@ export const useDashboardData = (
 
   const completeTask = useCallback(async (taskId: string) => {
     try {
-      await api.patch(`/tasks/${taskId}/complete`);
-      setState(prev => ({
+      await api.patch(`/scheduling/shifts/tasks/${taskId}/complete`);
+      setState((prev) => ({
         ...prev,
-        pendingTasks: prev.pendingTasks.filter(task => task.id !== taskId),
+        pendingTasks: prev.pendingTasks.filter((task) => task.id !== taskId),
         metrics: prev.metrics
           ? { ...prev.metrics, pendingTasks: prev.metrics.pendingTasks - 1 }
           : null,
@@ -279,7 +270,10 @@ export const useDashboardData = (
   useEffect(() => {
     if (!autoRefresh) return;
 
-    activityTimerRef.current = setInterval(refreshActivityFeed, ACTIVITY_POLL_INTERVAL);
+    activityTimerRef.current = setInterval(
+      refreshActivityFeed,
+      REFRESH_INTERVALS.activity
+    );
 
     return () => {
       if (activityTimerRef.current) {
@@ -303,196 +297,223 @@ export const useDashboardData = (
 
 export const useMockDashboardData = (): UseDashboardDataReturn => {
   const [state, setState] = useState<DashboardState>({
-    ...initialState,
+    ...DEFAULT_DASHBOARD_STATE,
     isLoading: false,
+    lastUpdated: new Date(),
     metrics: {
       activeGuards: 12,
       totalScheduled: 15,
       shiftsToday: 18,
       shiftsCovered: 16,
-      attendanceRate: 94.5,
-      patrolCompletionRate: 87.2,
-      openIncidents: 3,
+      attendanceRate: 88.9,
+      patrolCompletionRate: 92.5,
+      openIncidents: 2,
       pendingTasks: 7,
       geofenceViolations: 1,
-      complianceScore: 92,
+      complianceScore: 94,
     },
     alerts: [
       {
-        id: '1',
+        id: 'alert-1',
         type: 'attendance',
-        severity: 'critical',
-        title: 'No-Show Alert',
-        message: 'John Smith has not clocked in for shift at Site A',
-        timestamp: new Date().toISOString(),
-        actionRequired: true,
-        actionUrl: '/schedules',
-        relatedEntity: { type: 'guard', id: 'g1', name: 'John Smith' },
-        isRead: false,
-        isDismissed: false,
-      },
-      {
-        id: '2',
-        type: 'geofence',
         severity: 'warning',
-        title: 'Geofence Violation',
-        message: 'Guard detected outside permitted zone at Warehouse B',
-        timestamp: new Date(Date.now() - 300000).toISOString(),
-        actionRequired: true,
+        title: 'Late Arrival',
+        message: 'James Wilson arrived 12 minutes late for morning shift',
+        timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
+        actionRequired: false,
+        actionUrl: '/guards/guard-1',
         isRead: false,
         isDismissed: false,
       },
       {
-        id: '3',
+        id: 'alert-2',
         type: 'compliance',
-        severity: 'info',
-        title: 'License Expiring',
-        message: '2 guard licenses expiring within 30 days',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        actionRequired: false,
+        severity: 'warning',
+        title: 'Certification Expiring',
+        message: '2 officer certifications expiring within 30 days',
+        timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+        actionRequired: true,
         actionUrl: '/compliance',
-        isRead: true,
+        isRead: false,
         isDismissed: false,
       },
     ],
     scheduleOverview: {
       totalShifts: 18,
-      activeShifts: 12,
-      upcomingShifts: 4,
-      completedShifts: 2,
-      noShows: 1,
+      activeShifts: 8,
+      completedShifts: 4,
+      scheduledShifts: 5,
+      cancelledShifts: 1,
+      upcomingShifts: 5,
+      noShows: 0,
       lateArrivals: 2,
-      shifts: [],
+      shifts: [
+        {
+          id: 'shift-1',
+          guardId: 'guard-1',
+          guardName: 'James Wilson',
+          siteName: 'Westfield Shopping Centre',
+          siteId: 'site-1',
+          role: 'Static',
+          startTime: '2024-01-15T06:00:00',
+          endTime: '2024-01-15T14:00:00',
+          status: 'in-progress',
+          shiftType: 'Morning',
+          tasksTotal: 5,
+          tasksCompleted: 3,
+        },
+        {
+          id: 'shift-2',
+          guardId: 'guard-2',
+          guardName: 'Sarah Chen',
+          siteName: 'Tech Park Building A',
+          siteId: 'site-2',
+          role: 'Mobile Patrol',
+          startTime: '2024-01-15T07:00:00',
+          endTime: '2024-01-15T15:00:00',
+          status: 'in-progress',
+          shiftType: 'Morning',
+          tasksTotal: 8,
+          tasksCompleted: 6,
+        },
+      ],
     },
     guardStatuses: [
       {
-        id: 'g1',
-        name: 'John Smith',
-        role: 'Senior Guard',
+        id: 'guard-1',
+        name: 'James Wilson',
+        role: 'Guard',
+        guardType: 'Static',
         status: 'on-duty',
-        currentSite: 'Corporate HQ',
-        lastActivity: {
-          type: 'checkpoint-scan',
-          timestamp: new Date(Date.now() - 120000).toISOString(),
-          description: 'Scanned checkpoint B3',
-        },
+        currentSite: 'Westfield Shopping Centre',
+        shiftTime: 'Morning',
+        contactInfo: { phone: '07700 900123', email: 'james.wilson@example.com' },
+        availability: true,
+        lastActivity: new Date(Date.now() - 15 * 60000).toISOString(),
+        avatar: undefined,
       },
       {
-        id: 'g2',
-        name: 'Sarah Johnson',
-        role: 'Patrol Officer',
+        id: 'guard-2',
+        name: 'Sarah Chen',
+        role: 'Guard',
+        guardType: 'Mobile Patrol',
         status: 'on-duty',
-        currentSite: 'Warehouse District',
-        lastActivity: {
-          type: 'clock-in',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          description: 'Started shift',
-        },
+        currentSite: 'Tech Park Building A',
+        shiftTime: 'Morning',
+        contactInfo: { phone: '07700 900124', email: 'sarah.chen@example.com' },
+        availability: true,
+        lastActivity: new Date(Date.now() - 5 * 60000).toISOString(),
+        avatar: undefined,
       },
       {
-        id: 'g3',
-        name: 'Mike Brown',
-        role: 'Security Guard',
-        status: 'break',
-        currentSite: 'Mall Complex',
-        lastActivity: {
-          type: 'break-start',
-          timestamp: new Date(Date.now() - 600000).toISOString(),
-          description: 'Started 15-min break',
-        },
+        id: 'guard-3',
+        name: 'Michael Brown',
+        role: 'Guard',
+        guardType: 'Dog Handler',
+        status: 'scheduled',
+        currentSite: null,
+        shiftTime: 'Afternoon',
+        contactInfo: { phone: '07700 900125', email: 'michael.brown@example.com' },
+        availability: true,
+        lastActivity: undefined,
+        avatar: undefined,
       },
     ],
     activityFeed: [
       {
-        id: 'a1',
+        id: 'activity-1',
         type: 'clock-in',
-        timestamp: new Date(Date.now() - 60000).toISOString(),
-        guardName: 'Alex Turner',
-        siteName: 'Tech Park',
-        description: 'Clocked in for evening shift',
+        guardId: 'guard-1',
+        guardName: 'James Wilson',
+        siteName: 'Westfield Shopping Centre',
+        timestamp: new Date(Date.now() - 3 * 3600000).toISOString(),
+        geofenceStatus: 'inside',
+        description: 'Clocked in for morning shift',
       },
       {
-        id: 'a2',
-        type: 'checkpoint-scan',
-        timestamp: new Date(Date.now() - 180000).toISOString(),
-        guardName: 'John Smith',
-        siteName: 'Corporate HQ',
-        description: 'Completed checkpoint tour (12/12)',
-      },
-      {
-        id: 'a3',
-        type: 'incident-report',
-        timestamp: new Date(Date.now() - 300000).toISOString(),
-        guardName: 'Sarah Johnson',
-        siteName: 'Warehouse District',
-        description: 'Submitted incident report: Suspicious vehicle',
-        severity: 'warning',
+        id: 'activity-2',
+        type: 'task-completed',
+        guardId: 'guard-2',
+        guardName: 'Sarah Chen',
+        siteName: 'Tech Park Building A',
+        timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
+        notes: 'Morning patrol completed',
+        description: 'Completed morning patrol checkpoint',
       },
     ],
     pendingTasks: [
       {
-        id: 't1',
-        title: 'Equipment Inspection',
-        description: 'Monthly radio equipment check',
+        id: 'task-1',
+        shiftId: 'shift-1',
+        title: 'Fire Exit Check',
+        description: 'Check fire exits - North Wing',
+        frequency: 'once',
         priority: 'high',
         status: 'pending',
-        dueDate: new Date(Date.now() + 86400000).toISOString(),
-        site: { id: 's1', name: 'Corporate HQ' },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        dueDate: new Date(Date.now() + 2 * 3600000).toISOString(),
+        assignedTo: { id: 'guard-1', name: 'James Wilson' },
+        site: { id: 'site-1', name: 'Westfield Shopping Centre' },
       },
       {
-        id: 't2',
-        title: 'Training Completion',
-        description: 'Complete annual safety training',
+        id: 'task-2',
+        shiftId: 'shift-2',
+        title: 'Perimeter Patrol',
+        description: 'Hourly patrol - Perimeter',
+        frequency: 'hourly',
         priority: 'medium',
-        status: 'in-progress',
-        dueDate: new Date(Date.now() + 172800000).toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        status: 'pending',
+        dueDate: new Date(Date.now() + 30 * 60000).toISOString(),
+        assignedTo: { id: 'guard-2', name: 'Sarah Chen' },
+        site: { id: 'site-2', name: 'Tech Park Building A' },
       },
     ],
     recentIncidents: [
       {
-        id: 'i1',
-        title: 'Unauthorized Access Attempt',
-        severity: 'high',
+        id: 'incident-1',
+        title: 'Suspicious Activity - Car Park',
+        incidentType: 'suspicious-activity',
+        severity: 'medium',
         status: 'under-review',
-        reportedAt: new Date(Date.now() - 3600000).toISOString(),
-        reportedBy: { id: 'g1', name: 'John Smith' },
-        site: { id: 's1', name: 'Corporate HQ' },
-        category: 'Security Breach',
+        location: 'Car Park Level 2',
+        description: 'Unknown individual observed checking vehicle doors',
+        reportedAt: new Date(Date.now() - 4 * 3600000).toISOString(),
+        reportedBy: { id: 'guard-1', name: 'James Wilson' },
       },
     ],
-    lastUpdated: new Date(),
   });
 
-  const refresh = async () => {
-    setState(prev => ({ ...prev, lastUpdated: new Date() }));
-  };
+  // Mock actions
+  const refresh = useCallback(async () => {
+    setState((prev) => ({ ...prev, lastUpdated: new Date() }));
+  }, []);
 
-  const dismissAlert = async (alertId: string) => {
-    setState(prev => ({
+  const dismissAlert = useCallback(async (alertId: string) => {
+    setState((prev) => ({
       ...prev,
-      alerts: prev.alerts.filter(a => a.id !== alertId),
-    }));
-  };
-
-  const markAlertRead = async (alertId: string) => {
-    setState(prev => ({
-      ...prev,
-      alerts: prev.alerts.map(a =>
-        a.id === alertId ? { ...a, isRead: true } : a
+      alerts: prev.alerts.map((alert) =>
+        alert.id === alertId ? { ...alert, isDismissed: true } : alert
       ),
     }));
-  };
+  }, []);
 
-  const completeTask = async (taskId: string) => {
-    setState(prev => ({
+  const markAlertRead = useCallback(async (alertId: string) => {
+    setState((prev) => ({
       ...prev,
-      pendingTasks: prev.pendingTasks.filter(t => t.id !== taskId),
+      alerts: prev.alerts.map((alert) =>
+        alert.id === alertId ? { ...alert, isRead: true } : alert
+      ),
     }));
-  };
+  }, []);
+
+  const completeTask = useCallback(async (taskId: string) => {
+    setState((prev) => ({
+      ...prev,
+      pendingTasks: prev.pendingTasks.filter((task) => task.id !== taskId),
+      metrics: prev.metrics
+        ? { ...prev.metrics, pendingTasks: prev.metrics.pendingTasks - 1 }
+        : null,
+    }));
+  }, []);
 
   return {
     ...state,
@@ -502,5 +523,3 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     completeTask,
   };
 };
-
-export default useDashboardData;

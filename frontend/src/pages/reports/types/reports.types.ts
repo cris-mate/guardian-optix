@@ -2,7 +2,6 @@
  * Reports Types
  *
  * TypeScript interfaces for analytics reports and data exports.
- * Aligned with industry standards from TrackTik/Connecteam.
  */
 
 // ============================================

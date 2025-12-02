@@ -3,16 +3,16 @@
  *
  * Provides aggregated performance metrics for security officers.
  * Tracks patrol completion, attendance, incident response, and compliance.
+ *
+ * Updated to use Shift model (tasks are embedded subdocuments).
  */
 
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
-const Schedule = require('../models/Schedule');
-const Task = require('../models/Task');
+const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
-// const Patrol = require('../models/Patrol');
-// const Checkpoint = require('../models/Checkpoint');
-// const TimeEntry = require('../models/TimeEntry');
+const TimeEntry = require('../models/TimeEntry');
+// const Certification = require('../models/Certification');
 
 // ============================================
 // Helper Functions
@@ -43,31 +43,60 @@ const getTrendDirection = (current, previous) => {
  */
 const getDateRange = (timeRange) => {
   const now = new Date();
-  const end = new Date(now);
+  const end = now.toISOString().split('T')[0]; // YYYY-MM-DD format
   let start;
 
   switch (timeRange) {
     case 'today':
-      start = new Date(now.setHours(0, 0, 0, 0));
+      start = end;
       break;
-    case 'week':
-      start = new Date(now);
-      start.setDate(start.getDate() - 7);
+    case 'week': {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      start = weekAgo.toISOString().split('T')[0];
       break;
-    case 'month':
-      start = new Date(now);
-      start.setMonth(start.getMonth() - 1);
+    }
+    case 'month': {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      start = monthAgo.toISOString().split('T')[0];
       break;
-    case 'quarter':
-      start = new Date(now);
-      start.setMonth(start.getMonth() - 3);
+    }
+    case 'quarter': {
+      const quarterAgo = new Date(now);
+      quarterAgo.setMonth(quarterAgo.getMonth() - 3);
+      start = quarterAgo.toISOString().split('T')[0];
       break;
-    default:
-      start = new Date(now);
-      start.setDate(start.getDate() - 7);
+    }
+    default: {
+      const defaultWeek = new Date(now);
+      defaultWeek.setDate(defaultWeek.getDate() - 7);
+      start = defaultWeek.toISOString().split('T')[0];
+    }
   }
 
   return { start, end };
+};
+
+/**
+ * Calculate task completion metrics from shifts
+ */
+const calculateTaskMetrics = (shifts) => {
+  let totalTasks = 0;
+  let completedTasks = 0;
+
+  shifts.forEach((shift) => {
+    if (shift.tasks && shift.tasks.length > 0) {
+      totalTasks += shift.tasks.length;
+      completedTasks += shift.tasks.filter((t) => t.completed).length;
+    }
+  });
+
+  return {
+    totalTasks,
+    completedTasks,
+    completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100,
+  };
 };
 
 // ============================================
@@ -84,214 +113,161 @@ const getOverview = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange(timeRange);
 
   // Parallel queries for performance metrics
-  const [schedules, incidents] = await Promise.all([
-    Schedule.find({
-      startTime: { $gte: start, $lte: end },
+  const [shifts, incidents] = await Promise.all([
+    Shift.find({
+      date: { $gte: start, $lte: end },
       status: { $ne: 'cancelled' },
     }).lean(),
     Incident.find({
-      createdAt: { $gte: start, $lte: end },
+      createdAt: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') },
     }).lean(),
   ]);
 
-  // Calculate patrol metrics (placeholder - would use Patrol model)
-  const totalPatrols = schedules.length;
-  const completedPatrols = schedules.filter(s => s.status === 'completed').length;
-  const patrolCompletionRate = totalPatrols > 0
-    ? (completedPatrols / totalPatrols) * 100
-    : 100;
+  // Calculate shift metrics
+  const totalShifts = shifts.length;
+  const completedShifts = shifts.filter((s) => s.status === 'completed').length;
+  const shiftCompletionRate =
+    totalShifts > 0 ? (completedShifts / totalShifts) * 100 : 100;
 
-  // Calculate attendance metrics
-  const totalShifts = schedules.length;
-  const activeShifts = schedules.filter(s => s.status === 'active' || s.status === 'completed').length;
-  const lateArrivals = schedules.filter(s => s.isLate).length;
-  const noShows = schedules.filter(s => s.status === 'no-show').length;
-  const attendanceRate = totalShifts > 0
-    ? ((totalShifts - noShows) / totalShifts) * 100
-    : 100;
+  // Calculate task/patrol metrics
+  const taskMetrics = calculateTaskMetrics(shifts);
 
-  // Calculate incident response metrics
+  // Calculate incident metrics
   const totalIncidents = incidents.length;
-  const avgResponseTime = incidents.length > 0
-    ? incidents.reduce((sum, i) => {
-    const responseTime = i.respondedAt
-      ? (new Date(i.respondedAt) - new Date(i.createdAt)) / 60000
-      : 0;
-    return sum + responseTime;
-  }, 0) / incidents.length
-    : 0;
-  const resolvedWithinSLA = incidents.filter(i => i.metSLA).length;
-
-  // Checkpoint metrics (placeholder)
-  const totalCheckpoints = 100;
-  const scannedCheckpoints = 96;
-  const checkpointRate = (scannedCheckpoints / totalCheckpoints) * 100;
-
-  // Geofence metrics (placeholder)
-  const geofenceViolations = 3;
-  const geofenceComplianceRate = 98.5;
-
-  // Shift completion metrics
-  const completedShifts = schedules.filter(s => s.status === 'completed').length;
-  const earlyExits = schedules.filter(s => s.earlyExit).length;
-  const incompleteShifts = schedules.filter(s =>
-    s.status !== 'completed' && s.status !== 'active' && s.status !== 'cancelled'
+  const resolvedIncidents = incidents.filter(
+    (i) => i.status === 'resolved' || i.status === 'closed'
   ).length;
-  const shiftCompletionRate = totalShifts > 0
-    ? (completedShifts / totalShifts) * 100
-    : 100;
+  const incidentResolutionRate =
+    totalIncidents > 0 ? (resolvedIncidents / totalIncidents) * 100 : 100;
+
+  // Previous period for trends (placeholder values)
+  const previousPatrolCompletion = taskMetrics.completionRate - 2;
+  const previousAttendance = shiftCompletionRate + 1;
+  const previousIncidentResponse = incidentResolutionRate - 3;
 
   res.json({
-    patrolCompletion: {
-      rate: Math.round(patrolCompletionRate * 10) / 10,
-      completed: completedPatrols,
-      scheduled: totalPatrols,
-      trend: 'up',
-      trendValue: 3.2,
-    },
-    attendance: {
-      rate: Math.round(attendanceRate * 10) / 10,
-      onTime: activeShifts - lateArrivals,
-      late: lateArrivals,
-      noShow: noShows,
-      trend: 'up',
-      trendValue: 1.5,
-    },
-    incidentResponse: {
-      averageTime: Math.round(avgResponseTime * 10) / 10,
-      resolvedWithinSLA,
-      total: totalIncidents,
-      trend: 'down',
-      trendValue: 0.8,
-    },
-    checkpointScans: {
-      completed: scannedCheckpoints,
-      missed: totalCheckpoints - scannedCheckpoints,
-      rate: Math.round(checkpointRate * 10) / 10,
-      trend: 'up',
-      trendValue: 2.1,
-    },
-    geofenceCompliance: {
-      rate: geofenceComplianceRate,
-      violations: geofenceViolations,
-      trend: 'stable',
-      trendValue: 0,
-    },
-    shiftCompletion: {
-      rate: Math.round(shiftCompletionRate * 10) / 10,
-      completed: completedShifts,
-      early: earlyExits,
-      incomplete: incompleteShifts,
+    data: {
+      patrolCompletionRate: Math.round(taskMetrics.completionRate * 10) / 10,
+      patrolCompletionTrend: {
+        direction: getTrendDirection(
+          taskMetrics.completionRate,
+          previousPatrolCompletion
+        ),
+        changePercent: Math.abs(
+          taskMetrics.completionRate - previousPatrolCompletion
+        ),
+      },
+      attendanceRate: Math.round(shiftCompletionRate * 10) / 10,
+      attendanceTrend: {
+        direction: getTrendDirection(shiftCompletionRate, previousAttendance),
+        changePercent: Math.abs(shiftCompletionRate - previousAttendance),
+      },
+      incidentResponseRate: Math.round(incidentResolutionRate * 10) / 10,
+      incidentResponseTrend: {
+        direction: getTrendDirection(
+          incidentResolutionRate,
+          previousIncidentResponse
+        ),
+        changePercent: Math.abs(
+          incidentResolutionRate - previousIncidentResponse
+        ),
+      },
+      complianceScore: 92, // Placeholder - would aggregate from compliance module
+      totalShifts,
+      completedShifts,
+      totalTasks: taskMetrics.totalTasks,
+      completedTasks: taskMetrics.completedTasks,
+      totalIncidents,
+      resolvedIncidents,
     },
   });
 });
 
 /**
- * @desc    Get officer performance data
+ * @desc    Get individual officer performance data
  * @route   GET /api/performance/officers
  * @access  Private
  */
 const getOfficerPerformance = asyncHandler(async (req, res) => {
-  const { timeRange = 'week' } = req.query;
+  const { timeRange = 'week', sortBy = 'overallScore', limit = 20 } = req.query;
   const { start, end } = getDateRange(timeRange);
 
-  // Get all guards/supervisors
-  const officers = await User.find({
-    role: { $in: ['Guard', 'Supervisor'] },
-    status: { $ne: 'inactive' },
-  }).lean();
+  // Get all guards
+  const guards = await User.find({ role: 'Guard' })
+    .select('fullName guardType availability')
+    .lean();
 
-  // Get schedules for the period
-  const schedules = await Schedule.find({
-    startTime: { $gte: start, $lte: end },
+  // Get shifts for the period
+  const shifts = await Shift.find({
+    date: { $gte: start, $lte: end },
     status: { $ne: 'cancelled' },
   }).lean();
 
-  // Calculate performance for each officer
-  const officerPerformance = officers.map((officer) => {
-    const officerSchedules = schedules.filter(
-      s => s.employee?.toString() === officer._id.toString()
+  // Calculate performance per officer
+  const officerPerformance = guards.map((guard) => {
+    const officerShifts = shifts.filter(
+      (s) => s.officer?.toString() === guard._id.toString()
     );
 
-    const totalShifts = officerSchedules.length;
-    const completedShifts = officerSchedules.filter(s => s.status === 'completed').length;
-    const lateArrivals = officerSchedules.filter(s => s.isLate).length;
-    const noShows = officerSchedules.filter(s => s.status === 'no-show').length;
+    const totalShifts = officerShifts.length;
+    const completedShifts = officerShifts.filter(
+      (s) => s.status === 'completed'
+    ).length;
 
-    // Calculate metrics (with fallbacks for mock data)
-    const attendanceRate = totalShifts > 0
-      ? ((totalShifts - noShows) / totalShifts) * 100
-      : 95 + Math.random() * 5;
-    const punctualityRate = totalShifts > 0
-      ? ((totalShifts - lateArrivals) / totalShifts) * 100
-      : 85 + Math.random() * 15;
-    const shiftCompletion = totalShifts > 0
-      ? (completedShifts / totalShifts) * 100
-      : 90 + Math.random() * 10;
+    // Task completion for this officer
+    let totalTasks = 0;
+    let completedTasks = 0;
+    officerShifts.forEach((shift) => {
+      if (shift.tasks) {
+        totalTasks += shift.tasks.length;
+        completedTasks += shift.tasks.filter((t) => t.completed).length;
+      }
+    });
 
-    // Mock other metrics
-    const patrolCompletion = 85 + Math.random() * 15;
-    const checkpointAccuracy = 88 + Math.random() * 12;
-    const geofenceCompliance = 95 + Math.random() * 5;
-    const incidentResponseAvg = 2 + Math.random() * 5;
-    const trainingCompletion = 70 + Math.random() * 30;
+    const taskCompletionRate =
+      totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100;
+    const shiftCompletionRate =
+      totalShifts > 0 ? (completedShifts / totalShifts) * 100 : 100;
 
-    // Calculate overall score (weighted average)
+    // Overall score (weighted average)
     const overallScore = Math.round(
-      patrolCompletion * 0.2 +
-      attendanceRate * 0.2 +
-      punctualityRate * 0.15 +
-      checkpointAccuracy * 0.15 +
-      geofenceCompliance * 0.1 +
-      shiftCompletion * 0.1 +
-      trainingCompletion * 0.1
+      taskCompletionRate * 0.4 + shiftCompletionRate * 0.4 + 92 * 0.2 // Compliance placeholder
     );
 
     return {
-      officerId: officer._id.toString(),
-      officerName: officer.fullName || `${officer.firstName} ${officer.lastName}`,
-      profileImage: officer.profileImage,
-      badgeNumber: officer.badgeNumber,
-      guardType: officer.guardType,
-      site: officer.assignedSite || 'Unassigned',
+      officerId: guard._id,
+      officerName: guard.fullName,
+      guardType: guard.guardType,
+      availability: guard.availability,
+      shiftsCompleted: completedShifts,
+      totalShifts,
+      tasksCompleted: completedTasks,
+      totalTasks,
+      patrolCompletionRate: Math.round(taskCompletionRate * 10) / 10,
+      punctualityRate: 95, // Placeholder - would need TimeEntry analysis
+      incidentResponseScore: 90, // Placeholder
       overallScore,
       rating: getPerformanceRating(overallScore),
-      metrics: {
-        patrolCompletion: Math.round(patrolCompletion),
-        attendanceRate: Math.round(attendanceRate),
-        punctualityRate: Math.round(punctualityRate),
-        incidentResponseAvg: Math.round(incidentResponseAvg * 10) / 10,
-        checkpointAccuracy: Math.round(checkpointAccuracy),
-        geofenceCompliance: Math.round(geofenceCompliance),
-        shiftCompletion: Math.round(shiftCompletion),
-        trainingCompletion: Math.round(trainingCompletion),
-      },
-      trends: {
-        overall: Math.random() > 0.3 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable',
-        value: Math.round(Math.random() * 5 * 10) / 10,
-      },
-      recentActivity: {
-        shiftsCompleted: completedShifts || Math.floor(Math.random() * 12) + 5,
-        patrolsCompleted: Math.floor(Math.random() * 50) + 20,
-        incidentsHandled: Math.floor(Math.random() * 5),
-        lastActive: new Date().toISOString(),
-      },
     };
   });
 
-  // Sort by overall score
-  officerPerformance.sort((a, b) => b.overallScore - a.overallScore);
-
-  // Add ranks
-  officerPerformance.forEach((officer, index) => {
-    officer.rank = index + 1;
+  // Sort by specified field
+  officerPerformance.sort((a, b) => {
+    if (sortBy === 'overallScore') return b.overallScore - a.overallScore;
+    if (sortBy === 'patrolCompletionRate')
+      return b.patrolCompletionRate - a.patrolCompletionRate;
+    if (sortBy === 'punctualityRate')
+      return b.punctualityRate - a.punctualityRate;
+    return 0;
   });
 
-  res.json({ data: officerPerformance });
+  res.json({
+    data: officerPerformance.slice(0, parseInt(limit)),
+  });
 });
 
 /**
- * @desc    Get patrol performance metrics
+ * @desc    Get patrol/task completion metrics
  * @route   GET /api/performance/patrols
  * @access  Private
  */
@@ -299,31 +275,56 @@ const getPatrolMetrics = asyncHandler(async (req, res) => {
   const { timeRange = 'week' } = req.query;
   const { start, end } = getDateRange(timeRange);
 
-  // Placeholder data - would query Patrol model
+  const shifts = await Shift.find({
+    date: { $gte: start, $lte: end },
+    status: { $ne: 'cancelled' },
+  })
+    .populate('site', 'name')
+    .lean();
+
+  const taskMetrics = calculateTaskMetrics(shifts);
+
+  // Group by site
+  const bySite = {};
+  shifts.forEach((shift) => {
+    const siteName = shift.site?.name || 'Unknown';
+    if (!bySite[siteName]) {
+      bySite[siteName] = { totalTasks: 0, completedTasks: 0 };
+    }
+    if (shift.tasks) {
+      bySite[siteName].totalTasks += shift.tasks.length;
+      bySite[siteName].completedTasks += shift.tasks.filter(
+        (t) => t.completed
+      ).length;
+    }
+  });
+
+  const siteBreakdown = Object.entries(bySite).map(([site, data]) => ({
+    site,
+    totalTasks: data.totalTasks,
+    completedTasks: data.completedTasks,
+    completionRate:
+      data.totalTasks > 0
+        ? Math.round((data.completedTasks / data.totalTasks) * 1000) / 10
+        : 100,
+  }));
+
   res.json({
     data: {
       summary: {
-        totalTours: 48,
-        completed: 42,
-        partial: 4,
-        missed: 2,
-        completionRate: 87.5,
+        totalPatrols: taskMetrics.totalTasks,
+        completedPatrols: taskMetrics.completedTasks,
+        completionRate: Math.round(taskMetrics.completionRate * 10) / 10,
+        missedPatrols: taskMetrics.totalTasks - taskMetrics.completedTasks,
       },
-      checkpointStats: {
-        totalScans: 336,
-        missedScans: 12,
-        avgScanTime: 45,
-        scanAccuracy: 96.4,
-      },
-      byOfficer: [],
-      bySite: [],
-      recentPatrols: [],
+      bySite: siteBreakdown,
+      recentPatrols: [], // Would be populated with actual patrol records
     },
   });
 });
 
 /**
- * @desc    Get attendance performance metrics
+ * @desc    Get attendance and punctuality metrics
  * @route   GET /api/performance/attendance
  * @access  Private
  */
@@ -331,55 +332,69 @@ const getAttendanceMetrics = asyncHandler(async (req, res) => {
   const { timeRange = 'week' } = req.query;
   const { start, end } = getDateRange(timeRange);
 
-  const schedules = await Schedule.find({
-    startTime: { $gte: start, $lte: end },
-    status: { $ne: 'cancelled' },
+  const shifts = await Shift.find({
+    date: { $gte: start, $lte: end },
   })
-    .populate('employee', 'fullName firstName lastName')
-    .populate('site', 'name')
+    .populate('officer', 'fullName')
     .lean();
 
-  const totalShifts = schedules.length;
-  const onTime = schedules.filter(s => !s.isLate && s.status !== 'no-show').length;
-  const late = schedules.filter(s => s.isLate).length;
-  const noShow = schedules.filter(s => s.status === 'no-show').length;
-  const early = schedules.filter(s => s.earlyExit).length;
+  const totalShifts = shifts.length;
+  const completedShifts = shifts.filter((s) => s.status === 'completed').length;
+  const cancelledShifts = shifts.filter((s) => s.status === 'cancelled').length;
 
-  const punctualityRate = totalShifts > 0
-    ? (onTime / totalShifts) * 100
-    : 100;
-  const attendanceRate = totalShifts > 0
-    ? ((totalShifts - noShow) / totalShifts) * 100
-    : 100;
+  // Attendance rate (completed / (total - cancelled))
+  const scheduledShifts = totalShifts - cancelledShifts;
+  const attendanceRate =
+    scheduledShifts > 0 ? (completedShifts / scheduledShifts) * 100 : 100;
 
-  // Calculate average minutes late
-  const lateSchedules = schedules.filter(s => s.isLate && s.lateMinutes);
-  const avgMinutesLate = lateSchedules.length > 0
-    ? lateSchedules.reduce((sum, s) => sum + (s.lateMinutes || 0), 0) / lateSchedules.length
-    : 0;
+  // Group by officer
+  const byOfficer = {};
+  shifts.forEach((shift) => {
+    const officerName = shift.officer?.fullName || 'Unassigned';
+    const officerId = shift.officer?._id?.toString() || 'unassigned';
+
+    if (!byOfficer[officerId]) {
+      byOfficer[officerId] = {
+        name: officerName,
+        totalShifts: 0,
+        completedShifts: 0,
+        cancelledShifts: 0,
+      };
+    }
+
+    byOfficer[officerId].totalShifts++;
+    if (shift.status === 'completed') byOfficer[officerId].completedShifts++;
+    if (shift.status === 'cancelled') byOfficer[officerId].cancelledShifts++;
+  });
+
+  const officerBreakdown = Object.entries(byOfficer).map(([id, data]) => {
+    const scheduled = data.totalShifts - data.cancelledShifts;
+    return {
+      officerId: id,
+      officerName: data.name,
+      totalShifts: data.totalShifts,
+      completedShifts: data.completedShifts,
+      attendanceRate:
+        scheduled > 0
+          ? Math.round((data.completedShifts / scheduled) * 1000) / 10
+          : 100,
+      punctualityRate: 95, // Placeholder - would need TimeEntry analysis
+    };
+  });
 
   res.json({
     data: {
       summary: {
         totalShifts,
-        onTime,
-        late,
-        early,
-        noShow,
-        punctualityRate: Math.round(punctualityRate * 10) / 10,
+        completedShifts,
+        cancelledShifts,
         attendanceRate: Math.round(attendanceRate * 10) / 10,
+        punctualityRate: 94.5, // Placeholder
+        lateArrivals: 0, // Would need TimeEntry analysis
+        noShows: 0, // Would need TimeEntry analysis
       },
-      lateArrivals: {
-        count: late,
-        avgMinutesLate: Math.round(avgMinutesLate),
-        trend: 'down',
-      },
-      earlyDepartures: {
-        count: early,
-        avgMinutesEarly: 12,
-      },
-      byOfficer: [],
-      recentRecords: [],
+      byOfficer: officerBreakdown,
+      recentRecords: [], // Would be populated with actual attendance records
     },
   });
 });
@@ -394,49 +409,71 @@ const getIncidentMetrics = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange(timeRange);
 
   const incidents = await Incident.find({
-    createdAt: { $gte: start, $lte: end },
-  }).lean();
+    createdAt: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') },
+  })
+    .populate('reportedBy', 'fullName')
+    .populate('resolvedBy', 'fullName')
+    .lean();
 
   const totalIncidents = incidents.length;
+  const resolvedIncidents = incidents.filter(
+    (i) => i.status === 'resolved' || i.status === 'closed'
+  ).length;
 
-  // Calculate response times
-  const incidentsWithResponse = incidents.filter(i => i.respondedAt);
-  const avgResponseTime = incidentsWithResponse.length > 0
-    ? incidentsWithResponse.reduce((sum, i) => {
-    return sum + (new Date(i.respondedAt) - new Date(i.createdAt)) / 60000;
-  }, 0) / incidentsWithResponse.length
-    : 0;
+  // Average response time (placeholder)
+  const avgResponseTime = 15; // minutes
 
-  const incidentsWithResolution = incidents.filter(i => i.resolvedAt);
-  const avgResolutionTime = incidentsWithResolution.length > 0
-    ? incidentsWithResolution.reduce((sum, i) => {
-    return sum + (new Date(i.resolvedAt) - new Date(i.createdAt)) / 60000;
-  }, 0) / incidentsWithResolution.length
-    : 0;
+  // SLA compliance (incidents resolved within SLA)
+  const slaCompliance =
+    totalIncidents > 0 ? (resolvedIncidents / totalIncidents) * 100 : 100;
 
-  const slaCompliance = incidentsWithResponse.filter(i => i.metSLA).length;
-  const resolvedWithinHour = incidentsWithResolution.filter(i => {
-    const resolutionTime = (new Date(i.resolvedAt) - new Date(i.createdAt)) / 60000;
-    return resolutionTime <= 60;
-  }).length;
+  // Group by severity
+  const bySeverity = {
+    critical: { count: 0, resolved: 0 },
+    high: { count: 0, resolved: 0 },
+    medium: { count: 0, resolved: 0 },
+    low: { count: 0, resolved: 0 },
+  };
+
+  incidents.forEach((incident) => {
+    const severity = incident.severity || 'medium';
+    if (bySeverity[severity]) {
+      bySeverity[severity].count++;
+      if (incident.status === 'resolved' || incident.status === 'closed') {
+        bySeverity[severity].resolved++;
+      }
+    }
+  });
 
   res.json({
     data: {
       summary: {
         totalIncidents,
-        avgResponseTime: Math.round(avgResponseTime * 10) / 10,
-        avgResolutionTime: Math.round(avgResolutionTime),
-        slaCompliance: totalIncidents > 0 ? (slaCompliance / totalIncidents) * 100 : 100,
-        resolvedWithinHour,
+        resolvedIncidents,
+        openIncidents: totalIncidents - resolvedIncidents,
+        avgResponseTime,
+        slaCompliance: Math.round(slaCompliance * 10) / 10,
       },
-      bySeverity: {
-        critical: { count: 0, avgResponseTime: 0, slaCompliance: 100 },
-        high: { count: 0, avgResponseTime: 0, slaCompliance: 100 },
-        medium: { count: 0, avgResponseTime: 0, slaCompliance: 100 },
-        low: { count: 0, avgResponseTime: 0, slaCompliance: 100 },
-      },
-      byOfficer: [],
-      recentIncidents: [],
+      bySeverity: Object.entries(bySeverity).map(([severity, data]) => ({
+        severity,
+        count: data.count,
+        resolved: data.resolved,
+        resolutionRate:
+          data.count > 0
+            ? Math.round((data.resolved / data.count) * 1000) / 10
+            : 100,
+      })),
+      recentIncidents: incidents.slice(0, 5).map((i) => ({
+        id: i._id,
+        type: i.incidentType,
+        severity: i.severity,
+        status: i.status,
+        location: i.location,
+        reportedAt: i.createdAt,
+        reportedBy: i.reportedBy?.fullName || 'Unknown',
+        resolvedAt: i.resolvedAt,
+        resolvedBy: i.resolvedBy?.fullName,
+      })),
     },
   });
 });
@@ -448,42 +485,45 @@ const getIncidentMetrics = asyncHandler(async (req, res) => {
  */
 const getAlerts = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange('week');
-
-  // Generate alerts based on current data
   const alerts = [];
 
-  // Check for late arrivals pattern
-  const schedules = await Schedule.find({
-    startTime: { $gte: start, $lte: end },
-    isLate: true,
+  // Get shifts to analyse patterns
+  const shifts = await Shift.find({
+    date: { $gte: start, $lte: end },
   })
-    .populate('employee', 'fullName')
+    .populate('officer', 'fullName')
     .lean();
 
-  // Group by employee
-  const lateByEmployee = {};
-  schedules.forEach(s => {
-    const employeeId = s.employee?._id?.toString();
-    if (employeeId) {
-      if (!lateByEmployee[employeeId]) {
-        lateByEmployee[employeeId] = {
-          name: s.employee.fullName,
-          count: 0,
+  // Check for officers with low task completion
+  const officerTaskCompletion = {};
+  shifts.forEach((shift) => {
+    if (shift.officer && shift.tasks && shift.tasks.length > 0) {
+      const officerId = shift.officer._id.toString();
+      if (!officerTaskCompletion[officerId]) {
+        officerTaskCompletion[officerId] = {
+          name: shift.officer.fullName,
+          totalTasks: 0,
+          completedTasks: 0,
         };
       }
-      lateByEmployee[employeeId].count++;
+      officerTaskCompletion[officerId].totalTasks += shift.tasks.length;
+      officerTaskCompletion[officerId].completedTasks += shift.tasks.filter(
+        (t) => t.completed
+      ).length;
     }
   });
 
-  // Alert for employees with 3+ late arrivals
-  Object.entries(lateByEmployee).forEach(([id, data]) => {
-    if (data.count >= 3) {
+  // Alert for officers with <70% task completion
+  Object.entries(officerTaskCompletion).forEach(([id, data]) => {
+    const completionRate =
+      data.totalTasks > 0 ? (data.completedTasks / data.totalTasks) * 100 : 100;
+    if (completionRate < 70 && data.totalTasks >= 5) {
       alerts.push({
-        id: `late-pattern-${id}`,
-        type: 'attendance',
+        id: `low-completion-${id}`,
+        type: 'patrol',
         severity: 'warning',
-        title: 'Late Arrival Pattern',
-        message: `${data.name} has been late ${data.count} times this week`,
+        title: 'Low Task Completion',
+        message: `${data.name} has ${Math.round(completionRate)}% task completion this week`,
         officerId: id,
         officerName: data.name,
         timestamp: new Date().toISOString(),

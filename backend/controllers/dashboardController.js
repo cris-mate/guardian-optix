@@ -2,53 +2,78 @@
  * Dashboard Controller
  *
  * Provides aggregated operational data for the Guardian Optix dashboard.
- * Optimized for performance with parallel queries and minimal data transfer.
+ * Optimised for performance with parallel queries and minimal data transfer.
  */
 
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
-const Schedule = require('../models/Schedule');
-const Task = require('../models/Task');
+const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
+const TimeEntry = require('../models/TimeEntry');
 // const Site = require('../models/Site');
-// const ActivityLog = require('../models/ActivityLog');
+// const Certification = require('../models/Certification');
 
 // ============================================
 // Helper Functions
 // ============================================
 
 /**
- * Calculate time-based attendance metrics
+ * Get today's date in YYYY-MM-DD format
  */
-const calculateAttendanceMetrics = (schedules) => {
+const getTodayDateString = () => {
   const now = new Date();
-  const todayStart = new Date(now.setHours(0, 0, 0, 0));
-  const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+  return now.toISOString().split('T')[0];
+};
 
-  const todayShifts = schedules.filter(s => {
-    const shiftStart = new Date(s.startTime || s.shift?.start);
-    return shiftStart >= todayStart && shiftStart <= todayEnd;
-  });
+/**
+ * Calculate time-based attendance metrics from shifts
+ */
+const calculateAttendanceMetrics = (shifts) => {
+  const activeShifts = shifts.filter((s) => s.status === 'in-progress').length;
+  const completedShifts = shifts.filter((s) => s.status === 'completed').length;
+  const scheduledShifts = shifts.filter((s) => s.status === 'scheduled').length;
+  const cancelledShifts = shifts.filter((s) => s.status === 'cancelled').length;
 
-  const activeShifts = todayShifts.filter(s => s.status === 'active');
-  const completedShifts = todayShifts.filter(s => s.status === 'completed');
-  const noShows = todayShifts.filter(s => s.status === 'no-show');
-  const lateArrivals = todayShifts.filter(s => s.isLate);
+  // Count late arrivals (would need TimeEntry data for accurate tracking)
+  const lateArrivals = 0; // TODO - implement with TimeEntry comparison
 
   return {
-    totalShifts: todayShifts.length,
-    activeShifts: activeShifts.length,
-    completedShifts: completedShifts.length,
-    upcomingShifts: todayShifts.length - activeShifts.length - completedShifts.length,
-    noShows: noShows.length,
-    lateArrivals: lateArrivals.length,
+    totalShifts: shifts.length,
+    activeShifts,
+    completedShifts,
+    scheduledShifts,
+    cancelledShifts,
+    upcomingShifts: scheduledShifts,
+    noShows: 0, // Would need to compare scheduled vs clocked-in
+    lateArrivals,
   };
 };
 
 /**
- * Generate alerts based on current data
+ * Count pending tasks across all shifts
  */
-const generateAlerts = (metrics, schedules, expiringCerts) => {
+const countPendingTasks = (shifts) => {
+  let pending = 0;
+  let total = 0;
+
+  shifts.forEach((shift) => {
+    if (shift.tasks && shift.tasks.length > 0) {
+      shift.tasks.forEach((task) => {
+        total++;
+        if (!task.completed) {
+          pending++;
+        }
+      });
+    }
+  });
+
+  return { pending, total };
+};
+
+/**
+ * Generate alerts based on current operational data
+ */
+const generateAlerts = (metrics, shifts, expiringCerts = []) => {
   const alerts = [];
 
   // No-show alerts (critical)
@@ -58,10 +83,10 @@ const generateAlerts = (metrics, schedules, expiringCerts) => {
       type: 'attendance',
       severity: 'critical',
       title: 'No-Show Alert',
-      message: `${metrics.noShows} guard(s) have not clocked in for their scheduled shifts`,
-      timestamp: new Date(),
+      message: `${metrics.noShows} officer(s) have not clocked in for scheduled shifts`,
+      timestamp: new Date().toISOString(),
       actionRequired: true,
-      actionUrl: '/schedules',
+      actionUrl: '/scheduling',
       isRead: false,
       isDismissed: false,
     });
@@ -74,8 +99,8 @@ const generateAlerts = (metrics, schedules, expiringCerts) => {
       type: 'attendance',
       severity: 'warning',
       title: 'Late Arrivals',
-      message: `${metrics.lateArrivals} guard(s) arrived late to their shifts today`,
-      timestamp: new Date(),
+      message: `${metrics.lateArrivals} officer(s) arrived late to shifts today`,
+      timestamp: new Date().toISOString(),
       actionRequired: false,
       isRead: false,
       isDismissed: false,
@@ -90,9 +115,28 @@ const generateAlerts = (metrics, schedules, expiringCerts) => {
       severity: 'warning',
       title: 'Certifications Expiring',
       message: `${expiringCerts.length} certification(s) expiring within 30 days`,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       actionRequired: true,
       actionUrl: '/compliance',
+      isRead: false,
+      isDismissed: false,
+    });
+  }
+
+  // Understaffed shifts
+  const understaffed = shifts.filter(
+    (s) => s.status === 'scheduled' && !s.officer
+  ).length;
+  if (understaffed > 0) {
+    alerts.push({
+      id: `understaffed-${Date.now()}`,
+      type: 'attendance',
+      severity: 'warning',
+      title: 'Unassigned Shifts',
+      message: `${understaffed} shift(s) today have no officer assigned`,
+      timestamp: new Date().toISOString(),
+      actionRequired: true,
+      actionUrl: '/scheduling',
       isRead: false,
       isDismissed: false,
     });
@@ -106,59 +150,52 @@ const generateAlerts = (metrics, schedules, expiringCerts) => {
 // ============================================
 
 /**
- * @desc    Get dashboard metrics
+ * @desc    Get dashboard metrics (KPIs)
  * @route   GET /api/dashboard/metrics
  * @access  Private
  */
 const getMetrics = asyncHandler(async (req, res) => {
-  const now = new Date();
-  const todayStart = new Date(now.setHours(0, 0, 0, 0));
+  const todayDate = getTodayDateString();
 
   // Parallel queries for performance
-  const [
-    activeGuards,
-    totalScheduled,
-    todaySchedules,
-    openIncidents,
-    pendingTasks,
-  ] = await Promise.all([
-    User.countDocuments({ status: 'on-duty', role: { $in: ['Guard', 'Supervisor'] } }),
-    User.countDocuments({
-      role: { $in: ['Guard', 'Supervisor'] },
-      status: { $ne: 'inactive' }
-    }),
-    Schedule.find({
-      startTime: { $gte: todayStart },
-      status: { $ne: 'cancelled' }
-    }).lean(),
+  const [guards, todayShifts, openIncidents] = await Promise.all([
+    User.find({ role: 'Guard' }).lean(),
+    Shift.find({ date: todayDate }).lean(),
     Incident.countDocuments({ status: { $in: ['open', 'under-review'] } }),
-    Task.countDocuments({ status: { $in: ['pending', 'in-progress'] } }),
   ]);
 
-  const attendanceMetrics = calculateAttendanceMetrics(todaySchedules);
+  // Calculate metrics
+  const activeGuards = guards.filter((g) => g.availability === true).length;
+  const totalGuards = guards.length;
 
-  // Calculate rates
-  const attendanceRate = attendanceMetrics.totalShifts > 0
-    ? ((attendanceMetrics.activeShifts + attendanceMetrics.completedShifts) / attendanceMetrics.totalShifts) * 100
-    : 100;
+  const attendanceMetrics = calculateAttendanceMetrics(todayShifts);
+  const taskCounts = countPendingTasks(todayShifts);
 
-  // Patrol completion rate (placeholder - would need checkpoint data)
-  const patrolCompletionRate = 87.5;
+  // Attendance rate calculation
+  const attendanceRate =
+    attendanceMetrics.totalShifts > 0
+      ? ((attendanceMetrics.activeShifts + attendanceMetrics.completedShifts) /
+        attendanceMetrics.totalShifts) *
+      100
+      : 100;
 
-  // Compliance score (placeholder - would aggregate from compliance module)
-  const complianceScore = 92;
+  // Patrol completion rate (based on task completion)
+  const patrolCompletionRate =
+    taskCounts.total > 0
+      ? ((taskCounts.total - taskCounts.pending) / taskCounts.total) * 100
+      : 100;
 
   res.json({
     activeGuards,
-    totalScheduled,
+    totalScheduled: totalGuards,
     shiftsToday: attendanceMetrics.totalShifts,
     shiftsCovered: attendanceMetrics.activeShifts + attendanceMetrics.completedShifts,
     attendanceRate: Math.round(attendanceRate * 10) / 10,
-    patrolCompletionRate,
+    patrolCompletionRate: Math.round(patrolCompletionRate * 10) / 10,
     openIncidents,
-    pendingTasks,
-    geofenceViolations: 0, // Would come from real-time tracking
-    complianceScore,
+    pendingTasks: taskCounts.pending,
+    geofenceViolations: 0, // Would come from TimeEntry geofence data
+    complianceScore: 92, // Placeholder - would aggregate from compliance module
   });
 });
 
@@ -168,20 +205,16 @@ const getMetrics = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getAlerts = asyncHandler(async (req, res) => {
-  const now = new Date();
-  const todayStart = new Date(now.setHours(0, 0, 0, 0));
+  const todayDate = getTodayDateString();
 
-  const [todaySchedules, expiringCerts] = await Promise.all([
-    Schedule.find({
-      startTime: { $gte: todayStart },
-      status: { $ne: 'cancelled' }
-    }).lean(),
-    // Would query certifications expiring in 30 days
+  const [todayShifts, expiringCerts] = await Promise.all([
+    Shift.find({ date: todayDate }).lean(),
+    // Placeholder for certification expiry check
     Promise.resolve([]),
   ]);
 
-  const metrics = calculateAttendanceMetrics(todaySchedules);
-  const alerts = generateAlerts(metrics, todaySchedules, expiringCerts);
+  const metrics = calculateAttendanceMetrics(todayShifts);
+  const alerts = generateAlerts(metrics, todayShifts, expiringCerts);
 
   res.json(alerts);
 });
@@ -192,39 +225,35 @@ const getAlerts = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getScheduleOverview = asyncHandler(async (req, res) => {
-  const now = new Date();
-  const todayStart = new Date(now.setHours(0, 0, 0, 0));
-  const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+  const todayDate = getTodayDateString();
 
-  const schedules = await Schedule.find({
-    startTime: { $gte: todayStart, $lte: todayEnd },
-    status: { $ne: 'cancelled' }
-  })
-    .populate('employee', 'firstName lastName role')
-    .populate('site', 'name')
+  const shifts = await Shift.find({ date: todayDate })
+    .populate('officer', 'fullName phoneNumber role guardType')
+    .populate('site', 'name address')
+    .sort({ startTime: 1 })
     .lean();
 
-  const metrics = calculateAttendanceMetrics(schedules);
+  const metrics = calculateAttendanceMetrics(shifts);
 
-  const shifts = schedules.map(s => ({
+  const formattedShifts = shifts.map((s) => ({
     id: s._id,
-    guardId: s.employee?._id,
-    guardName: s.employee ? `${s.employee.firstName} ${s.employee.lastName}` : 'Unassigned',
-    siteName: s.site?.name || s.location || 'Unknown',
-    siteId: s.site?._id,
-    role: s.role || s.employee?.role,
-    startTime: s.startTime || s.shift?.start,
-    endTime: s.endTime || s.shift?.end,
-    status: s.status || 'upcoming',
-    clockInTime: s.clockInTime,
-    clockOutTime: s.clockOutTime,
-    checkpointsCompleted: s.checkpointsCompleted || 0,
-    checkpointsTotal: s.checkpointsTotal || 0,
+    guardId: s.officer?._id || null,
+    guardName: s.officer?.fullName || 'Unassigned',
+    siteName: s.site?.name || 'Unknown Site',
+    siteId: s.site?._id || null,
+    role: s.officer?.guardType || 'Security Officer',
+    startTime: `${s.date}T${s.startTime}:00`,
+    endTime: `${s.date}T${s.endTime}:00`,
+    status: s.status,
+    shiftType: s.shiftType,
+    tasksTotal: s.tasks?.length || 0,
+    tasksCompleted: s.tasks?.filter((t) => t.completed).length || 0,
+    notes: s.notes,
   }));
 
   res.json({
     ...metrics,
-    shifts,
+    shifts: formattedShifts,
   });
 });
 
@@ -234,27 +263,58 @@ const getScheduleOverview = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getGuardStatuses = asyncHandler(async (req, res) => {
+  const todayDate = getTodayDateString();
+
+  // Get all guards
   const guards = await User.find({
-    role: { $in: ['Guard', 'Supervisor', 'Admin'] },
-    status: { $ne: 'inactive' }
+    role: { $in: ['Guard', 'Manager', 'Admin'] },
   })
-    .select('firstName lastName role status currentSite lastActivity phone email avatar')
-    .populate('currentSite', 'name')
+    .select('fullName role guardType phoneNumber email availability shiftTime avatar')
     .lean();
 
-  const formattedGuards = guards.map(g => ({
-    id: g._id,
-    name: `${g.firstName} ${g.lastName}`,
-    role: g.role,
-    status: g.status || 'off-duty',
-    currentSite: g.currentSite?.name,
-    lastActivity: g.lastActivity,
-    contactInfo: {
-      phone: g.phone,
-      email: g.email,
-    },
-    avatar: g.avatar,
-  }));
+  // Get today's shifts to determine current assignments
+  const todayShifts = await Shift.find({ date: todayDate })
+    .populate('site', 'name')
+    .lean();
+
+  // Map guards to their current status
+  const formattedGuards = guards.map((g) => {
+    // Find if guard has an active shift today
+    const activeShift = todayShifts.find(
+      (s) =>
+        s.officer?.toString() === g._id.toString() &&
+        s.status === 'in-progress'
+    );
+
+    const scheduledShift = todayShifts.find(
+      (s) =>
+        s.officer?.toString() === g._id.toString() && s.status === 'scheduled'
+    );
+
+    let status = 'off-duty';
+    if (activeShift) {
+      status = 'on-duty';
+    } else if (scheduledShift) {
+      status = 'scheduled';
+    }
+
+    return {
+      id: g._id,
+      name: g.fullName,
+      role: g.role,
+      guardType: g.guardType,
+      status,
+      currentSite: activeShift?.site?.name || null,
+      shiftTime: g.shiftTime,
+      contactInfo: {
+        phone: g.phoneNumber,
+        email: g.email,
+      },
+      availability: g.availability,
+      lastActivity: activeShift?.updatedAt || null,
+      avatar: g.avatar || null,
+    };
+  });
 
   res.json(formattedGuards);
 });
@@ -266,12 +326,52 @@ const getGuardStatuses = asyncHandler(async (req, res) => {
  */
 const getActivityFeed = asyncHandler(async (req, res) => {
   const { limit = 20 } = req.query;
+  const todayDate = getTodayDateString();
 
-  // This would typically come from an ActivityLog collection
-  // For now, returning mock recent activities
-  const activities = [];
+  // Get recent time entries as activity
+  const recentEntries = await TimeEntry.find({
+    date: todayDate,
+  })
+    .populate('officer', 'fullName')
+    .populate('site', 'name')
+    .sort({ timestamp: -1 })
+    .limit(parseInt(limit))
+    .lean();
 
-  // Would query: ActivityLog.find().sort({ timestamp: -1 }).limit(limit)
+  const activities = recentEntries.map((entry) => {
+    // Generate description based on activity type
+    let description = '';
+    switch (entry.type) {
+      case 'clock-in':
+        description = `Clocked in at ${entry.site?.name || 'site'}`;
+        break;
+      case 'clock-out':
+        description = `Clocked out from ${entry.site?.name || 'site'}`;
+        break;
+      case 'break-start':
+        description = 'Started break';
+        break;
+      case 'break-end':
+        description = 'Ended break';
+        break;
+      default:
+        description = entry.notes || `${entry.type} recorded`;
+    }
+
+    return {
+      id: entry._id,
+      type: entry.type, // 'clock-in', 'clock-out', 'break-start', 'break-end'
+      guardId: entry.officer?._id,
+      guardName: entry.officer?.fullName || 'Unknown',
+      siteName: entry.site?.name || null,
+      timestamp: entry.timestamp,
+      location: entry.location,
+      geofenceStatus: entry.geofenceStatus,
+      notes: entry.notes,
+      description,
+      severity: entry.geofenceStatus === 'outside' ? 'warning' : undefined,
+    };
+  });
 
   res.json(activities);
 });
@@ -283,36 +383,55 @@ const getActivityFeed = asyncHandler(async (req, res) => {
  */
 const getPendingTasks = asyncHandler(async (req, res) => {
   const { limit = 10 } = req.query;
+  const todayDate = getTodayDateString();
 
-  const tasks = await Task.find({
-    status: { $in: ['pending', 'in-progress'] }
+  // Get today's shifts with incomplete tasks
+  const shiftsWithTasks = await Shift.find({
+    date: todayDate,
+    'tasks.completed': false,
   })
-    .sort({ dueDate: 1, priority: -1 })
-    .limit(parseInt(limit))
-    .populate('assignedTo', 'firstName lastName')
+    .populate('officer', 'fullName')
     .populate('site', 'name')
     .lean();
 
-  const formattedTasks = tasks.map(t => ({
-    id: t._id,
-    title: t.title,
-    description: t.description,
-    priority: t.priority || 'medium',
-    status: t.status,
-    dueDate: t.dueDate,
-    assignedTo: t.assignedTo ? {
-      id: t.assignedTo._id,
-      name: `${t.assignedTo.firstName} ${t.assignedTo.lastName}`,
-    } : null,
-    site: t.site ? {
-      id: t.site._id,
-      name: t.site.name,
-    } : null,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-  }));
+  // Extract and format pending tasks
+  const pendingTasks = [];
 
-  res.json(formattedTasks);
+  shiftsWithTasks.forEach((shift) => {
+    shift.tasks
+      .filter((task) => !task.completed)
+      .forEach((task) => {
+        pendingTasks.push({
+          id: task._id,
+          shiftId: shift._id,
+          title: task.description.split(' - ')[0] || task.description.substring(0, 30),
+          description: task.description,
+          frequency: task.frequency,
+          priority: task.frequency === 'once' ? 'high' : 'medium',
+          status: 'pending',
+          dueDate: `${shift.date}T${shift.endTime}:00`,
+          assignedTo: shift.officer
+            ? {
+              id: shift.officer._id,
+              name: shift.officer.fullName,
+            }
+            : null,
+          site: shift.site
+            ? {
+              id: shift.site._id,
+              name: shift.site.name,
+            }
+            : null,
+        });
+      });
+  });
+
+  // Sort by due date and limit
+  const sortedTasks = pendingTasks
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+    .slice(0, parseInt(limit));
+
+  res.json(sortedTasks);
 });
 
 /**
@@ -324,29 +443,28 @@ const getRecentIncidents = asyncHandler(async (req, res) => {
   const { limit = 5 } = req.query;
 
   const incidents = await Incident.find({
-    status: { $in: ['open', 'under-review'] }
+    status: { $in: ['open', 'under-review'] },
   })
     .sort({ createdAt: -1 })
     .limit(parseInt(limit))
-    .populate('reportedBy', 'firstName lastName')
-    .populate('site', 'name')
+    .populate('reportedBy', 'fullName')
     .lean();
 
-  const formattedIncidents = incidents.map(i => ({
+  const formattedIncidents = incidents.map((i) => ({
     id: i._id,
-    title: i.title,
-    severity: i.severity || 'medium',
+    title: `${i.incidentType} - ${i.location}`,
+    incidentType: i.incidentType,
+    severity: i.severity,
     status: i.status,
+    location: i.location,
+    description: i.description,
     reportedAt: i.createdAt,
-    reportedBy: i.reportedBy ? {
-      id: i.reportedBy._id,
-      name: `${i.reportedBy.firstName} ${i.reportedBy.lastName}`,
-    } : null,
-    site: i.site ? {
-      id: i.site._id,
-      name: i.site.name,
-    } : null,
-    category: i.category,
+    reportedBy: i.reportedBy
+      ? {
+        id: i.reportedBy._id,
+        name: i.reportedBy.fullName,
+      }
+      : null,
   }));
 
   res.json(formattedIncidents);
@@ -360,9 +478,9 @@ const getRecentIncidents = asyncHandler(async (req, res) => {
 const dismissAlert = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // Would update alert in database
-  // For now, just acknowledge the request
-  res.json({ success: true, id });
+  // In a full implementation, this would update an Alert collection
+  // For now, acknowledge the request
+  res.json({ success: true, id, dismissed: true });
 });
 
 /**
@@ -373,8 +491,8 @@ const dismissAlert = asyncHandler(async (req, res) => {
 const markAlertRead = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // Would update alert in database
-  res.json({ success: true, id });
+  // In a full implementation, this would update an Alert collection
+  res.json({ success: true, id, isRead: true });
 });
 
 // ============================================

@@ -7,7 +7,7 @@
 
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
-const Schedule = require('../models/Schedule');
+const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
 // const Client = require('../models/Client');
 // const Site = require('../models/Site');
