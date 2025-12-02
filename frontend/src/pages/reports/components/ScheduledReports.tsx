@@ -26,8 +26,6 @@ import {
   LuFileText,
   LuTable,
   LuSheet,
-  LuPlay,
-  LuPause,
 } from 'react-icons/lu';
 import type { ScheduledReport, ExportFormat } from '../types/reports.types';
 

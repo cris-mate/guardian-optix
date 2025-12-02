@@ -23,8 +23,6 @@ import {
   FiBell,
   FiShield,
   FiDatabase,
-  FiMail,
-  FiGlobe,
   FiLock,
 } from 'react-icons/fi';
 

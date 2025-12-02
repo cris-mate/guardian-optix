@@ -332,6 +332,7 @@ const getAvailableOfficers = asyncHandler(async (req, res) => {
   const query = {
     role: 'Guard',
     status: 'active',
+    postCode: postCode,
     availability: true,
   };
 
