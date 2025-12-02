@@ -10,7 +10,7 @@ import Homepage from "./pages/Homepage";
 import Register from './components/auth/Register';
 import Login from './components/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
-import ActivityHub from "./pages/ActivityHub";
+import ActivityHub from "./pages/activityHub/ActivityHub";
 import Clients from './pages/clients/Clients';
 import Guards from './pages/guards/Guards';
 import Compliance from './pages/compliance/Compliance';
