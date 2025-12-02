@@ -18,6 +18,7 @@ const Incident = require('../models/Incident');
 
 /**
  * Get date range based on time range filter
+ * Returns both Date objects and ISO date strings (YYYY-MM-DD) for Shift queries
  */
 const getDateRange = (timeRange) => {
   const now = new Date();
@@ -56,7 +57,13 @@ const getDateRange = (timeRange) => {
       start.setMonth(start.getMonth() - 1);
   }
 
-  return { start, end };
+  return {
+    start,
+    end,
+    // ISO date strings for Shift model queries (YYYY-MM-DD format)
+    startDateStr: start.toISOString().split('T')[0],
+    endDateStr: end.toISOString().split('T')[0],
+  };
 };
 
 /**
@@ -66,6 +73,15 @@ const formatFileSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+/**
+ * Calculate shift duration in hours from time strings
+ */
+const calculateShiftHours = (startTime, endTime) => {
+  const start = parseInt(startTime.split(':')[0], 10);
+  const end = parseInt(endTime.split(':')[0], 10);
+  return end > start ? end - start : 24 - start + end;
 };
 
 // ============================================
@@ -120,7 +136,7 @@ const REPORT_TEMPLATES = [
     category: 'compliance',
     icon: 'LuShield',
     color: 'teal',
-    metrics: ['licences', 'training', 'certifications', 'expiring'],
+    metrics: ['licences', 'certifications', 'expiring'],
     isCustom: false,
   },
   {
@@ -176,9 +192,9 @@ const getTemplates = asyncHandler(async (req, res) => {
   const templates = REPORT_TEMPLATES.map((template) => ({
     ...template,
     isFavorite: favorites.includes(template.id),
-    generationCount: generatedReports.filter(r => r.templateId === template.id).length,
+    generationCount: generatedReports.filter((r) => r.templateId === template.id).length,
     lastGenerated: generatedReports
-      .filter(r => r.templateId === template.id)
+      .filter((r) => r.templateId === template.id)
       .sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt))[0]?.generatedAt,
   }));
 
@@ -222,28 +238,30 @@ const getReportStats = asyncHandler(async (req, res) => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const reportsThisMonth = generatedReports.filter(
-    r => new Date(r.generatedAt) >= monthStart
+    (r) => new Date(r.generatedAt) >= monthStart
   ).length;
 
-  const lastReport = generatedReports
-    .sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt))[0];
+  const lastReport = generatedReports.sort(
+    (a, b) => new Date(b.generatedAt) - new Date(a.generatedAt)
+  )[0];
 
   // Find most used template
   const templateCounts = {};
-  generatedReports.forEach(r => {
+  generatedReports.forEach((r) => {
     templateCounts[r.templateId] = (templateCounts[r.templateId] || 0) + 1;
   });
 
-  const mostUsedTemplateId = Object.entries(templateCounts)
-    .sort(([, a], [, b]) => b - a)[0]?.[0];
+  const mostUsedTemplateId = Object.entries(templateCounts).sort(
+    ([, a], [, b]) => b - a
+  )[0]?.[0];
 
-  const mostUsedTemplate = REPORT_TEMPLATES.find(t => t.id === mostUsedTemplateId);
+  const mostUsedTemplate = REPORT_TEMPLATES.find((t) => t.id === mostUsedTemplateId);
 
   res.json({
     data: {
       reportsGenerated: generatedReports.length,
       reportsThisMonth,
-      scheduledReports: scheduledReports.filter(s => s.isActive).length,
+      scheduledReports: scheduledReports.filter((s) => s.isActive).length,
       favoriteReports: favorites.length,
       lastReportGenerated: lastReport?.generatedAt,
       mostUsedTemplate: mostUsedTemplate?.name,
@@ -258,10 +276,9 @@ const getReportStats = asyncHandler(async (req, res) => {
  */
 const generateReport = asyncHandler(async (req, res) => {
   const { templateId, format = 'pdf', dateRange } = req.body;
-  const userId = req.user._id.toString();
   const userName = req.user.fullName || req.user.username;
 
-  const template = REPORT_TEMPLATES.find(t => t.id === templateId);
+  const template = REPORT_TEMPLATES.find((t) => t.id === templateId);
   if (!template) {
     res.status(404);
     throw new Error('Report template not found');
@@ -321,10 +338,9 @@ const toggleFavorite = asyncHandler(async (req, res) => {
  */
 const createScheduledReport = asyncHandler(async (req, res) => {
   const { templateId, frequency, recipients, format = 'pdf' } = req.body;
-  const userId = req.user._id.toString();
   const userName = req.user.fullName || req.user.username;
 
-  const template = REPORT_TEMPLATES.find(t => t.id === templateId);
+  const template = REPORT_TEMPLATES.find((t) => t.id === templateId);
   if (!template) {
     res.status(404);
     throw new Error('Report template not found');
@@ -374,7 +390,7 @@ const createScheduledReport = asyncHandler(async (req, res) => {
 const deleteScheduledReport = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const index = scheduledReports.findIndex(s => s.id === id);
+  const index = scheduledReports.findIndex((s) => s.id === id);
   if (index === -1) {
     res.status(404);
     throw new Error('Scheduled report not found');
@@ -389,14 +405,20 @@ const deleteScheduledReport = asyncHandler(async (req, res) => {
  * @desc    Get operational report data
  * @route   GET /api/reports/data/operational
  * @access  Private
+ *
+ * REFACTORED: Now uses Shift model instead of legacy Schedule model
+ * - Changed query field from 'startTime' to 'date' (YYYY-MM-DD string)
+ * - Changed status 'active' to 'in-progress' per Shift model enum
+ * - Added actual hours calculation from shift start/end times
  */
 const getOperationalData = asyncHandler(async (req, res) => {
   const { timeRange = 'month' } = req.query;
-  const { start, end } = getDateRange(timeRange);
+  const { start, end, startDateStr, endDateStr } = getDateRange(timeRange);
 
-  const [schedules, incidents] = await Promise.all([
-    Schedule.find({
-      startTime: { $gte: start, $lte: end },
+  // Query Shift model using date string field (YYYY-MM-DD format)
+  const [shifts, incidents] = await Promise.all([
+    Shift.find({
+      date: { $gte: startDateStr, $lte: endDateStr },
       status: { $ne: 'cancelled' },
     }).lean(),
     Incident.find({
@@ -404,15 +426,31 @@ const getOperationalData = asyncHandler(async (req, res) => {
     }).lean(),
   ]);
 
-  // Calculate shift metrics
-  const totalShifts = schedules.length;
-  const completedShifts = schedules.filter(s => s.status === 'completed').length;
-  const activeShifts = schedules.filter(s => s.status === 'active').length;
-  const cancelledShifts = schedules.filter(s => s.status === 'cancelled').length;
+  // Calculate shift metrics using correct Shift model statuses
+  const totalShifts = shifts.length;
+  const completedShifts = shifts.filter((s) => s.status === 'completed').length;
+  const inProgressShifts = shifts.filter((s) => s.status === 'in-progress').length;
+  const scheduledShifts = shifts.filter((s) => s.status === 'scheduled').length;
 
-  // Calculate hours (assuming 8-hour shifts)
-  const totalHours = completedShifts * 8;
-  const overtimeHours = schedules.filter(s => s.overtime).reduce((sum, s) => sum + (s.overtimeHours || 0), 0);
+  // Calculate actual hours from shift times (not hardcoded 8-hour assumption)
+  const totalHours = shifts.reduce((sum, shift) => {
+    return sum + calculateShiftHours(shift.startTime, shift.endTime);
+  }, 0);
+
+  // Calculate task completion metrics from embedded tasks
+  let totalTasks = 0;
+  let completedTasks = 0;
+  shifts.forEach((shift) => {
+    if (shift.tasks && shift.tasks.length > 0) {
+      totalTasks += shift.tasks.length;
+      completedTasks += shift.tasks.filter((t) => t.completed).length;
+    }
+  });
+
+  const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100;
+
+  // Overtime would require TimeEntry comparison - placeholder for now
+  const overtimeHours = 0;
 
   res.json({
     data: {
@@ -420,24 +458,42 @@ const getOperationalData = asyncHandler(async (req, res) => {
       shifts: {
         totalShifts,
         completedShifts,
-        activeShifts,
-        cancelledShifts,
+        inProgressShifts, // Renamed from 'activeShifts' for clarity
+        scheduledShifts,
         completionRate: totalShifts > 0 ? (completedShifts / totalShifts) * 100 : 0,
         totalHours,
         overtimeHours,
       },
       patrols: {
-        totalPatrols: Math.floor(schedules.length * 2),
-        completedPatrols: Math.floor(schedules.length * 1.8),
-        partialPatrols: Math.floor(schedules.length * 0.15),
-        missedPatrols: Math.floor(schedules.length * 0.05),
+        // Task-based metrics from embedded Shift.tasks
+        totalTasks,
+        completedTasks,
+        pendingTasks: totalTasks - completedTasks,
+        taskCompletionRate: Math.round(taskCompletionRate * 10) / 10,
+        // Legacy patrol metrics (placeholder - would need patrol checkpoints model)
+        totalPatrols: Math.floor(shifts.length * 2),
+        completedPatrols: Math.floor(shifts.length * 1.8),
+        partialPatrols: Math.floor(shifts.length * 0.15),
+        missedPatrols: Math.floor(shifts.length * 0.05),
         completionRate: 93.1,
-        totalCheckpoints: schedules.length * 16,
-        scannedCheckpoints: Math.floor(schedules.length * 15.5),
+        totalCheckpoints: shifts.length * 16,
+        scannedCheckpoints: Math.floor(shifts.length * 15.5),
         checkpointAccuracy: 96.8,
       },
       incidents: {
         total: incidents.length,
+        bySeverity: {
+          critical: incidents.filter((i) => i.severity === 'critical').length,
+          high: incidents.filter((i) => i.severity === 'high').length,
+          medium: incidents.filter((i) => i.severity === 'medium').length,
+          low: incidents.filter((i) => i.severity === 'low').length,
+        },
+        byStatus: {
+          open: incidents.filter((i) => i.status === 'open').length,
+          underReview: incidents.filter((i) => i.status === 'under-review').length,
+          resolved: incidents.filter((i) => i.status === 'resolved').length,
+          closed: incidents.filter((i) => i.status === 'closed').length,
+        },
       },
     },
   });
@@ -451,7 +507,7 @@ const getOperationalData = asyncHandler(async (req, res) => {
 const downloadReport = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const report = generatedReports.find(r => r.id === id);
+  const report = generatedReports.find((r) => r.id === id);
   if (!report) {
     res.status(404);
     throw new Error('Report not found');
@@ -468,6 +524,10 @@ const downloadReport = asyncHandler(async (req, res) => {
     },
   });
 });
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   getTemplates,

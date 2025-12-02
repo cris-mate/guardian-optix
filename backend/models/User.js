@@ -12,7 +12,6 @@ const UserSchema = new mongoose.Schema({
   guardType: { type: String, enum: ['Static', 'Dog Handler', 'Close Protection', 'Mobile Patrol'], required: false },
   availability: { type: Boolean, default: true, required: false },
   shiftTime: { type: String, enum: ['Morning', 'Afternoon', 'Night'], default: null, required: false },
-  assignedTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null, required: false },
   createdAt: { type: Date, default: Date.now }
 });
 

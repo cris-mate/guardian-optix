@@ -2,7 +2,6 @@
  * Dashboard Types
  *
  * TypeScript interfaces for the operations dashboard.
- * Aligned with Shift model structure and industry standards.
  */
 
 // ============================================
