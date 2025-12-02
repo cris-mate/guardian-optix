@@ -1,170 +1,504 @@
 /**
  * Reports Page
  *
- * Placeholder for analytics reports and data exports.
- * Future implementation will include operational reports,
- * performance analytics, and exportable data summaries.
+ * Central hub for analytics reports and data exports.
+ * Provides operational reports, performance analytics, and exportable summaries.
+ *
+ * Features:
+ * - Pre-built report templates by category
+ * - Report generation with format selection
+ * - Report history with download options
+ * - Scheduled automated reports
+ * - Quick statistics dashboard
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Container,
-  Flex,
-  HStack,
   VStack,
+  HStack,
   Text,
+  Icon,
   Button,
-  SimpleGrid,
+  Grid,
+  GridItem,
+  Tabs,
+  Spinner,
+  Badge,
+  Select,
+  createListCollection,
 } from '@chakra-ui/react';
 import {
-  LuFileText,
-  LuChartBar,
   LuChartPie,
-  LuTrendingUp,
-  LuCalendarRange,
+  LuRefreshCw,
   LuDownload,
-  LuUsers,
+  LuCalendarRange,
+  LuChartBar,
   LuClock,
+  LuTriangleAlert,
+  LuBriefcase,
   LuShield,
-  LuMapPin,
+  LuCircleAlert,
+  LuStar,
+  LuHistory,
+  LuCalendarClock,
 } from 'react-icons/lu';
+import { usePageTitle } from '../../context/PageContext';
 
-interface ReportCategoryProps {
+// Components
+import ReportQuickStats from './components/ReportQuickStats';
+import ReportTemplates from './components/ReportTemplates';
+import RecentReports from './components/RecentReports';
+import ScheduledReports from './components/ScheduledReports';
+
+// Hooks
+import { useReportsData } from './hooks/useReportsData';
+
+// Types
+import type { ReportCategory, TimeRange } from './types/reports.types';
+
+// ============================================
+// Tab Configuration
+// ============================================
+
+type TabValue = 'templates' | 'history' | 'scheduled';
+
+interface TabConfig {
+  value: TabValue;
+  label: string;
   icon: React.ElementType;
-  title: string;
-  description: string;
-  color: string;
 }
 
-const ReportCategory: React.FC<ReportCategoryProps> = ({
-                                                         icon: Icon,
-                                                         title,
-                                                         description,
-                                                         color,
-                                                       }) => (
-  <Box
-    p={6}
-    bg="white"
-    borderRadius="lg"
-    borderWidth="1px"
-    borderColor="gray.200"
-    opacity={0.7}
-    cursor="not-allowed"
-    _hover={{ borderColor: 'gray.300' }}
-    transition="all 0.2s"
-  >
-    <HStack gap={4} align="flex-start">
-      <Box p={3} borderRadius="lg" bg={`${color}.50`} color={`${color}.600`}>
-        <Icon size={24} />
-      </Box>
-      <VStack align="flex-start" gap={1} flex={1}>
-        <Text fontWeight="semibold" color="gray.700">
-          {title}
-        </Text>
+const tabs: TabConfig[] = [
+  { value: 'templates', label: 'Report Templates', icon: LuChartBar },
+  { value: 'history', label: 'Report History', icon: LuHistory },
+  { value: 'scheduled', label: 'Scheduled', icon: LuCalendarClock },
+];
+
+// Category Filter Options
+const categoryCollection = createListCollection({
+  items: [
+    { value: 'all', label: 'All Categories', icon: LuChartBar },
+    { value: 'operational', label: 'Operational', icon: LuChartBar },
+    { value: 'attendance', label: 'Attendance', icon: LuClock },
+    { value: 'incidents', label: 'Incidents', icon: LuTriangleAlert },
+    { value: 'clients', label: 'Clients', icon: LuBriefcase },
+    { value: 'compliance', label: 'Compliance', icon: LuShield },
+  ],
+});
+
+// Time Range Options
+const timeRangeCollection = createListCollection({
+  items: [
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'quarter', label: 'This Quarter' },
+    { value: 'year', label: 'This Year' },
+    { value: 'custom', label: 'Custom Range' },
+  ],
+});
+
+// ============================================
+// Header Component
+// ============================================
+
+interface HeaderProps {
+  lastUpdated: Date | null;
+  onRefresh: () => void;
+  isLoading: boolean;
+}
+
+const Header: React.FC<HeaderProps> = ({
+                                         lastUpdated,
+                                         onRefresh,
+                                         isLoading,
+                                       }) => {
+  const formatLastUpdated = (date: Date | null): string => {
+    if (!date) return 'Never';
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <HStack justify="space-between" mb={6} flexWrap="wrap" gap={4}>
+      <VStack align="flex-start" gap={1}>
+        <HStack gap={3}>
+          <Icon as={LuChartPie} boxSize={6} color="blue.500" />
+          <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+            Reports
+          </Text>
+        </HStack>
         <Text fontSize="sm" color="gray.500">
-          {description}
+          Analytics, insights, and exportable data summaries
         </Text>
       </VStack>
+
+      <HStack gap={4} flexWrap="wrap">
+        {/* Last Updated */}
+        <HStack gap={2}>
+          <Box w={2} h={2} borderRadius="full" bg="green.400" />
+          <Text fontSize="sm" color="gray.500">
+            Updated: {formatLastUpdated(lastUpdated)}
+          </Text>
+        </HStack>
+
+        {/* Refresh Button */}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onRefresh}
+          disabled={isLoading}
+        >
+          <Icon as={LuRefreshCw} mr={2} className={isLoading ? 'spin' : ''} />
+          Refresh
+        </Button>
+      </HStack>
+    </HStack>
+  );
+};
+
+// ============================================
+// Error Banner Component
+// ============================================
+
+interface ErrorBannerProps {
+  message: string;
+  onRetry: () => void;
+}
+
+const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
+  <Box
+    bg="red.50"
+    borderWidth="1px"
+    borderColor="red.200"
+    borderRadius="lg"
+    p={4}
+    mb={4}
+  >
+    <HStack justify="space-between">
+      <HStack gap={2}>
+        <Icon as={LuCircleAlert} color="red.500" />
+        <Text color="red.700">{message}</Text>
+      </HStack>
+      <Button size="sm" colorPalette="red" variant="outline" onClick={onRetry}>
+        Retry
+      </Button>
     </HStack>
   </Box>
 );
 
-const Reports: React.FC = () => {
-  const reportCategories: ReportCategoryProps[] = [
-    {
-      icon: LuChartBar,
-      title: 'Shift Reports',
-      description: 'Shift coverage, attendance rates, and scheduling efficiency',
-      color: 'blue',
-    },
-    {
-      icon: LuMapPin,
-      title: 'Site Reports',
-      description: 'Site activity, incident logs, and patrol completion rates',
-      color: 'teal',
-    },
-    {
-      icon: LuChartPie,
-      title: 'Client Reports',
-      description: 'Service delivery, contract compliance, and billing summaries',
-      color: 'pink',
-    },
-    {
-      icon: LuCalendarRange,
-      title: 'Custom Reports',
-      description: 'Build custom reports with flexible date ranges and filters',
-      color: 'gray',
-    },
+// ============================================
+// Category Filter Component
+// ============================================
+
+interface CategoryFilterProps {
+  activeCategory: ReportCategory | 'all';
+  onCategoryChange: (category: ReportCategory | 'all') => void;
+  favoriteCount: number;
+}
+
+const CategoryFilter: React.FC<CategoryFilterProps> = ({
+                                                         activeCategory,
+                                                         onCategoryChange,
+                                                         favoriteCount,
+                                                       }) => {
+  const categories: { value: ReportCategory | 'all'; label: string; icon: React.ElementType; color: string }[] = [
+    { value: 'all', label: 'All', icon: LuChartBar, color: 'gray' },
+    { value: 'operational', label: 'Operational', icon: LuChartBar, color: 'blue' },
+    { value: 'attendance', label: 'Attendance', icon: LuClock, color: 'green' },
+    { value: 'incidents', label: 'Incidents', icon: LuTriangleAlert, color: 'orange' },
+    { value: 'clients', label: 'Clients', icon: LuBriefcase, color: 'purple' },
+    { value: 'compliance', label: 'Compliance', icon: LuShield, color: 'teal' },
   ];
 
   return (
-    <Container maxW="container.xl" py={6}>
-      {/* Page Header */}
-      <Flex justify="space-between" align="center" mb={6}>
-        <HStack gap={3}>
-          <Box p={2} borderRadius="lg" bg="blue.50" color="blue.600">
-            <LuFileText size={24} />
-          </Box>
-          <Box>
-            <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-              Reports
-            </Text>
-            <Text fontSize="sm" color="gray.500">
-              Analytics, insights, and exportable reports
-            </Text>
-          </Box>
-        </HStack>
+    <HStack
+      gap={2}
+      p={1}
+      bg="gray.100"
+      borderRadius="lg"
+      flexWrap="wrap"
+    >
+      {categories.map((cat) => (
+        <Button
+          key={cat.value}
+          size="sm"
+          variant={activeCategory === cat.value ? 'solid' : 'ghost'}
+          colorPalette={activeCategory === cat.value ? cat.color : 'gray'}
+          onClick={() => onCategoryChange(cat.value)}
+        >
+          <Icon as={cat.icon} boxSize={4} mr={1} />
+          {cat.label}
+        </Button>
+      ))}
 
-        <HStack gap={3}>
-          <Button variant="outline" size="sm" disabled>
-            <LuCalendarRange size={14} />
-            Date Range
-          </Button>
-          <Button colorPalette="blue" size="sm" disabled>
-            <LuDownload size={14} />
-            Export
-          </Button>
-        </HStack>
-      </Flex>
+      {/* Favorites shortcut */}
+      {favoriteCount > 0 && (
+        <Button
+          size="sm"
+          variant="ghost"
+          colorPalette="yellow"
+          ml={2}
+        >
+          <Icon as={LuStar} boxSize={4} mr={1} fill="currentColor" />
+          Favourites ({favoriteCount})
+        </Button>
+      )}
+    </HStack>
+  );
+};
 
-      {/* Coming Soon Banner */}
-      <Box
-        bg="blue.50"
-        borderWidth="1px"
-        borderColor="blue.200"
-        borderRadius="lg"
-        p={8}
-        mb={8}
-        textAlign="center"
-      >
-        <VStack gap={4}>
-          <Box p={4} borderRadius="full" bg="blue.100" color="blue.600">
-            <LuChartBar size={40} />
-          </Box>
-          <Text fontSize="xl" fontWeight="semibold" color="gray.700">
-            Reports Coming Soon
-          </Text>
-          <Text color="gray.500" maxW="xl">
-            We're building comprehensive reporting tools to help you analyse
-            operations, track performance, and generate exportable summaries
-            for stakeholders.
-          </Text>
+// ============================================
+// Main Component
+// ============================================
+
+const Reports: React.FC = () => {
+  const { setTitle } = usePageTitle();
+  const [activeTab, setActiveTab] = useState<TabValue>('templates');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Set page title
+  useEffect(() => {
+    setTitle('Reports');
+  }, [setTitle]);
+
+  // Fetch data
+  const {
+    templates,
+    allTemplates,
+    favoriteTemplates,
+    recentReports,
+    scheduledReports,
+    quickStats,
+    isLoading,
+    isGenerating,
+    error,
+    activeCategory,
+    setActiveCategory,
+    selectedTemplateId,
+    setSelectedTemplateId,
+    refetch,
+    generateReport,
+    toggleFavorite,
+    deleteScheduledReport,
+  } = useReportsData();
+
+  // Update timestamp on data load
+  useEffect(() => {
+    if (!isLoading && quickStats) {
+      setLastUpdated(new Date());
+    }
+  }, [isLoading, quickStats]);
+
+  const handleRefresh = () => {
+    refetch();
+  };
+
+  const handleGenerateReport = async (templateId: string) => {
+    try {
+      await generateReport(templateId, 'pdf');
+      // Could show toast notification here
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+    }
+  };
+
+  const handleDownloadReport = (reportId: string) => {
+    // Would trigger actual download
+    const report = recentReports.find(r => r.id === reportId);
+    if (report?.downloadUrl) {
+      window.open(report.downloadUrl, '_blank');
+    }
+  };
+
+  // Loading state
+  if (isLoading && !quickStats) {
+    return (
+      <VStack gap={3} align="stretch">
+        <Header
+          lastUpdated={null}
+          onRefresh={handleRefresh}
+          isLoading={true}
+        />
+        <VStack py={16} gap={4}>
+          <Spinner size="xl" color="blue.500" />
+          <Text color="gray.500">Loading reports...</Text>
         </VStack>
+      </VStack>
+    );
+  }
+
+  return (
+    <VStack gap={4} align="stretch">
+      {/* Header */}
+      <Header
+        lastUpdated={lastUpdated}
+        onRefresh={handleRefresh}
+        isLoading={isLoading}
+      />
+
+      {/* Error Banner */}
+      {error && <ErrorBanner message={error} onRetry={handleRefresh} />}
+
+      {/* Quick Stats */}
+      <ReportQuickStats
+        stats={quickStats}
+        isLoading={isLoading}
+      />
+
+      {/* Tabs */}
+      <Box mt={2}>
+        <Tabs.Root
+          value={activeTab}
+          onValueChange={(e) => setActiveTab(e.value as TabValue)}
+        >
+          <Tabs.List
+            bg="white"
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor="gray.200"
+            p={1}
+          >
+            {tabs.map((tab) => (
+              <Tabs.Trigger
+                key={tab.value}
+                value={tab.value}
+                px={4}
+                py={2}
+                borderRadius="md"
+                fontWeight="medium"
+                color="gray.600"
+                _selected={{
+                  bg: 'blue.50',
+                  color: 'blue.600',
+                }}
+              >
+                <HStack gap={2}>
+                  <Icon as={tab.icon} />
+                  <Text>{tab.label}</Text>
+                  {tab.value === 'scheduled' && scheduledReports.length > 0 && (
+                    <Badge colorPalette="purple" variant="solid" size="sm">
+                      {scheduledReports.filter(r => r.isActive).length}
+                    </Badge>
+                  )}
+                </HStack>
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+
+          {/* Templates Tab */}
+          <Tabs.Content value="templates" pt={4}>
+            <VStack align="stretch" gap={4}>
+              {/* Category Filter */}
+              <CategoryFilter
+                activeCategory={activeCategory}
+                onCategoryChange={setActiveCategory}
+                favoriteCount={favoriteTemplates.length}
+              />
+
+              {/* Templates Grid with Sidebar */}
+              <Grid
+                templateColumns={{ base: '1fr', xl: '1fr 320px' }}
+                gap={6}
+              >
+                <GridItem>
+                  <ReportTemplates
+                    templates={templates}
+                    onSelect={setSelectedTemplateId}
+                    onGenerate={handleGenerateReport}
+                    onToggleFavorite={toggleFavorite}
+                    selectedTemplateId={selectedTemplateId}
+                    isLoading={isLoading}
+                    isGenerating={isGenerating}
+                  />
+                </GridItem>
+
+                {/* Sidebar */}
+                <GridItem>
+                  <VStack align="stretch" gap={4}>
+                    <RecentReports
+                      reports={recentReports}
+                      onDownload={handleDownloadReport}
+                      isLoading={isLoading}
+                      compact
+                    />
+                    <ScheduledReports
+                      reports={scheduledReports}
+                      onDelete={deleteScheduledReport}
+                      isLoading={isLoading}
+                    />
+                  </VStack>
+                </GridItem>
+              </Grid>
+            </VStack>
+          </Tabs.Content>
+
+          {/* History Tab */}
+          <Tabs.Content value="history" pt={4}>
+            <RecentReports
+              reports={recentReports}
+              onDownload={handleDownloadReport}
+              isLoading={isLoading}
+            />
+          </Tabs.Content>
+
+          {/* Scheduled Tab */}
+          <Tabs.Content value="scheduled" pt={4}>
+            <Grid
+              templateColumns={{ base: '1fr', lg: '1fr 1fr' }}
+              gap={6}
+            >
+              <GridItem>
+                <ScheduledReports
+                  reports={scheduledReports}
+                  onDelete={deleteScheduledReport}
+                  isLoading={isLoading}
+                />
+              </GridItem>
+              <GridItem>
+                <Box
+                  bg="blue.50"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor="blue.200"
+                  p={6}
+                  textAlign="center"
+                >
+                  <Icon as={LuCalendarClock} boxSize={12} color="blue.400" mb={4} />
+                  <Text fontWeight="semibold" color="gray.700" mb={2}>
+                    Automate Your Reports
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mb={4}>
+                    Set up automated report delivery to receive reports directly in your inbox
+                    on a daily, weekly, or monthly basis.
+                  </Text>
+                  <Button colorPalette="blue" size="sm">
+                    <Icon as={LuCalendarRange} boxSize={4} mr={2} />
+                    Create Schedule
+                  </Button>
+                </Box>
+              </GridItem>
+            </Grid>
+          </Tabs.Content>
+        </Tabs.Root>
       </Box>
 
-      {/* Report Categories Preview */}
-      <Box mb={6}>
-        <Text fontSize="sm" fontWeight="medium" color="gray.500" mb={4}>
-          PLANNED REPORT TYPES
-        </Text>
-        <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-          {reportCategories.map((category) => (
-            <ReportCategory key={category.title} {...category} />
-          ))}
-        </SimpleGrid>
-      </Box>
-    </Container>
+      {/* CSS for spinner animation */}
+      <style>{`
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </VStack>
   );
 };
 

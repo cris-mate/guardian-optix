@@ -10,8 +10,6 @@
  * - Patrol completion tracking with checkpoint metrics
  * - Attendance and punctuality analysis
  * - Performance alerts and exceptions
- *
- * Structure modelled after Activity Hub for consistency.
  */
 
 import React, { useEffect, useState } from 'react';
