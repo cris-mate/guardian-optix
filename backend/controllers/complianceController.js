@@ -1,11 +1,11 @@
 const Certification = require('../models/Certification');
 const Incident = require('../models/Incident');
 const ComplianceAudit = require('../models/ComplianceAudit');
+const { emitIncidentReport } = require('../socket/socketManager');
 const asyncHandler = require('../utils/asyncHandler');
 
 // Dashboard metrics aggregation
 exports.getComplianceMetrics = asyncHandler(async (req, res) => {
-  const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   const [certStats, incidentStats] = await Promise.all([
     Certification.aggregate([
@@ -79,6 +79,15 @@ exports.reportIncident = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json(incident);
+
+  emitIncidentReport({
+    incidentId: incident._id,
+    type: incident.incidentType,
+    severity: incident.severity,
+    location: incident.location,
+    reportedBy: req.user._id,
+    reportedByName: req.user.fullName,
+  });
 });
 
 // Get audit trail (managers only)

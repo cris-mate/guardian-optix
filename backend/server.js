@@ -1,16 +1,21 @@
 /**
  * Guardian Optix Backend Server
  * Main entry point for the application
+ *
+ * Updated with Socket.io for real-time features.
  */
 
 // DEPENDENCIES
 require('dotenv').config();
 const express = require('express');
+const http = require('http'); // Required for Socket.io
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { initializeSocket } = require('./socket/socketManager');
 
 // APP INITIALIZATION
 const app = express();
+const server = http.createServer(app); // Create HTTP server for Socket.io
 
 // MIDDLEWARE
 app.use(cors());
@@ -22,6 +27,10 @@ const dbURI = process.env.DB_URI || 'mongodb://localhost:27017/guardian-optix-db
 mongoose.connect(dbURI)
   .then(() => console.log('MongoDB Connected...'))
   .catch((error) => console.error('MongoDB Connection Error:', error));
+
+// SOCKET.IO INITIALIZATION
+const io = initializeSocket(server);
+console.log('Socket.io initialized');
 
 // ROUTES
 const authRoutes = require('./routes/authRoutes');
@@ -44,13 +53,14 @@ app.use('/api/timeClock', timeClockRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/reports', reportsRoutes);
 
-// SERVER STARTUP
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 // ERROR HANDLING
 const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);
+
+// SERVER STARTUP - Use server.listen instead of app.listen
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket available at ws://localhost:${PORT}`);
+});

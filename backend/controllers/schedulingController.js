@@ -7,6 +7,7 @@
 const Shift = require('../models/Shift');
 const User = require('../models/User');
 const Site = require('../models/Site');
+const { emitShiftUpdate, emitTaskComplete } = require('../socket/socketManager');
 const asyncHandler = require('../utils/asyncHandler');
 
 /**
@@ -296,8 +297,8 @@ const updateShiftStatus = asyncHandler(async (req, res) => {
     { status, updatedAt: new Date() },
     { new: true }
   )
-    .populate('officer', 'fullName badgeNumber phoneNumber profileImage')
-    .populate('site', 'name address postCode');
+    .populate('officer', 'fullName')
+    .populate('site', 'name');
 
   if (!shift) {
     res.status(404);
@@ -307,6 +308,14 @@ const updateShiftStatus = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: shift,
+  });
+
+  emitShiftUpdate({
+    shiftId,
+    status: newStatus,
+    officerId: shift.officer?._id,
+    officerName: shift.officer?.fullName || 'Unassigned',
+    siteName: shift.site?.name || 'Unknown Site',
   });
 });
 
@@ -346,6 +355,14 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: updatedShift,
+  });
+
+  emitTaskComplete({
+    shiftId,
+    taskId,
+    taskDescription: task.description,
+    completedBy: req.user._id,
+    completedByName: req.user.fullName,
   });
 });
 

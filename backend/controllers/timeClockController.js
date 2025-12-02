@@ -6,9 +6,9 @@
  */
 
 const { TimeEntry, Timesheet, ActiveSession } = require('../models/TimeEntry');
-const User = require('../models/User');
 const Site = require('../models/Site');
 const Shift = require('../models/Shift');
+const { emitClockAction, emitGeofenceViolation, } = require('../socket/socketManager');
 const asyncHandler = require('../utils/asyncHandler');
 
 // ============================================
@@ -28,14 +28,14 @@ const getTodayDate = () => {
  */
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000; // Earth's radius in metres
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const lat1Rad = (lat1 * Math.PI) / 180;
+  const lat2Rad = (lat2 * Math.PI) / 180;
+  const deltaLat = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLon = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
@@ -82,7 +82,7 @@ const calculateMinutesWorked = (startTime, endTime) => {
 // ============================================
 
 /**
- * @route   POST /api/timeclock/clock-in
+ * @route   POST /api/timeClock/clock-in
  * @desc    Clock in for current user
  * @access  Private
  */
@@ -153,6 +153,12 @@ const clockIn = asyncHandler(async (req, res) => {
     });
   }
 
+  // Get officer name for broadcast
+  const [officer, site] = await Promise.all([
+    User.findById(officerId).select('fullName'),
+    siteId ? Site.findById(siteId).select('name') : null,
+  ]);
+
   res.status(201).json({
     success: true,
     data: {
@@ -165,10 +171,32 @@ const clockIn = asyncHandler(async (req, res) => {
     },
     message: 'Clocked in successfully',
   });
+
+  // Emit clock-in event
+  emitClockAction({
+    officerId,
+    officerName: officer?.fullName || 'Unknown',
+    action: 'clock-in',
+    siteId,
+    siteName: site?.name || 'Unknown Site',
+    geofenceStatus,
+  });
+
+  // Check for geofence violation
+  if (geofenceStatus === 'outside') {
+    emitGeofenceViolation({
+      officerId,
+      officerName: officer?.fullName || 'Unknown',
+      siteId,
+      siteName: site?.name || 'Unknown Site',
+      location,
+      action: 'clock-in',
+    });
+  }
 });
 
 /**
- * @route   POST /api/timeclock/clock-out
+ * @route   POST /api/timeClock/clock-out
  * @desc    Clock out for current user
  * @access  Private
  */
@@ -252,10 +280,33 @@ const clockOut = asyncHandler(async (req, res) => {
     },
     message: 'Clocked out successfully',
   });
+
+  const officer = await User.findById(officerId).select('fullName');
+  const site = session.site ? await Site.findById(session.site).select('name') : null;
+
+  emitClockAction({
+    officerId,
+    officerName: officer?.fullName || 'Unknown',
+    action: 'clock-out',
+    siteId: session.site,
+    siteName: site?.name || 'Unknown Site',
+    geofenceStatus,
+  });
+
+  if (geofenceStatus === 'outside') {
+    emitGeofenceViolation({
+      officerId,
+      officerName: officer?.fullName || 'Unknown',
+      siteId: session.site,
+      siteName: site?.name || 'Unknown Site',
+      location,
+      action: 'clock-out',
+    });
+  }
 });
 
 /**
- * @route   POST /api/timeclock/break/start
+ * @route   POST /api/timeClock/break/start
  * @desc    Start a break
  * @access  Private
  */
@@ -312,10 +363,19 @@ const startBreak = asyncHandler(async (req, res) => {
     },
     message: 'Break started',
   });
+
+  emitClockAction({
+    officerId,
+    officerName: req.user.fullName, // Available from auth middleware
+    action: 'break-start',
+    siteId: session.site,
+    siteName: session.site?.name || 'Unknown Site',
+    geofenceStatus,
+  });
 });
 
 /**
- * @route   POST /api/timeclock/break/end
+ * @route   POST /api/timeClock/break/end
  * @desc    End a break
  * @access  Private
  */
@@ -393,7 +453,7 @@ const endBreak = asyncHandler(async (req, res) => {
 // ============================================
 
 /**
- * @route   GET /api/timeclock/status
+ * @route   GET /api/timeClock/status
  * @desc    Get current clock status for user
  * @access  Private
  */
@@ -431,7 +491,7 @@ const getClockStatus = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/entries/today
+ * @route   GET /api/timeClock/entries/today
  * @desc    Get today's time entries for current user
  * @access  Private
  */
@@ -453,7 +513,7 @@ const getTodayEntries = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/entries
+ * @route   GET /api/timeClock/entries
  * @desc    Get time entries with filtering
  * @access  Private
  */
@@ -519,7 +579,7 @@ const getTimeEntries = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/timesheet/today
+ * @route   GET /api/timeClock/timesheet/today
  * @desc    Get today's timesheet for current user
  * @access  Private
  */
@@ -549,7 +609,7 @@ const getTodayTimesheet = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/timesheet/weekly
+ * @route   GET /api/timeClock/timesheet/weekly
  * @desc    Get weekly summary for current user
  * @access  Private
  */
@@ -611,7 +671,7 @@ const getWeeklySummary = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/stats
+ * @route   GET /api/timeClock/stats
  * @desc    Get time clock statistics
  * @access  Private (Admin/Manager)
  */
@@ -666,9 +726,9 @@ const getStats = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/active-guards
+ * @route   GET /api/timeClock/active-guards
  * @desc    Get list of currently active guards
- * @access  Private (Admin/Manager)
+ * @access  private (Admin/Manager)
  */
 const getActiveGuards = asyncHandler(async (req, res) => {
   const sessions = await ActiveSession.find()
@@ -712,7 +772,7 @@ const getActiveGuards = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   POST /api/timeclock/verify-location
+ * @route   POST /api/timeClock/verify-location
  * @desc    Verify if location is within geofence
  * @access  Private
  */
@@ -736,7 +796,7 @@ const verifyLocation = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   PATCH /api/timeclock/timesheet/:id/approve
+ * @route   PATCH /api/timeClock/timesheet/:id/approve
  * @desc    Approve a timesheet
  * @access  Private (Admin/Manager)
  */
@@ -766,7 +826,7 @@ const approveTimesheet = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   PATCH /api/timeclock/timesheet/:id/reject
+ * @route   PATCH /api/timeClock/timesheet/:id/reject
  * @desc    Reject a timesheet
  * @access  Private (Admin/Manager)
  */
