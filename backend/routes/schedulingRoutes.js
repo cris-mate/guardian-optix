@@ -20,6 +20,7 @@ const {
   updateTaskStatus,
   getAvailableOfficers,
   getAvailableSites,
+  getRecommendedOfficers,
 } = require('../controllers/schedulingController');
 
 // All routes require authentication

@@ -460,4 +460,5 @@ module.exports = {
   updateTaskStatus,
   getAvailableOfficers,
   getAvailableSites,
+  getRecommendedOfficers,
 };
