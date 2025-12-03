@@ -302,7 +302,7 @@ const Reports: React.FC = () => {
   const handleGenerateReport = async (templateId: string) => {
     try {
       await generateReport(templateId, 'pdf');
-      // Could show toast notification here
+      // TODO - show toast notification here
     } catch (err) {
       console.error('Failed to generate report:', err);
     }
