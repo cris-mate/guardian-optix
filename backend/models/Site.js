@@ -187,6 +187,7 @@ SiteSchema.set('toObject', { virtuals: true });
 
 /**
  * Check if a location is within this site's geofence
+ * Uses Haversine formula to calculate distance between two coordinates
  */
 SiteSchema.methods.isLocationInGeofence = function(latitude, longitude) {
   if (!this.geofence || !this.geofence.isEnabled) {
@@ -194,14 +195,14 @@ SiteSchema.methods.isLocationInGeofence = function(latitude, longitude) {
   }
 
   const R = 6371000; // Earth's radius in metres
-  const φ1 = (this.geofence.center.latitude * Math.PI) / 180;
-  const φ2 = (latitude * Math.PI) / 180;
-  const Δφ = ((latitude - this.geofence.center.latitude) * Math.PI) / 180;
-  const Δλ = ((longitude - this.geofence.center.longitude) * Math.PI) / 180;
+  const lat1 = (this.geofence.center.latitude * Math.PI) / 180;
+  const lat2 = (latitude * Math.PI) / 180;
+  const deltaLat = ((latitude - this.geofence.center.latitude) * Math.PI) / 180;
+  const deltaLng = ((longitude - this.geofence.center.longitude) * Math.PI) / 180;
 
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
 
