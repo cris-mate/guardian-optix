@@ -182,7 +182,7 @@ const MOCK_ACTIVE_GUARDS: ActiveGuard[] = [
     badgeNumber: 'GO-2024-004',
     clockStatus: 'clocked-in',
     clockedInAt: new Date(new Date().setHours(8, 15, 0, 0)).toISOString(),
-    currentSite: 'Southbank Centre',
+    currentSite: 'SouthBank Centre',
     geofenceStatus: 'outside',
     hoursToday: 5.8,
   },
