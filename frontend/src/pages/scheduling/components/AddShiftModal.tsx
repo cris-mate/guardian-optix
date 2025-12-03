@@ -2,6 +2,7 @@
  * AddShiftModal Component
  *
  * Modal form for creating new shifts with tasks.
+ * Includes intelligent officer recommendations based on site requirements.
  * Uses Chakra UI v3 Dialog components.
  */
 
@@ -31,6 +32,11 @@ import {
   ShiftType,
   TaskFrequency,
 } from '../types/scheduling.types';
+import RecommendedOfficersPanel from './RecommendedOfficersPanel';
+
+// ============================================
+// Props Interface
+// ============================================
 
 interface AddShiftModalProps {
   isOpen: boolean;
@@ -41,6 +47,10 @@ interface AddShiftModalProps {
   selectedDate?: string;
   isSubmitting?: boolean;
 }
+
+// ============================================
+// Constants
+// ============================================
 
 // Shift type options
 const shiftTypeOptions = createListCollection({
@@ -79,6 +89,10 @@ const getInitialFormData = (selectedDate?: string): ShiftFormData => ({
   notes: '',
 });
 
+// ============================================
+// Main Component
+// ============================================
+
 const AddShiftModal: React.FC<AddShiftModalProps> = ({
                                                        isOpen,
                                                        onClose,
@@ -88,11 +102,16 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                                                        selectedDate,
                                                        isSubmitting = false,
                                                      }) => {
-  const [formData, setFormData] = useState<ShiftFormData>(getInitialFormData(selectedDate));
-  const [newTask, setNewTask] = useState<TaskFormData>({ description: '', frequency: 'once' });
+  const [formData, setFormData] = useState<ShiftFormData>(
+    getInitialFormData(selectedDate)
+  );
+  const [newTask, setNewTask] = useState<TaskFormData>({
+    description: '',
+    frequency: 'once',
+  });
   const [errors, setErrors] = useState<Partial<Record<keyof ShiftFormData, string>>>({});
 
-  // Create officer options
+  // Create officer options for dropdown
   const officerOptions = createListCollection({
     items: availableOfficers
       .filter((o) => o.availability)
@@ -102,7 +121,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
       })),
   });
 
-  // Create site options
+  // Create site options for dropdown
   const siteOptions = createListCollection({
     items: availableSites.map((s) => ({
       value: s._id,
@@ -127,6 +146,15 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
       startTime: times.start,
       endTime: times.end,
     }));
+  };
+
+  // Handle recommended officer selection
+  const handleRecommendedOfficerSelect = (officerId: string) => {
+    setFormData((prev) => ({ ...prev, officerId }));
+    // Clear officer error if it was set
+    if (errors.officerId) {
+      setErrors((prev) => ({ ...prev, officerId: undefined }));
+    }
   };
 
   // Add task
@@ -179,10 +207,15 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="lg">
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(e) => !e.open && handleClose()}
+      size="lg"
+    >
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content maxH="90vh" overflow="auto">
+          {/* Header */}
           <Dialog.Header borderBottomWidth="1px" borderColor="gray.200">
             <Flex justify="space-between" align="center">
               <HStack gap={2}>
@@ -199,15 +232,115 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
             </Flex>
           </Dialog.Header>
 
+          {/* Body */}
           <Dialog.Body py={6}>
             <VStack gap={6} align="stretch">
-              {/* Shift Details */}
+              {/* Shift Details Section */}
               <Box>
                 <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={4}>
                   Shift Details
                 </Text>
                 <VStack gap={4}>
-                  {/* Officer */}
+                  {/* Site Selection (FIRST - triggers recommendations) */}
+                  <Field.Root required invalid={!!errors.siteId}>
+                    <Field.Label>Site</Field.Label>
+                    <Select.Root
+                      collection={siteOptions}
+                      value={formData.siteId ? [formData.siteId] : []}
+                      onValueChange={(e) =>
+                        setFormData((prev) => ({ ...prev, siteId: e.value[0] }))
+                      }
+                    >
+                      <Select.Trigger
+                        borderColor={errors.siteId ? 'red.300' : 'gray.300'}
+                      >
+                        <Select.ValueText placeholder="Select a site" />
+                      </Select.Trigger>
+                      <Select.Content
+                        bg="white"
+                        borderColor="gray.200"
+                        boxShadow="lg"
+                      >
+                        {siteOptions.items.map((item) => (
+                          <Select.Item
+                            key={item.value}
+                            item={item}
+                            _hover={{ bg: 'gray.100' }}
+                            _highlighted={{ bg: 'gray.100' }}
+                            color="gray.800"
+                          >
+                            {item.label}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Root>
+                    {errors.siteId && (
+                      <Field.ErrorText>{errors.siteId}</Field.ErrorText>
+                    )}
+                  </Field.Root>
+
+                  {/* Date & Shift Type (needed for recommendations context) */}
+                  <HStack gap={4} w="full">
+                    <Field.Root required invalid={!!errors.date} flex="1">
+                      <Field.Label>Date</Field.Label>
+                      <Input
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, date: e.target.value }))
+                        }
+                        borderColor={errors.date ? 'red.300' : 'gray.300'}
+                      />
+                      {errors.date && (
+                        <Field.ErrorText>{errors.date}</Field.ErrorText>
+                      )}
+                    </Field.Root>
+
+                    <Field.Root required flex="1">
+                      <Field.Label>Shift Type</Field.Label>
+                      <Select.Root
+                        collection={shiftTypeOptions}
+                        value={[formData.shiftType]}
+                        onValueChange={(e) =>
+                          handleShiftTypeChange(e.value[0] as ShiftType)
+                        }
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select shift type" />
+                        </Select.Trigger>
+                        <Select.Content
+                          bg="white"
+                          borderColor="gray.200"
+                          boxShadow="lg"
+                        >
+                          {shiftTypeOptions.items.map((item) => (
+                            <Select.Item
+                              key={item.value}
+                              item={item}
+                              _hover={{ bg: 'gray.100' }}
+                              _highlighted={{ bg: 'gray.100' }}
+                              color="gray.800"
+                            >
+                              {item.label}
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Root>
+                    </Field.Root>
+                  </HStack>
+
+                  {/* ============================================ */}
+                  {/* RECOMMENDED OFFICERS PANEL                   */}
+                  {/* Appears after site selection                 */}
+                  {/* ============================================ */}
+                  <RecommendedOfficersPanel
+                    siteId={formData.siteId || null}
+                    date={formData.date}
+                    onSelect={handleRecommendedOfficerSelect}
+                    selectedOfficerId={formData.officerId}
+                  />
+
+                  {/* Officer Selection */}
                   <Field.Root required invalid={!!errors.officerId}>
                     <Field.Label>Officer</Field.Label>
                     <Select.Root
@@ -217,10 +350,16 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         setFormData((prev) => ({ ...prev, officerId: e.value[0] }))
                       }
                     >
-                      <Select.Trigger borderColor={errors.officerId ? 'red.300' : 'gray.300'}>
+                      <Select.Trigger
+                        borderColor={errors.officerId ? 'red.300' : 'gray.300'}
+                      >
                         <Select.ValueText placeholder="Select an officer" />
                       </Select.Trigger>
-                      <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
+                      <Select.Content
+                        bg="white"
+                        borderColor="gray.200"
+                        boxShadow="lg"
+                      >
                         {officerOptions.items.map((item) => (
                           <Select.Item
                             key={item.value}
@@ -239,21 +378,118 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                     )}
                   </Field.Root>
 
-                  {/* Site */}
-                  <Field.Root required invalid={!!errors.siteId}>
-                    <Field.Label>Site</Field.Label>
-                    <Select.Root
-                      collection={siteOptions}
-                      value={formData.siteId ? [formData.siteId] : []}
-                      onValueChange={(e) =>
-                        setFormData((prev) => ({ ...prev, siteId: e.value[0] }))
+                  {/* Custom Times */}
+                  <HStack gap={4} w="full">
+                    <Field.Root flex="1">
+                      <Field.Label>Start Time</Field.Label>
+                      <Input
+                        type="time"
+                        value={formData.startTime}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            startTime: e.target.value,
+                          }))
+                        }
+                      />
+                    </Field.Root>
+
+                    <Field.Root flex="1">
+                      <Field.Label>End Time</Field.Label>
+                      <Input
+                        type="time"
+                        value={formData.endTime}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            endTime: e.target.value,
+                          }))
+                        }
+                      />
+                    </Field.Root>
+                  </HStack>
+                </VStack>
+              </Box>
+
+              {/* Tasks Section */}
+              <Box>
+                <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={4}>
+                  Shift Tasks
+                </Text>
+
+                {/* Existing Tasks */}
+                {formData.tasks.length > 0 && (
+                  <VStack gap={2} mb={4} align="stretch">
+                    {formData.tasks.map((task, index) => (
+                      <HStack
+                        key={index}
+                        p={3}
+                        bg="gray.50"
+                        borderRadius="md"
+                        justify="space-between"
+                      >
+                        <VStack align="flex-start" gap={0}>
+                          <Text fontSize="sm" color="gray.700">
+                            {task.description}
+                          </Text>
+                          <Badge size="sm" variant="subtle" colorPalette="blue">
+                            {task.frequency}
+                          </Badge>
+                        </VStack>
+                        <IconButton
+                          aria-label="Remove task"
+                          variant="ghost"
+                          size="sm"
+                          colorPalette="red"
+                          onClick={() => handleRemoveTask(index)}
+                        >
+                          <LuTrash2 size={14} />
+                        </IconButton>
+                      </HStack>
+                    ))}
+                  </VStack>
+                )}
+
+                {/* Add New Task */}
+                <VStack gap={2} align="stretch">
+                  <HStack gap={2}>
+                    <Input
+                      flex="1"
+                      placeholder="Task description"
+                      value={newTask.description}
+                      onChange={(e) =>
+                        setNewTask((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddTask();
+                        }
+                      }}
+                    />
+                    <Select.Root
+                      collection={frequencyOptions}
+                      value={[newTask.frequency]}
+                      onValueChange={(e) =>
+                        setNewTask((prev) => ({
+                          ...prev,
+                          frequency: e.value[0] as TaskFrequency,
+                        }))
+                      }
+                      w="140px"
                     >
-                      <Select.Trigger borderColor={errors.siteId ? 'red.300' : 'gray.300'}>
-                        <Select.ValueText placeholder="Select a site" />
+                      <Select.Trigger>
+                        <Select.ValueText />
                       </Select.Trigger>
-                      <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
-                        {siteOptions.items.map((item) => (
+                      <Select.Content
+                        bg="white"
+                        borderColor="gray.200"
+                        boxShadow="lg"
+                      >
+                        {frequencyOptions.items.map((item) => (
                           <Select.Item
                             key={item.value}
                             item={item}
@@ -266,208 +502,36 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         ))}
                       </Select.Content>
                     </Select.Root>
-                    {errors.siteId && <Field.ErrorText>{errors.siteId}</Field.ErrorText>}
-                  </Field.Root>
-
-                  {/* Date & Shift Type */}
-                  <HStack gap={4} w="full">
-                    <Field.Root required invalid={!!errors.date} flex="1">
-                      <Field.Label>Date</Field.Label>
-                      <Input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, date: e.target.value }))
-                        }
-                        borderColor={errors.date ? 'red.300' : 'gray.300'}
-                      />
-                      {errors.date && <Field.ErrorText>{errors.date}</Field.ErrorText>}
-                    </Field.Root>
-
-                    <Field.Root required flex="1">
-                      <Field.Label>Shift Type</Field.Label>
-                      <Select.Root
-                        collection={shiftTypeOptions}
-                        value={[formData.shiftType]}
-                        onValueChange={(e) =>
-                          handleShiftTypeChange(e.value[0] as ShiftType)
-                        }
-                      >
-                        <Select.Trigger>
-                          <Select.ValueText placeholder="Select shift type" />
-                        </Select.Trigger>
-                        <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
-                          {shiftTypeOptions.items.map((item) => (
-                            <Select.Item
-                              key={item.value}
-                              item={item}
-                              _hover={{ bg: 'gray.100' }}
-                              _highlighted={{ bg: 'gray.100' }}
-                              color="gray.800"
-                            >
-                              {item.label}
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Root>
-                    </Field.Root>
+                    <Button variant="outline" size="md" onClick={handleAddTask}>
+                      <LuPlus size={16} />
+                    </Button>
                   </HStack>
-
-                  {/* Custom Times */}
-                  <HStack gap={4} w="full">
-                    <Field.Root flex="1">
-                      <Field.Label>Start Time</Field.Label>
-                      <Input
-                        type="time"
-                        value={formData.startTime}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, startTime: e.target.value }))
-                        }
-                      />
-                    </Field.Root>
-
-                    <Field.Root flex="1">
-                      <Field.Label>End Time</Field.Label>
-                      <Input
-                        type="time"
-                        value={formData.endTime}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, endTime: e.target.value }))
-                        }
-                      />
-                    </Field.Root>
-                  </HStack>
+                  <Text fontSize="xs" color="gray.500">
+                    Press Enter or click + to add a task
+                  </Text>
                 </VStack>
               </Box>
 
-              {/* Shift Tasks */}
+              {/* Notes Section */}
               <Box>
                 <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={4}>
-                  Shift Tasks
+                  Additional Notes
                 </Text>
-
-                {/* Existing tasks */}
-                {formData.tasks.length > 0 && (
-                  <VStack align="stretch" gap={2} mb={4}>
-                    {formData.tasks.map((task, index) => (
-                      <Flex
-                        key={index}
-                        p={3}
-                        bg="gray.50"
-                        borderRadius="md"
-                        align="center"
-                        justify="space-between"
-                      >
-                        <Box>
-                          <Text fontSize="sm" color="gray.800">
-                            {task.description}
-                          </Text>
-                          <Badge colorPalette="gray" variant="outline" size="sm">
-                            {task.frequency === 'once'
-                              ? 'One-time'
-                              : task.frequency === 'hourly'
-                                ? 'Hourly'
-                                : 'Periodic'}
-                          </Badge>
-                        </Box>
-                        <IconButton
-                          aria-label="Remove task"
-                          size="sm"
-                          variant="ghost"
-                          colorPalette="red"
-                          onClick={() => handleRemoveTask(index)}
-                        >
-                          <LuTrash2 size={14} />
-                        </IconButton>
-                      </Flex>
-                    ))}
-                  </VStack>
-                )}
-
-                {/* Add new task */}
-                <Box p={3} bg="blue.50" borderRadius="md">
-                  <VStack gap={3} align="stretch">
-                    <Field.Root>
-                      <Field.Label fontSize="sm">Task Description</Field.Label>
-                      <Input
-                        placeholder="e.g., Patrol perimeter"
-                        value={newTask.description}
-                        onChange={(e) =>
-                          setNewTask((prev) => ({ ...prev, description: e.target.value }))
-                        }
-                        bg="white"
-                      />
-                    </Field.Root>
-
-                    <HStack gap={3}>
-                      <Field.Root flex="1">
-                        <Field.Label fontSize="sm">Frequency</Field.Label>
-                        <Select.Root
-                          collection={frequencyOptions}
-                          value={[newTask.frequency]}
-                          onValueChange={(e) =>
-                            setNewTask((prev) => ({
-                              ...prev,
-                              frequency: e.value[0] as TaskFrequency,
-                            }))
-                          }
-                          size="sm"
-                        >
-                          <Select.Trigger bg="white">
-                            <Select.ValueText />
-                          </Select.Trigger>
-                          <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
-                            {frequencyOptions.items.map((item) => (
-                              <Select.Item
-                                key={item.value}
-                                item={item}
-                                _hover={{ bg: 'gray.100' }}
-                                _highlighted={{ bg: 'gray.100' }}
-                                color="gray.800"
-                              >
-                                {item.label}
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Root>
-                      </Field.Root>
-
-                      <Button
-                        size="sm"
-                        colorPalette="blue"
-                        onClick={handleAddTask}
-                        disabled={!newTask.description.trim()}
-                        mt={6}
-                      >
-                        <LuPlus size={14} />
-                        Add Task
-                      </Button>
-                    </HStack>
-                  </VStack>
-                </Box>
-              </Box>
-
-              {/* Shift Notes */}
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={4}>
-                  Shift Notes
-                </Text>
-                <Field.Root>
-                  <Textarea
-                    placeholder="Add any special instructions or notes for this shift..."
-                    value={formData.notes || ''}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                    }
-                    rows={3}
-                  />
-                </Field.Root>
+                <Textarea
+                  placeholder="Special instructions, client requests, etc."
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  rows={3}
+                />
               </Box>
             </VStack>
           </Dialog.Body>
 
+          {/* Footer */}
           <Dialog.Footer borderTopWidth="1px" borderColor="gray.200">
-            <HStack gap={3}>
+            <HStack gap={3} justify="flex-end">
               <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
@@ -475,6 +539,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                 colorPalette="blue"
                 onClick={handleSubmit}
                 loading={isSubmitting}
+                loadingText="Creating..."
               >
                 Create Shift
               </Button>

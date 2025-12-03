@@ -103,4 +103,6 @@ router.patch('/shifts/:shiftId/tasks/:taskId', updateTaskStatus);
  */
 router.delete('/shifts/:id', authorize('Admin', 'Manager'), deleteShift);
 
+router.get('/recommended-officers/:siteId', getRecommendedOfficers);
+
 module.exports = router;

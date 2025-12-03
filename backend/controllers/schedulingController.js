@@ -8,6 +8,7 @@ const Shift = require('../models/Shift');
 const User = require('../models/User');
 const Site = require('../models/Site');
 const { emitShiftUpdate, emitTaskComplete } = require('../socket/socketManager');
+const { scoreOfficer, getPostcodeCoords } = require('../services/officerMatchingService');
 const asyncHandler = require('../utils/asyncHandler');
 
 /**
@@ -406,6 +407,46 @@ const getAvailableSites = asyncHandler(async (req, res) => {
       clientName: site.client?.name,
     })),
   });
+});
+
+const getRecommendedOfficers = asyncHandler(async (req, res) => {
+  const { siteId } = req.params;
+  const { date, shiftType } = req.query;
+
+  const site = await Site.findById(siteId);
+  if (!site) throw new Error('Site not found');
+
+  const siteCoords = await getPostcodeCoords(site.address.postCode);
+
+  // Get eligible officers (active, valid licence, available)
+  const officers = await User.find({
+    role: 'Guard',
+    status: 'active',
+    'siaLicence.status': { $in: ['valid', 'expiring-soon'] },
+  });
+
+  // Score each officer
+  const scored = await Promise.all(
+    officers.map(async (officer) => ({
+      officer: {
+        _id: officer._id,
+        fullName: officer.fullName,
+        badgeNumber: officer.badgeNumber,
+        guardType: officer.guardType,
+        postCode: officer.postCode,
+        siaLicence: officer.siaLicence,
+        certifications: officer.certifications,
+      },
+      ...(await scoreOfficer(officer, site, siteCoords, date)),
+    }))
+  );
+
+  // Sort and return top 3
+  const recommendations = scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  res.json({ success: true, data: recommendations });
 });
 
 module.exports = {
