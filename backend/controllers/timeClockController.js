@@ -1,14 +1,17 @@
 /**
  * TimeClock Controller
  *
- * Handles API requests for time clock functionality.
- * Includes clock-in/out, break management, and timesheet operations.
+ * Handles time clock functionality including clock-in/out,
+ * break management, and timesheet operations.
+ * Integrates GPS reverse geocoding for location addresses.
  */
 
 const { TimeEntry, Timesheet, ActiveSession } = require('../models/TimeEntry');
 const Site = require('../models/Site');
 const Shift = require('../models/Shift');
-const { emitClockAction, emitGeofenceViolation, } = require('../socket/socketManager');
+const User = require('../models/User');
+const { emitClockAction, emitGeofenceViolation } = require('../socket/socketManager');
+const { reverseGeocode } = require('../services/geocodingService');
 const asyncHandler = require('../utils/asyncHandler');
 
 // ============================================
@@ -18,13 +21,11 @@ const asyncHandler = require('../utils/asyncHandler');
 /**
  * Get today's date in YYYY-MM-DD format
  */
-const getTodayDate = () => {
-  return new Date().toISOString().split('T')[0];
-};
+const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 /**
  * Calculate distance between two GPS coordinates (Haversine formula)
- * Returns distance in metres
+ * @returns Distance in metres
  */
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000; // Earth's radius in metres
@@ -49,7 +50,7 @@ const verifyGeofence = async (location, siteId) => {
 
   try {
     const site = await Site.findById(siteId);
-    if (!site || !site.geofence) return 'unknown';
+    if (!site || !site.geofence || !site.geofence.center) return 'unknown';
 
     const distance = calculateDistance(
       location.latitude,
@@ -58,7 +59,6 @@ const verifyGeofence = async (location, siteId) => {
       site.geofence.center.longitude
     );
 
-    // Default radius is 150 metres if not specified
     const radius = site.geofence.radius || 150;
     return distance <= radius ? 'inside' : 'outside';
   } catch (error) {
@@ -77,12 +77,37 @@ const calculateMinutesWorked = (startTime, endTime) => {
   return Math.round((end - start) / (1000 * 60));
 };
 
+/**
+ * Enrich location with reverse geocoded address
+ */
+const enrichLocationWithAddress = async (location) => {
+  if (!location || !location.latitude || !location.longitude) {
+    return location;
+  }
+
+  try {
+    const geocodeResult = await reverseGeocode(location.latitude, location.longitude);
+    return {
+      ...location,
+      address: geocodeResult.formatted || geocodeResult.shortAddress,
+      addressDetails: geocodeResult.address,
+      displayName: geocodeResult.displayName,
+    };
+  } catch (error) {
+    console.error('Geocoding error:', error.message);
+    return {
+      ...location,
+      address: `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+    };
+  }
+};
+
 // ============================================
 // Clock Actions
 // ============================================
 
 /**
- * @route   POST /api/timeClock/clock-in
+ * @route   POST /api/timeclock/clock-in
  * @desc    Clock in for current user
  * @access  Private
  */
@@ -104,6 +129,9 @@ const clockIn = asyncHandler(async (req, res) => {
     geofenceStatus = await verifyGeofence(location, siteId);
   }
 
+  // Enrich location with address via reverse geocoding
+  const enrichedLocation = await enrichLocationWithAddress(location);
+
   // Create time entry
   const timeEntry = await TimeEntry.create({
     officer: officerId,
@@ -112,7 +140,7 @@ const clockIn = asyncHandler(async (req, res) => {
     date: today,
     type: 'clock-in',
     timestamp: new Date(),
-    location,
+    location: enrichedLocation,
     geofenceStatus,
     notes,
   });
@@ -125,7 +153,7 @@ const clockIn = asyncHandler(async (req, res) => {
       site: siteId,
       clockStatus: 'clocked-in',
       clockedInAt: new Date(),
-      lastKnownLocation: location,
+      lastKnownLocation: enrichedLocation,
       geofenceStatus,
     });
   } else {
@@ -133,7 +161,7 @@ const clockIn = asyncHandler(async (req, res) => {
     session.clockedInAt = new Date();
     session.shift = shiftId;
     session.site = siteId;
-    session.lastKnownLocation = location;
+    session.lastKnownLocation = enrichedLocation;
     session.geofenceStatus = geofenceStatus;
     session.totalBreakMinutesToday = 0;
     await session.save();
@@ -153,7 +181,7 @@ const clockIn = asyncHandler(async (req, res) => {
     });
   }
 
-  // Get officer name for broadcast
+  // Get officer and site names for broadcast
   const [officer, site] = await Promise.all([
     User.findById(officerId).select('fullName'),
     siteId ? Site.findById(siteId).select('name') : null,
@@ -168,11 +196,12 @@ const clockIn = asyncHandler(async (req, res) => {
         clockedInAt: session.clockedInAt,
         geofenceStatus: session.geofenceStatus,
       },
+      location: enrichedLocation,
     },
     message: 'Clocked in successfully',
   });
 
-  // Emit clock-in event
+  // Emit socket events
   emitClockAction({
     officerId,
     officerName: officer?.fullName || 'Unknown',
@@ -182,21 +211,20 @@ const clockIn = asyncHandler(async (req, res) => {
     geofenceStatus,
   });
 
-  // Check for geofence violation
   if (geofenceStatus === 'outside') {
     emitGeofenceViolation({
       officerId,
       officerName: officer?.fullName || 'Unknown',
       siteId,
       siteName: site?.name || 'Unknown Site',
-      location,
+      location: enrichedLocation,
       action: 'clock-in',
     });
   }
 });
 
 /**
- * @route   POST /api/timeClock/clock-out
+ * @route   POST /api/timeclock/clock-out
  * @desc    Clock out for current user
  * @access  Private
  */
@@ -214,10 +242,7 @@ const clockOut = asyncHandler(async (req, res) => {
 
   // If on break, end break first
   if (session.clockStatus === 'on-break') {
-    const breakDuration = calculateMinutesWorked(
-      session.currentBreakStartedAt,
-      new Date()
-    );
+    const breakDuration = calculateMinutesWorked(session.currentBreakStartedAt, new Date());
     session.totalBreakMinutesToday += breakDuration;
   }
 
@@ -225,6 +250,9 @@ const clockOut = asyncHandler(async (req, res) => {
   const geofenceStatus = session.site
     ? await verifyGeofence(location, session.site)
     : 'unknown';
+
+  // Enrich location with address
+  const enrichedLocation = await enrichLocationWithAddress(location);
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
@@ -234,16 +262,13 @@ const clockOut = asyncHandler(async (req, res) => {
     date: today,
     type: 'clock-out',
     timestamp: new Date(),
-    location,
+    location: enrichedLocation,
     geofenceStatus,
     notes,
   });
 
   // Calculate worked time
-  const totalMinutesWorked = calculateMinutesWorked(
-    session.clockedInAt,
-    new Date()
-  );
+  const totalMinutesWorked = calculateMinutesWorked(session.clockedInAt, new Date());
 
   // Update timesheet
   const timesheet = await Timesheet.getOrCreateForDate(officerId, today);
@@ -264,9 +289,13 @@ const clockOut = asyncHandler(async (req, res) => {
 
   // Update session
   session.clockStatus = 'clocked-out';
-  session.lastKnownLocation = location;
+  session.lastKnownLocation = enrichedLocation;
   session.geofenceStatus = geofenceStatus;
   await session.save();
+
+  // Get names for broadcast
+  const officer = await User.findById(officerId).select('fullName');
+  const site = session.site ? await Site.findById(session.site).select('name') : null;
 
   res.status(201).json({
     success: true,
@@ -277,13 +306,12 @@ const clockOut = asyncHandler(async (req, res) => {
         totalBreakMinutes: timesheet.totalBreakMinutes,
         hoursWorked: timesheet.hoursWorked,
       },
+      location: enrichedLocation,
     },
     message: 'Clocked out successfully',
   });
 
-  const officer = await User.findById(officerId).select('fullName');
-  const site = session.site ? await Site.findById(session.site).select('name') : null;
-
+  // Emit socket events
   emitClockAction({
     officerId,
     officerName: officer?.fullName || 'Unknown',
@@ -299,14 +327,14 @@ const clockOut = asyncHandler(async (req, res) => {
       officerName: officer?.fullName || 'Unknown',
       siteId: session.site,
       siteName: site?.name || 'Unknown Site',
-      location,
+      location: enrichedLocation,
       action: 'clock-out',
     });
   }
 });
 
 /**
- * @route   POST /api/timeClock/break/start
+ * @route   POST /api/timeclock/break/start
  * @desc    Start a break
  * @access  Private
  */
@@ -327,6 +355,9 @@ const startBreak = asyncHandler(async (req, res) => {
     ? await verifyGeofence(location, session.site)
     : 'unknown';
 
+  // Enrich location
+  const enrichedLocation = await enrichLocationWithAddress(location);
+
   // Create time entry
   const timeEntry = await TimeEntry.create({
     officer: officerId,
@@ -335,7 +366,7 @@ const startBreak = asyncHandler(async (req, res) => {
     date: today,
     type: 'break-start',
     timestamp: new Date(),
-    location,
+    location: enrichedLocation,
     geofenceStatus,
   });
 
@@ -343,7 +374,7 @@ const startBreak = asyncHandler(async (req, res) => {
   session.clockStatus = 'on-break';
   session.currentBreakStartedAt = new Date();
   session.currentBreakType = breakType;
-  session.lastKnownLocation = location;
+  session.lastKnownLocation = enrichedLocation;
   await session.save();
 
   // Update timesheet
@@ -366,16 +397,16 @@ const startBreak = asyncHandler(async (req, res) => {
 
   emitClockAction({
     officerId,
-    officerName: req.user.fullName, // Available from auth middleware
+    officerName: req.user.fullName,
     action: 'break-start',
     siteId: session.site,
-    siteName: session.site?.name || 'Unknown Site',
+    siteName: 'Unknown Site',
     geofenceStatus,
   });
 });
 
 /**
- * @route   POST /api/timeClock/break/end
+ * @route   POST /api/timeclock/break/end
  * @desc    End a break
  * @access  Private
  */
@@ -392,15 +423,15 @@ const endBreak = asyncHandler(async (req, res) => {
   }
 
   // Calculate break duration
-  const breakDuration = calculateMinutesWorked(
-    session.currentBreakStartedAt,
-    new Date()
-  );
+  const breakDuration = calculateMinutesWorked(session.currentBreakStartedAt, new Date());
 
   // Verify geofence
   const geofenceStatus = session.site
     ? await verifyGeofence(location, session.site)
     : 'unknown';
+
+  // Enrich location
+  const enrichedLocation = await enrichLocationWithAddress(location);
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
@@ -410,7 +441,7 @@ const endBreak = asyncHandler(async (req, res) => {
     date: today,
     type: 'break-end',
     timestamp: new Date(),
-    location,
+    location: enrichedLocation,
     geofenceStatus,
   });
 
@@ -422,7 +453,7 @@ const endBreak = asyncHandler(async (req, res) => {
     endTime: new Date(),
     breakType: session.currentBreakType,
     duration: breakDuration,
-    location,
+    location: enrichedLocation,
   });
   await timesheet.save();
 
@@ -431,7 +462,7 @@ const endBreak = asyncHandler(async (req, res) => {
   session.totalBreakMinutesToday += breakDuration;
   session.currentBreakStartedAt = null;
   session.currentBreakType = null;
-  session.lastKnownLocation = location;
+  session.lastKnownLocation = enrichedLocation;
   await session.save();
 
   res.status(201).json({
@@ -446,6 +477,15 @@ const endBreak = asyncHandler(async (req, res) => {
     },
     message: 'Break ended',
   });
+
+  emitClockAction({
+    officerId,
+    officerName: req.user.fullName,
+    action: 'break-end',
+    siteId: session.site,
+    siteName: 'Unknown Site',
+    geofenceStatus,
+  });
 });
 
 // ============================================
@@ -453,7 +493,7 @@ const endBreak = asyncHandler(async (req, res) => {
 // ============================================
 
 /**
- * @route   GET /api/timeClock/status
+ * @route   GET /api/timeclock/status
  * @desc    Get current clock status for user
  * @access  Private
  */
@@ -465,18 +505,16 @@ const getClockStatus = asyncHandler(async (req, res) => {
     .populate('shift', 'startTime endTime shiftType');
 
   if (!session) {
-    return res.status(200).json({
+    return res.json({
       success: true,
       data: {
         clockStatus: 'clocked-out',
-        clockedInAt: null,
-        site: null,
-        shift: null,
+        session: null,
       },
     });
   }
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: {
       clockStatus: session.clockStatus,
@@ -484,14 +522,16 @@ const getClockStatus = asyncHandler(async (req, res) => {
       site: session.site,
       shift: session.shift,
       geofenceStatus: session.geofenceStatus,
-      currentBreakStartedAt: session.currentBreakStartedAt,
+      lastKnownLocation: session.lastKnownLocation,
       totalBreakMinutesToday: session.totalBreakMinutesToday,
+      currentBreakStartedAt: session.currentBreakStartedAt,
+      currentBreakType: session.currentBreakType,
     },
   });
 });
 
 /**
- * @route   GET /api/timeClock/entries/today
+ * @route   GET /api/timeclock/entries/today
  * @desc    Get today's time entries for current user
  * @access  Private
  */
@@ -506,81 +546,52 @@ const getTodayEntries = asyncHandler(async (req, res) => {
     .populate('site', 'name')
     .sort({ timestamp: -1 });
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: entries,
   });
 });
 
 /**
- * @route   GET /api/timeClock/entries
+ * @route   GET /api/timeclock/entries
  * @desc    Get time entries with filtering
  * @access  Private
  */
 const getTimeEntries = asyncHandler(async (req, res) => {
-  const {
-    officerId,
-    siteId,
-    startDate,
-    endDate,
-    type,
-    page = 1,
-    limit = 50,
-  } = req.query;
+  const { startDate, endDate, officerId, type, limit = 50 } = req.query;
 
   const query = {};
 
-  // Filter by officer (if not specified, use current user for non-managers)
-  if (officerId) {
-    query.officer = officerId;
-  } else if (req.user.role === 'Guard') {
+  // If not admin/manager, only show own entries
+  if (req.user.role === 'Guard') {
     query.officer = req.user._id;
+  } else if (officerId) {
+    query.officer = officerId;
   }
 
-  // Date range
   if (startDate || endDate) {
     query.date = {};
     if (startDate) query.date.$gte = startDate;
     if (endDate) query.date.$lte = endDate;
   }
 
-  // Site filter
-  if (siteId) {
-    query.site = siteId;
-  }
+  if (type) query.type = type;
 
-  // Type filter
-  if (type) {
-    query.type = type;
-  }
+  const entries = await TimeEntry.find(query)
+    .populate('officer', 'fullName badgeNumber')
+    .populate('site', 'name')
+    .sort({ timestamp: -1 })
+    .limit(parseInt(limit));
 
-  const skip = (parseInt(page) - 1) * parseInt(limit);
-
-  const [entries, total] = await Promise.all([
-    TimeEntry.find(query)
-      .populate('officer', 'fullName badgeNumber')
-      .populate('site', 'name')
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(parseInt(limit)),
-    TimeEntry.countDocuments(query),
-  ]);
-
-  res.status(200).json({
+  res.json({
     success: true,
     data: entries,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,
-      totalPages: Math.ceil(total / parseInt(limit)),
-    },
   });
 });
 
 /**
- * @route   GET /api/timeClock/timesheet/today
- * @desc    Get today's timesheet for current user
+ * @route   GET /api/timeclock/timesheet/today
+ * @desc    Get today's timesheet
  * @access  Private
  */
 const getTodayTimesheet = asyncHandler(async (req, res) => {
@@ -588,156 +599,134 @@ const getTodayTimesheet = asyncHandler(async (req, res) => {
   const today = getTodayDate();
 
   let timesheet = await Timesheet.findOne({ officer: officerId, date: today })
-    .populate('entries')
-    .populate('officer', 'fullName badgeNumber');
+    .populate('entries');
 
   if (!timesheet) {
     timesheet = {
       date: today,
-      entries: [],
-      breaks: [],
+      clockInTime: null,
+      clockOutTime: null,
       totalMinutesWorked: 0,
       totalBreakMinutes: 0,
+      entries: [],
+      breaks: [],
       status: 'pending',
     };
   }
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: timesheet,
   });
 });
 
 /**
- * @route   GET /api/timeClock/timesheet/weekly
- * @desc    Get weekly summary for current user
+ * @route   GET /api/timeclock/timesheet/weekly
+ * @desc    Get weekly summary
  * @access  Private
  */
 const getWeeklySummary = asyncHandler(async (req, res) => {
   const officerId = req.user._id;
 
-  // Calculate week start (Monday) and end (Sunday)
+  // Get dates for current week (Monday to Sunday)
   const today = new Date();
   const dayOfWeek = today.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  monday.setHours(0, 0, 0, 0);
 
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() + mondayOffset);
-  weekStart.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
 
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
+  const startDate = monday.toISOString().split('T')[0];
+  const endDate = sunday.toISOString().split('T')[0];
 
   const timesheets = await Timesheet.find({
     officer: officerId,
-    date: {
-      $gte: weekStart.toISOString().split('T')[0],
-      $lte: weekEnd.toISOString().split('T')[0],
-    },
-  });
+    date: { $gte: startDate, $lte: endDate },
+  }).sort({ date: 1 });
 
-  // Calculate totals
+  // Calculate weekly totals
   let totalMinutes = 0;
   let totalBreakMinutes = 0;
-  let overtimeMinutes = 0;
-  const daysWorked = timesheets.length;
+  let daysWorked = 0;
 
-  timesheets.forEach(ts => {
+  const dailySummary = [];
+
+  timesheets.forEach((ts) => {
     totalMinutes += ts.totalMinutesWorked || 0;
     totalBreakMinutes += ts.totalBreakMinutes || 0;
-    overtimeMinutes += ts.overtimeMinutes || 0;
+    if (ts.totalMinutesWorked > 0) daysWorked++;
+
+    dailySummary.push({
+      date: ts.date,
+      hoursWorked: Math.round(((ts.totalMinutesWorked || 0) / 60) * 100) / 100,
+      breakMinutes: ts.totalBreakMinutes || 0,
+      status: ts.status,
+    });
   });
 
-  const WEEKLY_STANDARD = 40 * 60; // 40 hours in minutes
-  const netWorked = totalMinutes - totalBreakMinutes;
-  const regularMinutes = Math.min(netWorked, WEEKLY_STANDARD);
-  const weeklyOvertime = Math.max(0, netWorked - WEEKLY_STANDARD);
-
-  res.status(200).json({
+  res.json({
     success: true,
     data: {
-      weekStart: weekStart.toISOString(),
-      weekEnd: weekEnd.toISOString(),
-      totalHours: Math.round((netWorked / 60) * 100) / 100,
-      regularHours: Math.round((regularMinutes / 60) * 100) / 100,
-      overtimeHours: Math.round((weeklyOvertime / 60) * 100) / 100,
+      weekStart: startDate,
+      weekEnd: endDate,
+      totalHours: Math.round((totalMinutes / 60) * 100) / 100,
+      totalBreakHours: Math.round((totalBreakMinutes / 60) * 100) / 100,
       daysWorked,
-      averageHoursPerDay: daysWorked > 0
-        ? Math.round(((netWorked / 60) / daysWorked) * 100) / 100
-        : 0,
+      dailySummary,
     },
   });
 });
 
 /**
- * @route   GET /api/timeClock/stats
+ * @route   GET /api/timeclock/stats
  * @desc    Get time clock statistics
- * @access  Private (Admin/Manager)
+ * @access  Private (Manager/Admin)
  */
 const getStats = asyncHandler(async (req, res) => {
   const today = getTodayDate();
 
-  // Get active sessions count
-  const activeSessions = await ActiveSession.find({
-    clockStatus: { $ne: 'clocked-out' },
-  });
+  const [activeSessions, todayEntries] = await Promise.all([
+    ActiveSession.countDocuments({ clockStatus: { $ne: 'clocked-out' } }),
+    TimeEntry.find({ date: today, type: 'clock-in' }),
+  ]);
 
-  const activeCount = activeSessions.filter(s => s.clockStatus === 'clocked-in').length;
-  const onBreakCount = activeSessions.filter(s => s.clockStatus === 'on-break').length;
-  const outsideGeofence = activeSessions.filter(s => s.geofenceStatus === 'outside').length;
-
-  // Get today's entries stats
-  const todayEntries = await TimeEntry.find({ date: today });
-  const clockIns = todayEntries.filter(e => e.type === 'clock-in');
-
-  // Calculate on-time vs late (assuming shift start times)
-  // This is simplified - in production, compare against scheduled shift times
-  const onTimeClockIns = clockIns.filter(e => {
-    const hour = new Date(e.timestamp).getHours();
-    return hour < 9; // Consider on-time if before 9 AM
-  }).length;
-
-  // Get pending timesheet approvals
-  const pendingApprovals = await Timesheet.countDocuments({
-    status: 'submitted',
-  });
+  // Calculate stats
+  const guardsOnDuty = activeSessions;
+  const onBreak = await ActiveSession.countDocuments({ clockStatus: 'on-break' });
 
   // Calculate total hours today
   const todayTimesheets = await Timesheet.find({ date: today });
-  const totalMinutesToday = todayTimesheets.reduce(
-    (sum, ts) => sum + (ts.totalMinutesWorked || 0),
-    0
-  );
+  const totalMinutesToday = todayTimesheets.reduce((sum, ts) => sum + (ts.totalMinutesWorked || 0), 0);
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: {
-      activeGuardsCount: activeCount,
-      guardsOnBreak: onBreakCount,
-      outsideGeofence,
-      todayHours: Math.round((totalMinutesToday / 60) * 100) / 100,
-      onTimeClockIns,
-      lateClockIns: clockIns.length - onTimeClockIns,
-      pendingApprovals,
-      breaksTaken: todayEntries.filter(e => e.type === 'break-start').length,
+      guardsOnDuty,
+      onBreak,
+      clockedOut: 0, // Would need to calculate based on expected vs actual
+      totalHoursToday: Math.round((totalMinutesToday / 60) * 100) / 100,
+      lateArrivals: 0, // Would come from dashboard controller
+      activeBreaks: onBreak,
     },
   });
 });
 
 /**
- * @route   GET /api/timeClock/active-guards
+ * @route   GET /api/timeclock/active-guards
  * @desc    Get list of currently active guards
- * @access  private (Admin/Manager)
+ * @access  Private (Manager/Admin)
  */
 const getActiveGuards = asyncHandler(async (req, res) => {
-  const sessions = await ActiveSession.find()
+  const today = getTodayDate();
+
+  const sessions = await ActiveSession.find({
+    clockStatus: { $ne: 'clocked-out' },
+  })
     .populate('officer', 'fullName badgeNumber profileImage')
     .populate('site', 'name');
 
-  const today = getTodayDate();
-
-  // Get today's hours for each active guard
   const guardsData = await Promise.all(
     sessions.map(async (session) => {
       const timesheet = await Timesheet.findOne({
@@ -765,38 +754,45 @@ const getActiveGuards = asyncHandler(async (req, res) => {
     })
   );
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: guardsData,
   });
 });
 
 /**
- * @route   POST /api/timeClock/verify-location
- * @desc    Verify if location is within geofence
+ * @route   POST /api/timeclock/verify-location
+ * @desc    Verify if location is within geofence and get address
  * @access  Private
  */
 const verifyLocation = asyncHandler(async (req, res) => {
   const { location, siteId } = req.body;
 
-  if (!location || !siteId) {
+  if (!location) {
     res.status(400);
-    throw new Error('Location and site ID are required');
+    throw new Error('Location is required');
   }
 
-  const geofenceStatus = await verifyGeofence(location, siteId);
+  // Get geofence status if site provided
+  let geofenceStatus = 'unknown';
+  if (siteId) {
+    geofenceStatus = await verifyGeofence(location, siteId);
+  }
 
-  res.status(200).json({
+  // Reverse geocode the location
+  const enrichedLocation = await enrichLocationWithAddress(location);
+
+  res.json({
     success: true,
     data: {
       geofenceStatus,
-      location,
+      location: enrichedLocation,
     },
   });
 });
 
 /**
- * @route   PATCH /api/timeClock/timesheet/:id/approve
+ * @route   PATCH /api/timeclock/timesheet/:id/approve
  * @desc    Approve a timesheet
  * @access  Private (Admin/Manager)
  */
@@ -818,7 +814,7 @@ const approveTimesheet = asyncHandler(async (req, res) => {
   timesheet.approvedAt = new Date();
   await timesheet.save();
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: timesheet,
     message: 'Timesheet approved',
@@ -826,7 +822,7 @@ const approveTimesheet = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   PATCH /api/timeClock/timesheet/:id/reject
+ * @route   PATCH /api/timeclock/timesheet/:id/reject
  * @desc    Reject a timesheet
  * @access  Private (Admin/Manager)
  */
@@ -843,7 +839,7 @@ const rejectTimesheet = asyncHandler(async (req, res) => {
   timesheet.rejectionReason = reason;
   await timesheet.save();
 
-  res.status(200).json({
+  res.json({
     success: true,
     data: timesheet,
     message: 'Timesheet rejected',

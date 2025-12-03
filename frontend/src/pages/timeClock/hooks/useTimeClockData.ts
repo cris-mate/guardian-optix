@@ -320,7 +320,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
         setCurrentLocation(location);
         // API call to verify geofence
-        const response = await api.post('/api/timeclock/verify-location', { location });
+        const response = await api.post('/api/timeClock/verify-location', { location });
         setGeofenceStatus(response.data.geofenceStatus);
       }
     } catch (err) {
@@ -367,10 +367,10 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
         await refreshLocation();
       } else {
         const [shiftRes, entriesRes, guardsRes, statsRes] = await Promise.all([
-          api.get('/api/timeclock/active-shift'),
-          api.get('/api/timeclock/entries/today'),
-          api.get('/api/timeclock/active-guards'),
-          api.get('/api/timeclock/stats'),
+          api.get('/api/timeClock/active-shift'),
+          api.get('/api/timeClock/entries/today'),
+          api.get('/api/timeClock/active-guards'),
+          api.get('/api/timeClock/stats'),
         ]);
 
         setActiveShift(shiftRes.data);
@@ -435,7 +435,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           notes,
         };
 
-        await api.post('/api/timeclock/clock-in', payload);
+        await api.post('/api/timeClock/clock-in', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -486,7 +486,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           notes,
         };
 
-        await api.post('/api/timeclock/clock-out', payload);
+        await api.post('/api/timeClock/clock-out', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -533,7 +533,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           breakType,
         };
 
-        await api.post('/api/timeclock/break/start', payload);
+        await api.post('/api/timeClock/break/start', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -579,7 +579,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           location: currentLocation || undefined,
         };
 
-        await api.post('/api/timeclock/break/end', payload);
+        await api.post('/api/timeClock/break/end', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
