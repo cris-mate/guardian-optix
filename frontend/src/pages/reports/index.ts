@@ -12,12 +12,6 @@
 export { default } from './Reports';
 export { default as Reports } from './Reports';
 
-// Components
-export { default as ReportQuickStats } from './components/ReportQuickStats';
-export { default as ReportTemplates } from './components/ReportTemplates';
-export { default as RecentReports } from './components/RecentReports';
-export { default as ScheduledReports } from './components/ScheduledReports';
-
 // Hooks
 export { useReportsData } from './hooks/useReportsData';
 
@@ -66,9 +60,6 @@ export type {
   CertificationStatus,
   ComplianceOfficer,
   ComplianceReportData,
-
-  // Quick Stats
-  ReportQuickStats as ReportQuickStatsType,
 
   // API Response
   ReportsResponse,

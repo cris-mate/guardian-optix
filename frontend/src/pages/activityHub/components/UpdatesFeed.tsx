@@ -15,7 +15,6 @@ import {
   Icon,
   Button,
   Input,
-  Flex,
   Spinner,
 } from '@chakra-ui/react';
 import {
@@ -37,7 +36,6 @@ import {
 import {
   Update,
   UpdateType,
-  UpdatePriority,
   UpdateFilters,
   UPDATE_TYPE_CONFIG,
   PRIORITY_CONFIG,

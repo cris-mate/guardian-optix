@@ -33,11 +33,9 @@ import {
   LuMapPin,
   LuPhone,
   LuMail,
-  LuGlobe,
   LuUsers,
   LuClock,
   LuShield,
-  LuExternalLink,
 } from 'react-icons/lu';
 import type { ClientDetailsDrawerProps, Client, ClientSite, ClientContact } from '../types/client.types';
 

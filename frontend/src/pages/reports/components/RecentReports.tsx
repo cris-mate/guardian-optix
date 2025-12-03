@@ -29,7 +29,6 @@ import {
   LuCircleAlert,
   LuCalendar,
   LuTrash2,
-  LuExternalLink,
   LuHistory,
 } from 'react-icons/lu';
 import type { GeneratedReport, ExportFormat, ReportStatus } from '../types/reports.types';

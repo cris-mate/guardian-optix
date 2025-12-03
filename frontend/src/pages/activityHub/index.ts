@@ -12,11 +12,6 @@
 export { default } from './ActivityHub';
 export { default as ActivityHub } from './ActivityHub';
 
-// Components
-export { default as ActivityLog } from './components/ActivityLog';
-export { default as UpdatesFeed } from './components/UpdatesFeed';
-export { default as ActivityStats } from './components/ActivityStats';
-
 // Hooks
 export { useActivityHubData } from './hooks/useActivityHubData';
 
@@ -33,7 +28,6 @@ export type {
   SystemActivity,
   Update,
   Attachment,
-  ActivityStats as ActivityStatsType,
   UpdateStats,
 
   // Filter types

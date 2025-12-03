@@ -330,8 +330,6 @@ const Compliance: React.FC = () => {
     alerts,
     certifications,
     incidents,
-    documents,
-    auditEntries,
     isLoading,
     error,
     refetch,

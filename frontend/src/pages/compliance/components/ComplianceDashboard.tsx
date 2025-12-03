@@ -9,7 +9,6 @@ import {
   List,
   Spinner,
   Alert,
-  Badge,
 } from '@chakra-ui/react';
 import { useComplianceData } from '../hooks/useComplianceData';
 

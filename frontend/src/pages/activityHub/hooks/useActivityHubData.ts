@@ -140,7 +140,7 @@ const generateMockActivities = (): SystemActivity[] => {
     _id: 'act-007',
     category: 'incident',
     action: 'Critical Incident',
-    description: 'Security breach reported at Southbank Centre - Emergency response initiated',
+    description: 'Security breach reported at SouthBank Centre - Emergency response initiated',
     timestamp: new Date(now.getTime() - 90 * 60000).toISOString(),
     severity: 'critical',
     actorId: 'usr-007',
@@ -150,7 +150,7 @@ const generateMockActivities = (): SystemActivity[] => {
     targetId: 'inc-002',
     targetName: 'INC-2024-0143',
     location: {
-      siteName: 'Southbank Centre',
+      siteName: 'SouthBank Centre',
       siteId: 'site-005',
     },
   });

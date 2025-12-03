@@ -25,13 +25,10 @@ import {
   Tabs,
   Spinner,
   Badge,
-  Select,
-  createListCollection,
 } from '@chakra-ui/react';
 import {
   LuChartPie,
   LuRefreshCw,
-  LuDownload,
   LuCalendarRange,
   LuChartBar,
   LuClock,
@@ -55,7 +52,7 @@ import ScheduledReports from './components/ScheduledReports';
 import { useReportsData } from './hooks/useReportsData';
 
 // Types
-import type { ReportCategory, TimeRange } from './types/reports.types';
+import type { ReportCategory } from './types/reports.types';
 
 // ============================================
 // Tab Configuration
@@ -74,29 +71,6 @@ const tabs: TabConfig[] = [
   { value: 'history', label: 'Report History', icon: LuHistory },
   { value: 'scheduled', label: 'Scheduled', icon: LuCalendarClock },
 ];
-
-// Category Filter Options
-const categoryCollection = createListCollection({
-  items: [
-    { value: 'all', label: 'All Categories', icon: LuChartBar },
-    { value: 'operational', label: 'Operational', icon: LuChartBar },
-    { value: 'attendance', label: 'Attendance', icon: LuClock },
-    { value: 'incidents', label: 'Incidents', icon: LuTriangleAlert },
-    { value: 'clients', label: 'Clients', icon: LuBriefcase },
-    { value: 'compliance', label: 'Compliance', icon: LuShield },
-  ],
-});
-
-// Time Range Options
-const timeRangeCollection = createListCollection({
-  items: [
-    { value: 'week', label: 'This Week' },
-    { value: 'month', label: 'This Month' },
-    { value: 'quarter', label: 'This Quarter' },
-    { value: 'year', label: 'This Year' },
-    { value: 'custom', label: 'Custom Range' },
-  ],
-});
 
 // ============================================
 // Header Component
@@ -270,7 +244,6 @@ const Reports: React.FC = () => {
   // Fetch data
   const {
     templates,
-    allTemplates,
     favoriteTemplates,
     recentReports,
     scheduledReports,

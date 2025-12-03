@@ -50,7 +50,7 @@ import AddClientModal from './components/AddClientModal';
 import { useClientsData } from './hooks/useClientsData';
 
 // Types
-import type { Client, ClientFilters as ClientFiltersType } from './types/client.types';
+import type { Client } from './types/client.types';
 
 // ============================================
 // Tab Configuration

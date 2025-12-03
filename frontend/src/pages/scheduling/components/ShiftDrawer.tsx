@@ -28,8 +28,6 @@ import {
   LuClipboardList,
   LuStickyNote,
   LuPencil,
-  LuTrash2,
-  LuUser,
 } from 'react-icons/lu';
 import { Shift, ShiftDrawerProps } from '../types/scheduling.types';
 

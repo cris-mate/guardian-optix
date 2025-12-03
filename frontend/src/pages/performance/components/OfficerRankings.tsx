@@ -29,7 +29,6 @@ import {
 import type {
   OfficerPerformance,
   OfficerRanking,
-  RATING_CONFIG,
 } from '../types/performance.types';
 
 // ============================================

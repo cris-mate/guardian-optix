@@ -45,15 +45,6 @@ interface SchedulingToolbarProps {
   onReset: () => void;
 }
 
-// View mode options
-const viewModeOptions = createListCollection({
-  items: [
-    { value: 'day', label: 'Day' },
-    { value: 'week', label: 'Week' },
-    { value: 'month', label: 'Month' },
-  ],
-});
-
 // Shift type options
 const shiftTypeOptions = createListCollection({
   items: [

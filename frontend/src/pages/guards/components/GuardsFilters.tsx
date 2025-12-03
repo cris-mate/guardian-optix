@@ -17,7 +17,7 @@ import {
   Select,
   createListCollection,
 } from '@chakra-ui/react';
-import { LuSearch, LuX, LuFilter } from 'react-icons/lu';
+import { LuSearch, LuX } from 'react-icons/lu';
 import { GuardsFilters as FiltersType, GuardsStats } from '../types/guards.types';
 
 interface GuardsFiltersProps {
@@ -62,14 +62,6 @@ const shiftOptions = createListCollection({
     { value: 'Morning', label: 'Morning' },
     { value: 'Afternoon', label: 'Afternoon' },
     { value: 'Night', label: 'Night' },
-  ],
-});
-
-const availabilityOptions = createListCollection({
-  items: [
-    { value: 'all', label: 'All' },
-    { value: 'available', label: 'Available' },
-    { value: 'unavailable', label: 'Unavailable' },
   ],
 });
 

@@ -31,7 +31,6 @@ import type {
   PatrolMetrics,
   PatrolRecord,
   PatrolStatus,
-  PATROL_STATUS_CONFIG,
 } from '../types/performance.types';
 
 // ============================================

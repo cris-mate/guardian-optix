@@ -15,11 +15,8 @@ import type {
   OperationalReportData,
   AttendanceReportData,
   IncidentReportData,
-  ClientReportData,
-  ComplianceReportData,
   ExportFormat,
   ReportCategory,
-  DEFAULT_FILTERS,
 } from '../types/reports.types';
 
 // Toggle for development - set to false when backend is ready

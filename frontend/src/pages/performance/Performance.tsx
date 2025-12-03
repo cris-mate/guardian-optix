@@ -24,7 +24,6 @@ import {
   GridItem,
   Tabs,
   Spinner,
-  Badge,
   Select,
   createListCollection,
 } from '@chakra-ui/react';
@@ -221,7 +220,6 @@ const Performance: React.FC = () => {
     patrols,
     attendance,
     alerts,
-    selectedOfficer,
     isLoading,
     error,
     filters,
@@ -266,9 +264,6 @@ const Performance: React.FC = () => {
       </VStack>
     );
   }
-
-  // Count unread alerts
-  const unreadAlerts = alerts.filter(a => !a.isRead).length;
 
   return (
     <VStack gap={4} align="stretch">

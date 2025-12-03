@@ -17,7 +17,7 @@ import {
   FiShield,
   FiClipboard,
 } from 'react-icons/fi';
-import type { OperationalMetrics as MetricsType, DashboardMetric } from '../types/dashboard.types';
+import type { OperationalMetrics as MetricsType } from '../types/dashboard.types';
 
 // ============================================
 // Types

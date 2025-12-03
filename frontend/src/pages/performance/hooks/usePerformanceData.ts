@@ -16,7 +16,6 @@ import type {
   IncidentMetrics,
   PerformanceAlert,
   PerformanceRating,
-  DEFAULT_FILTERS,
 } from '../types/performance.types';
 
 // Toggle for development - set to false when backend is ready

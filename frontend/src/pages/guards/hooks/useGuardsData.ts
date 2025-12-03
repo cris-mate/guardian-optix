@@ -27,7 +27,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '1',
     fullName: 'James Wilson',
-    username: 'jwilson',
+    username: 'j.wilson',
     email: 'james.wilson@guardianoptix.co.uk',
     phoneNumber: '07700 900123',
     postCode: 'SW1A 1AA',
@@ -59,7 +59,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '2',
     fullName: 'Emma Thompson',
-    username: 'ethompson',
+    username: 'e.thompson',
     email: 'emma.thompson@guardianoptix.co.uk',
     phoneNumber: '07700 900234',
     postCode: 'E14 5AB',
@@ -90,7 +90,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '3',
     fullName: 'Michael Chen',
-    username: 'mchen',
+    username: 'm.chen',
     email: 'michael.chen@guardianoptix.co.uk',
     phoneNumber: '07700 900345',
     postCode: 'M1 2WD',
@@ -116,7 +116,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '4',
     fullName: 'Sophie Adams',
-    username: 'sadams',
+    username: 's.adams',
     email: 'sophie.adams@guardianoptix.co.uk',
     phoneNumber: '07700 900456',
     postCode: 'B2 4QA',
@@ -141,7 +141,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '5',
     fullName: 'Oliver Brown',
-    username: 'obrown',
+    username: 'o.brown',
     email: 'oliver.brown@guardianoptix.co.uk',
     phoneNumber: '07700 900567',
     postCode: 'LS1 4DY',
@@ -167,7 +167,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '6',
     fullName: 'Charlotte Davies',
-    username: 'cdavies',
+    username: 'c.davies',
     email: 'charlotte.davies@guardianoptix.co.uk',
     phoneNumber: '07700 900678',
     postCode: 'CF10 1EP',
@@ -183,7 +183,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '7',
     fullName: 'Daniel Roberts',
-    username: 'droberts',
+    username: 'd.roberts',
     email: 'daniel.roberts@guardianoptix.co.uk',
     phoneNumber: '07700 900789',
     postCode: 'G2 1DY',
@@ -208,7 +208,7 @@ const MOCK_GUARDS: Guards[] = [
   {
     _id: '8',
     fullName: 'Amelia Johnson',
-    username: 'ajohnson',
+    username: 'a.johnson',
     email: 'amelia.johnson@guardianoptix.co.uk',
     phoneNumber: '07700 900890',
     postCode: 'EH1 1RE',

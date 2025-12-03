@@ -12,7 +12,6 @@ import {
   VStack,
   HStack,
   Text,
-  Badge,
   Icon,
   Progress,
 } from '@chakra-ui/react';

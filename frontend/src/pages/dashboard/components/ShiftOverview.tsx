@@ -8,7 +8,6 @@ import {
   Button,
   Icon,
   Badge,
-  Progress,
   SimpleGrid,
 } from '@chakra-ui/react';
 import {

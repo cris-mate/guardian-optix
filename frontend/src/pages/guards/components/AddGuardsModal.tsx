@@ -17,11 +17,10 @@ import {
   Input,
   createListCollection,
   Flex,
-  Select, FieldLabel,
+  Select,
 } from '@chakra-ui/react';
 import { LuX, LuUserPlus } from 'react-icons/lu';
-import { GuardsFormData, UserRole, GuardType, ShiftType, SIALicenceType } from '../types/guards.types';
-import Guards from '../Guards';
+import { GuardsFormData, UserRole, GuardType, SIALicenceType } from '../types/guards.types';
 
 interface AddGuardsModalProps {
   isOpen: boolean;

@@ -14,16 +14,12 @@ import {
   Icon,
   SimpleGrid,
   Badge,
-  Flex,
 } from '@chakra-ui/react';
 import {
   FiActivity,
   FiAlertTriangle,
   FiCheckCircle,
-  FiClock,
   FiTrendingUp,
-  FiLogIn,
-  FiMapPin,
   FiFileText,
   FiShield,
 } from 'react-icons/fi';

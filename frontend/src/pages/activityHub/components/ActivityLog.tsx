@@ -15,12 +15,10 @@ import {
   Icon,
   Input,
   Button,
-  Flex,
   Spinner,
 } from '@chakra-ui/react';
 import {
   FiLogIn,
-  FiLogOut,
   FiCheckSquare,
   FiAlertTriangle,
   FiMapPin,
@@ -39,7 +37,6 @@ import {
   ActivitySeverity,
   ActivityFilters,
   CATEGORY_CONFIG,
-  SEVERITY_CONFIG,
 } from '../types/activityHub.types';
 
 // ============================================

@@ -12,7 +12,6 @@ import {
   Grid,
   GridItem,
   VStack,
-  HStack,
   Text,
   Spinner,
 } from '@chakra-ui/react';
@@ -96,12 +95,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
     );
-  };
-
-  // Check if date is in current month
-  const isCurrentMonth = (date: Date): boolean => {
-    const selected = new Date(selectedDate);
-    return date.getMonth() === selected.getMonth();
   };
 
   // Loading state

@@ -14,7 +14,6 @@ import {
   VStack,
   Text,
   Button,
-  Spinner,
 } from '@chakra-ui/react';
 import { LuUsers, LuUserPlus, LuRefreshCw } from 'react-icons/lu';
 import { useAuth } from '../../context/AuthContext';

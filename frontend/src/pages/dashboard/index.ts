@@ -13,15 +13,6 @@
 export { default } from './Dashboard';
 export { default as Dashboard } from './Dashboard';
 
-// Components
-export { default as OperationalMetrics } from './components/OperationalMetrics';
-export { default as QuickActions, QuickActionsCompact } from './components/QuickActions';
-export { default as AlertsPanel } from './components/AlertsPanel';
-export { default as LiveActivityFeed } from './components/LiveActivityFeed';
-export { default as ShiftOverview } from './components/ShiftOverview';
-export { default as GuardStatusTable } from './components/GuardStatusTable';
-export { default as UpcomingTasks } from './components/UpcomingTasks';
-
 // Hooks
 export { useDashboardData, useMockDashboardData } from './hooks/useDashboardData';
 
@@ -42,7 +33,6 @@ export type {
   GeofenceStatus,
 
   // Data Types
-  OperationalMetrics as OperationalMetricsData,
   MetricTrend,
   DashboardMetric,
   DashboardAlert,

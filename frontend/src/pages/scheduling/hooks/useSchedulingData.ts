@@ -10,12 +10,10 @@ import {
   Shift,
   ShiftFormData,
   SchedulingFilters,
-  SchedulingPagination,
   SchedulingStats,
   AvailableOfficer,
   AvailableSite,
   CalendarDay,
-  ViewMode,
 } from '../types/scheduling.types';
 
 // Toggle between mock data and API
@@ -38,7 +36,7 @@ const mockSites: AvailableSite[] = [
   { _id: 'site1', name: 'Westminster Office Complex', address: '123 Victoria Street', postCode: 'SW1E 5JL', clientName: 'Barclays' },
   { _id: 'site2', name: 'Canary Wharf Tower', address: '1 Canada Square', postCode: 'E14 5AB', clientName: 'HSBC Holdings' },
   { _id: 'site3', name: 'King\'s Cross Hub', address: '1 Pancras Square', postCode: 'N1C 4AG', clientName: 'Google UK' },
-  { _id: 'site4', name: 'Southbank Centre', address: 'Belvedere Road', postCode: 'SE1 8XX', clientName: 'Arts Council' },
+  { _id: 'site4', name: 'SouthBank Centre', address: 'Belvedere Road', postCode: 'SE1 8XX', clientName: 'Arts Council' },
   { _id: 'site5', name: 'Olympic Park', address: 'Queen Elizabeth Olympic Park', postCode: 'E20 2ST', clientName: 'LLDC' },
 ];
 
@@ -274,11 +272,9 @@ export const useSchedulingData = () => {
       }
 
       // Filter by status
-      if (filters.status && filters.status !== 'all' && shift.status !== filters.status) {
-        return false;
-      }
+      return !(filters.status && filters.status !== 'all' && shift.status !== filters.status);
 
-      return true;
+
     });
   }, [shifts, filters]);
 

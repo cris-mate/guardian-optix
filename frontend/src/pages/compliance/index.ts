@@ -13,13 +13,6 @@
 export { default } from './Compliance';
 export { default as Compliance } from './Compliance';
 
-// Components
-export { default as ComplianceDashboard } from './components/ComplianceDashboard';
-export { default as CertificationTracker } from './components/CertificationTracker';
-export { default as IncidentReports } from './components/IncidentReports';
-export { default as DocumentLibrary } from './components/DocumentLibrary';
-export { default as AuditTrail } from './components/AuditTrail';
-
 // Hooks
 export { useComplianceData, useMockComplianceData } from './hooks/useComplianceData';
 

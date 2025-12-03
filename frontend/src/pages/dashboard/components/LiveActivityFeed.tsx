@@ -196,23 +196,6 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, isFirst }) => {
 };
 
 // ============================================
-// Loading Skeleton
-// ============================================
-
-const ActivitySkeleton: React.FC = () => (
-  <HStack gap={3} align="flex-start" p={3}>
-    <VStack gap={0} align="center" pt={1}>
-      <Box w={3} h={3} borderRadius="full" bg="gray.200" />
-      <Box w="2px" flex={1} bg="gray.100" minH={8} />
-    </VStack>
-    <VStack align="flex-start" flex={1} gap={2} pb={2}>
-      <Box bg="gray.100" h={4} w={32} borderRadius="md" />
-      <Box bg="gray.100" h={3} w="80%" borderRadius="md" />
-    </VStack>
-  </HStack>
-);
-
-// ============================================
 // Main Component
 // ============================================
 

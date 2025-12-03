@@ -10,14 +10,6 @@
 
 // Main component
 export { default } from './Performance';
-export { default as Performance } from './Performance';
-
-// Components
-export { default as PerformanceOverview } from './components/PerformanceOverview';
-export { default as OfficerRankings } from './components/OfficerRankings';
-export { default as PatrolPerformance } from './components/PatrolPerformance';
-export { default as AttendancePerformance } from './components/AttendancePerformance';
-export { default as PerformanceAlerts } from './components/PerformanceAlerts';
 
 // Hooks
 export { usePerformanceData } from './hooks/usePerformanceData';

@@ -19,7 +19,6 @@ import {
   LuCalendarClock,
   LuStar,
   LuTrendingUp,
-  LuClock,
 } from 'react-icons/lu';
 import type { ReportQuickStats as QuickStatsType } from '../types/reports.types';
 

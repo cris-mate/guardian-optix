@@ -8,7 +8,6 @@ import {
   Button,
   Icon,
   Badge,
-  IconButton,
 } from '@chakra-ui/react';
 import {
   FiAlertTriangle,
