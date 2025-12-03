@@ -1,11 +1,10 @@
 /**
  * TimeClock Page
  *
- * Digital time tracking for security officers.
- * Features GPS-verified clock in/out, break management,
- * and accurate timesheet generation.
+ * Digital time tracking for security officers in Guardian Optix.
+ * Features GPS-verified clock in/out, break management, and timesheet generation.
  *
- * Key Features:
+ * Features:
  * - GPS-verified clock in/out with geofence compliance
  * - Break management (paid/unpaid)
  * - Real-time location tracking
@@ -14,21 +13,20 @@
  * - Active guards overview (manager view)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
-  Flex,
-  HStack,
   VStack,
+  HStack,
   Text,
+  Icon,
   Button,
-  Badge,
-  Tabs,
-  Spinner,
-  Alert,
   Grid,
   GridItem,
+  Tabs,
+  Spinner,
+  Badge,
+  Flex,
 } from '@chakra-ui/react';
 import {
   LuClock,
@@ -37,11 +35,11 @@ import {
   LuFileText,
   LuMapPin,
   LuTriangleAlert,
+  LuCalendarDays,
+  LuTimer,
 } from 'react-icons/lu';
-
-// Hooks
+import { usePageTitle } from '../../context/PageContext';
 import { useAuth } from '../../context/AuthContext';
-import { useTimeClockData } from './hooks/useTimeClockData';
 
 // Components
 import ClockWidget from './components/ClockWidget';
@@ -49,67 +47,291 @@ import TimeEntriesTable from './components/TimeEntriesTable';
 import ActiveGuardsList from './components/ActiveGuardsList';
 import TimesheetSummary from './components/TimesheetSummary';
 
+// Hooks
+import { useTimeClockData } from './hooks/useTimeClockData';
+
 // Types
 import type { TimeClockStats } from './types/timeClock.types';
 
 // ============================================
-// Stats Card Component
+// Tab Configuration
 // ============================================
 
-interface StatsCardProps {
+type TabValue = 'my-time' | 'team';
+
+interface TabConfig {
+  value: TabValue;
   label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  colorScheme?: string;
-  subtext?: string;
+  icon: React.ElementType;
+  managerOnly?: boolean;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({
-                                               label,
-                                               value,
-                                               icon,
-                                               colorScheme = 'gray',
-                                               subtext,
-                                             }) => (
-  <Box
-    bg="white"
-    p={4}
-    borderRadius="lg"
-    borderWidth="1px"
-    borderColor="gray.200"
-  >
-    <HStack justify="space-between" align="start">
-      <VStack align="start" gap={1}>
-        <Text fontSize="sm" color="gray.500">
-          {label}
-        </Text>
-        <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-          {value}
-        </Text>
-        {subtext && (
-          <Text fontSize="xs" color="gray.500">
-            {subtext}
-          </Text>
-        )}
-      </VStack>
-      <Box
-        p={2}
-        borderRadius="lg"
-        bg={`${colorScheme}.50`}
-        color={`${colorScheme}.500`}
-      >
-        {icon}
+const tabs: TabConfig[] = [
+  { value: 'my-time', label: 'My Time', icon: LuClock },
+  { value: 'team', label: 'Team Overview', icon: LuUsers, managerOnly: true },
+];
+
+// ============================================
+// Header Component
+// ============================================
+
+interface HeaderProps {
+  onRefresh: () => void;
+  isLoading: boolean;
+}
+
+const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading }) => (
+  <HStack justify="space-between" align="center" flexWrap="wrap" gap={4}>
+    <HStack gap={3}>
+      <Box p={2} borderRadius="lg" bg="blue.50" color="blue.600">
+        <LuClock size={24} />
       </Box>
+      <Box>
+        <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+          Time Clock
+        </Text>
+        <Text fontSize="sm" color="gray.500">
+          Track your hours and manage timesheets
+        </Text>
+      </Box>
+    </HStack>
+
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onRefresh}
+      disabled={isLoading}
+    >
+      <Icon
+        as={LuRefreshCw}
+        boxSize={4}
+        mr={2}
+        className={isLoading ? 'spin' : ''}
+      />
+      {isLoading ? 'Refreshing...' : 'Refresh'}
+    </Button>
+  </HStack>
+);
+
+// ============================================
+// Error Banner Component
+// ============================================
+
+interface ErrorBannerProps {
+  message: string;
+  onRetry: () => void;
+}
+
+const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
+  <Box
+    bg="red.50"
+    borderWidth="1px"
+    borderColor="red.200"
+    borderRadius="lg"
+    p={4}
+  >
+    <HStack justify="space-between">
+      <HStack gap={3}>
+        <Icon as={LuTriangleAlert} color="red.500" boxSize={5} />
+        <Text color="red.700" fontSize="sm">{message}</Text>
+      </HStack>
+      <Button size="sm" colorPalette="red" variant="outline" onClick={onRetry}>
+        Retry
+      </Button>
     </HStack>
   </Box>
 );
+
+// ============================================
+// Quick Stats Component
+// ============================================
+
+interface QuickStatsProps {
+  stats: TimeClockStats;
+  isLoading: boolean;
+  isManager: boolean;
+}
+
+const QuickStats: React.FC<QuickStatsProps> = ({ stats, isLoading, isManager }) => {
+  const formatHours = (hours: number): string => hours.toFixed(1);
+
+  const statItems = isManager
+    ? [
+      {
+        label: 'Active Guards',
+        value: stats.activeGuardsCount,
+        subtext: `${stats.guardsOnBreak} on break`,
+        icon: LuUsers,
+        color: 'green',
+      },
+      {
+        label: 'Total Hours Today',
+        value: `${formatHours(stats.todayHours)}h`,
+        subtext: 'All officers combined',
+        icon: LuClock,
+        color: 'blue',
+      },
+      {
+        label: 'On-Time Clock-Ins',
+        value: stats.onTimeClockIns,
+        subtext: `${stats.lateClockIns} late`,
+        icon: LuTimer,
+        color: 'purple',
+      },
+      {
+        label: 'Pending Approvals',
+        value: stats.pendingApprovals,
+        subtext: 'Timesheets to review',
+        icon: LuFileText,
+        color: stats.pendingApprovals > 0 ? 'orange' : 'gray',
+      },
+    ]
+    : [
+      {
+        label: 'Today',
+        value: `${formatHours(stats.todayHours)}h`,
+        subtext: 'Hours worked',
+        icon: LuClock,
+        color: 'blue',
+      },
+      {
+        label: 'This Week',
+        value: `${formatHours(stats.weekHours)}h`,
+        subtext: `${formatHours(stats.overtimeThisWeek)}h overtime`,
+        icon: LuCalendarDays,
+        color: 'green',
+      },
+      {
+        label: 'This Month',
+        value: `${formatHours(stats.monthHours)}h`,
+        subtext: 'Total logged',
+        icon: LuTimer,
+        color: 'purple',
+      },
+      {
+        label: 'Breaks Today',
+        value: stats.breaksTaken,
+        subtext: 'Breaks taken',
+        icon: LuMapPin,
+        color: 'orange',
+      },
+    ];
+
+  return (
+    <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={4}>
+      {statItems.map((stat) => (
+        <Box
+          key={stat.label}
+          bg="white"
+          borderRadius="xl"
+          borderWidth="1px"
+          borderColor="gray.200"
+          p={5}
+          transition="all 0.2s"
+          _hover={{ borderColor: `${stat.color}.300`, shadow: 'sm' }}
+        >
+          {isLoading ? (
+            <VStack align="flex-start" gap={2}>
+              <Box bg="gray.100" h={4} w={20} borderRadius="md" />
+              <Box bg="gray.100" h={8} w={14} borderRadius="md" />
+              <Box bg="gray.100" h={3} w={16} borderRadius="md" />
+            </VStack>
+          ) : (
+            <HStack justify="space-between" align="start">
+              <VStack align="start" gap={1}>
+                <Text fontSize="sm" color="gray.500">
+                  {stat.label}
+                </Text>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                  {stat.value}
+                </Text>
+                {stat.subtext && (
+                  <Text fontSize="xs" color="gray.400">
+                    {stat.subtext}
+                  </Text>
+                )}
+              </VStack>
+              <Box
+                p={2}
+                borderRadius="lg"
+                bg={`${stat.color}.50`}
+                color={`${stat.color}.500`}
+              >
+                <Icon as={stat.icon} boxSize={5} />
+              </Box>
+            </HStack>
+          )}
+        </Box>
+      ))}
+    </Grid>
+  );
+};
+
+// ============================================
+// Location Alert Component
+// ============================================
+
+interface LocationAlertProps {
+  error: string | null;
+  onRefresh: () => void;
+  isLoading: boolean;
+}
+
+const LocationAlert: React.FC<LocationAlertProps> = ({ error, onRefresh, isLoading }) => {
+  if (!error) return null;
+
+  return (
+    <Box
+      bg="orange.50"
+      borderWidth="1px"
+      borderColor="orange.200"
+      borderRadius="lg"
+      p={4}
+    >
+      <HStack justify="space-between">
+        <HStack gap={3}>
+          <Icon as={LuMapPin} color="orange.500" boxSize={5} />
+          <VStack align="start" gap={0}>
+            <Text color="orange.700" fontSize="sm" fontWeight="medium">
+              Location Required
+            </Text>
+            <Text color="orange.600" fontSize="xs">
+              {error}
+            </Text>
+          </VStack>
+        </HStack>
+        <Button
+          size="sm"
+          colorPalette="orange"
+          variant="outline"
+          onClick={onRefresh}
+          disabled={isLoading}
+        >
+          <Icon as={LuRefreshCw} boxSize={3} mr={1} className={isLoading ? 'spin' : ''} />
+          Retry
+        </Button>
+      </HStack>
+    </Box>
+  );
+};
 
 // ============================================
 // Main Component
 // ============================================
 
 const TimeClock: React.FC = () => {
+  const { setTitle } = usePageTitle();
   const { user } = useAuth();
+  const isManager = user?.role === 'Admin' || user?.role === 'Manager';
+
+  const [activeTab, setActiveTab] = useState<TabValue>('my-time');
+
+  // Set page title
+  useEffect(() => {
+    setTitle('Time Clock');
+  }, [setTitle]);
+
+  // Data hook
   const {
     clockStatus,
     activeShift,
@@ -136,262 +358,364 @@ const TimeClock: React.FC = () => {
     clearError,
   } = useTimeClockData();
 
-  const [activeTab, setActiveTab] = useState<string>('my-time');
+  // Filter tabs based on role
+  const visibleTabs = tabs.filter((tab) => !tab.managerOnly || isManager);
 
-  // Check if user has manager/admin permissions
-  const isManager = user?.role === 'Admin' || user?.role === 'Manager';
-
-  // Format hours for display
-  const formatHoursValue = (hours: number): string => {
-    return hours.toFixed(1);
+  // Handle refresh
+  const handleRefresh = () => {
+    refetch();
   };
 
   // Loading state
-  if (isLoading) {
+  if (isLoading && !stats) {
     return (
-      <Container maxW="container.xl" py={6}>
-        <Flex justify="center" align="center" minH="60vh">
-          <VStack gap={4}>
-            <Spinner size="xl" color="blue.500" />
-            <Text color="gray.500">Loading time clock...</Text>
-          </VStack>
-        </Flex>
-      </Container>
+      <VStack gap={4} align="stretch">
+        <Header onRefresh={handleRefresh} isLoading={true} />
+        <VStack py={16} gap={4}>
+          <Spinner size="xl" color="blue.500" />
+          <Text color="gray.500">Loading time clock...</Text>
+        </VStack>
+      </VStack>
     );
   }
 
   return (
-    <Container maxW="container.xl" py={6}>
-      {/* Page Header */}
-      <Flex justify="space-between" align="center" mb={6}>
-        <HStack gap={3}>
-          <Box p={2} borderRadius="lg" bg="green.50" color="green.600">
-            <LuClock size={24} />
-          </Box>
-          <Box>
-            <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-              Time Clock
-            </Text>
-            <Text fontSize="sm" color="gray.500">
-              GPS-verified time tracking
-            </Text>
-          </Box>
-        </HStack>
+    <VStack gap={4} align="stretch">
+      {/* Header */}
+      <Header onRefresh={handleRefresh} isLoading={isLoading} />
 
-        <HStack gap={3}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refetch}
-            disabled={isLoading}
-          >
-            <LuRefreshCw size={14} />
-            Refresh
-          </Button>
-        </HStack>
-      </Flex>
+      {/* Error Banner */}
+      {error && <ErrorBanner message={error} onRetry={handleRefresh} />}
 
-      {/* Error Alerts */}
-      {error && (
-        <Alert.Root status="error" mb={4} borderRadius="lg">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Error</Alert.Title>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-          <Button size="sm" variant="ghost" onClick={clearError}>
-            Dismiss
-          </Button>
-        </Alert.Root>
-      )}
+      {/* Location Alert */}
+      <LocationAlert
+        error={locationError}
+        onRefresh={refreshLocation}
+        isLoading={isLocationLoading}
+      />
 
-      {locationError && (
-        <Alert.Root status="warning" mb={4} borderRadius="lg">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Location Warning</Alert.Title>
-            <Alert.Description>{locationError}</Alert.Description>
-          </Alert.Content>
-          <Button size="sm" variant="ghost" onClick={refreshLocation}>
-            Retry
-          </Button>
-        </Alert.Root>
-      )}
+      {/* Quick Stats */}
+      <QuickStats
+        stats={stats}
+        isLoading={isLoading && !stats}
+        isManager={isManager}
+      />
 
-      {/* Stats Overview (Manager View) */}
-      {isManager && (
-        <Grid
-          templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }}
-          gap={4}
-          mb={6}
+      {/* Tabs */}
+      <Box>
+        <Tabs.Root
+          value={activeTab}
+          onValueChange={(e) => setActiveTab(e.value as TabValue)}
         >
-          <StatsCard
-            label="Active Guards"
-            value={stats.activeGuardsCount}
-            icon={<LuUsers size={20} />}
-            colorScheme="green"
-            subtext={`${stats.guardsOnBreak} on break`}
-          />
-          <StatsCard
-            label="Total Hours Today"
-            value={`${formatHoursValue(stats.todayHours)}h`}
-            icon={<LuClock size={20} />}
-            colorScheme="blue"
-          />
-          <StatsCard
-            label="On-Time Clock-Ins"
-            value={stats.onTimeClockIns}
-            icon={<LuMapPin size={20} />}
-            colorScheme="purple"
-            subtext={`${stats.lateClockIns} late`}
-          />
-          <StatsCard
-            label="Pending Approvals"
-            value={stats.pendingApprovals}
-            icon={<LuFileText size={20} />}
-            colorScheme="orange"
-          />
-        </Grid>
-      )}
-
-      {/* Main Content Tabs */}
-      <Tabs.Root
-        value={activeTab}
-        onValueChange={(e) => setActiveTab(e.value)}
-        variant="line"
-      >
-        <Tabs.List mb={6} borderBottomWidth="1px" borderColor="gray.200">
-          <Tabs.Trigger value="my-time" px={4} py={3}>
-            <HStack gap={2}>
-              <LuClock size={16} />
-              <Text>My Time</Text>
-            </HStack>
-          </Tabs.Trigger>
-          {isManager && (
-            <Tabs.Trigger value="team" px={4} py={3}>
-              <HStack gap={2}>
-                <LuUsers size={16} />
-                <Text>Team Overview</Text>
-                {stats.activeGuardsCount > 0 && (
-                  <Badge colorPalette="green" variant="subtle" size="sm">
-                    {stats.activeGuardsCount}
-                  </Badge>
-                )}
-              </HStack>
-            </Tabs.Trigger>
-          )}
-        </Tabs.List>
-
-        {/* My Time Tab */}
-        <Tabs.Content value="my-time">
-          <Grid
-            templateColumns={{ base: '1fr', lg: '400px 1fr' }}
-            gap={6}
+          <Tabs.List
+            bg="white"
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor="gray.200"
+            p={1}
           >
-            {/* Left Column - Clock Widget & Summary */}
-            <VStack align="stretch" gap={6}>
-              <ClockWidget
-                clockStatus={clockStatus}
-                activeShift={activeShift}
-                currentLocation={currentLocation}
-                geofenceStatus={geofenceStatus}
-                isClockingIn={isClockingIn}
-                isClockingOut={isClockingOut}
-                isProcessingBreak={isProcessingBreak}
-                isLocationLoading={isLocationLoading}
-                onClockIn={() => clockIn()}
-                onClockOut={() => clockOut()}
-                onBreakStart={startBreak}
-                onBreakEnd={endBreak}
-                onRefreshLocation={refreshLocation}
-              />
-
-              <TimesheetSummary
-                todayTimesheet={todayTimesheet}
-                weeklySummary={weeklySummary}
-                isLoading={isLoading}
-              />
-            </VStack>
-
-            {/* Right Column - Time Entries */}
-            <Box>
-              <HStack justify="space-between" mb={4}>
-                <HStack gap={2}>
-                  <LuFileText size={18} color="var(--chakra-colors-gray-500)" />
-                  <Text fontWeight="semibold" color="gray.700">
-                    Today&apos;s Time Entries
-                  </Text>
-                </HStack>
-                <Badge colorPalette="blue" variant="subtle">
-                  {timeEntries.length} entries
-                </Badge>
-              </HStack>
-
-              <TimeEntriesTable
-                entries={timeEntries}
-                isLoading={isLoading}
-              />
-
-              {/* Geofence Compliance Note */}
-              <Box
-                mt={4}
-                p={4}
-                bg="blue.50"
-                borderRadius="lg"
-                borderWidth="1px"
-                borderColor="blue.200"
+            {visibleTabs.map((tab) => (
+              <Tabs.Trigger
+                key={tab.value}
+                value={tab.value}
+                px={4}
+                py={2}
+                borderRadius="md"
+                fontWeight="medium"
+                color="gray.600"
+                _selected={{
+                  bg: 'blue.50',
+                  color: 'blue.600',
+                }}
               >
-                <HStack gap={3}>
-                  <LuMapPin size={20} color="var(--chakra-colors-blue-500)" />
-                  <VStack align="start" gap={1}>
-                    <Text fontSize="sm" fontWeight="medium" color="blue.700">
-                      GPS Verification Active
-                    </Text>
-                    <Text fontSize="xs" color="blue.600">
-                      All clock-ins and clock-outs are verified against your assigned site&apos;s geofence boundary.
-                      Location data is recorded for compliance and audit purposes.
-                    </Text>
-                  </VStack>
-                </HStack>
-              </Box>
-            </Box>
-          </Grid>
-        </Tabs.Content>
-
-        {/* Team Overview Tab (Manager Only) */}
-        {isManager && (
-          <Tabs.Content value="team">
-            <Box>
-              <HStack justify="space-between" mb={4}>
                 <HStack gap={2}>
-                  <LuUsers size={18} color="var(--chakra-colors-gray-500)" />
-                  <Text fontWeight="semibold" color="gray.700">
-                    Guard Status
-                  </Text>
-                </HStack>
-                <HStack gap={2}>
-                  {activeGuards.filter(g => g.geofenceStatus === 'outside').length > 0 && (
-                    <Badge colorPalette="red" variant="subtle">
-                      <HStack gap={1}>
-                        <LuTriangleAlert size={12} />
-                        <Text>
-                          {activeGuards.filter(g => g.geofenceStatus === 'outside').length} outside boundary
-                        </Text>
-                      </HStack>
+                  <Icon as={tab.icon} boxSize={4} />
+                  <Text>{tab.label}</Text>
+                  {tab.value === 'team' && stats.activeGuardsCount > 0 && (
+                    <Badge colorPalette="green" variant="solid" size="sm">
+                      {stats.activeGuardsCount}
                     </Badge>
                   )}
                 </HStack>
-              </HStack>
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
 
-              <ActiveGuardsList
-                guards={activeGuards}
-                isLoading={isLoading}
-              />
+          {/* My Time Tab */}
+          <Tabs.Content value="my-time" pt={4}>
+            <Grid
+              templateColumns={{ base: '1fr', lg: '320px 1fr 320px' }}
+              gap={6}
+            >
+              {/* Clock Widget */}
+              <GridItem>
+                <Box
+                  bg="white"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  shadow="sm"
+                  overflow="hidden"
+                  h="full"
+                >
+                  <ClockWidget
+                    clockStatus={clockStatus}
+                    activeShift={activeShift}
+                    currentLocation={currentLocation}
+                    geofenceStatus={geofenceStatus}
+                    isClockingIn={isClockingIn}
+                    isClockingOut={isClockingOut}
+                    isProcessingBreak={isProcessingBreak}
+                    isLocationLoading={isLocationLoading}
+                    onClockIn={clockIn}
+                    onClockOut={clockOut}
+                    onBreakStart={startBreak}
+                    onBreakEnd={endBreak}
+                    onRefreshLocation={refreshLocation}
+                  />
+                </Box>
+              </GridItem>
+
+              {/* Today's Time Entries (Double Width) */}
+              <GridItem>
+                <Box
+                  bg="white"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  shadow="sm"
+                  overflow="hidden"
+                  h="full"
+                >
+                  <HStack p={4} borderBottomWidth="1px" borderColor="gray.100">
+                    <Icon as={LuClock} boxSize={5} color="blue.500" />
+                    <Text fontWeight="semibold" color="gray.700">
+                      Today's Entries
+                    </Text>
+                    {timeEntries.length > 0 && (
+                      <Badge colorPalette="blue" variant="subtle" size="sm">
+                        {timeEntries.length}
+                      </Badge>
+                    )}
+                  </HStack>
+                  <Box p={4}>
+                    <TimeEntriesTable
+                      entries={timeEntries}
+                      isLoading={isLoading}
+                    />
+                  </Box>
+                </Box>
+              </GridItem>
+
+              {/* Timesheet Summary */}
+              <GridItem>
+                <Box
+                  bg="white"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  shadow="sm"
+                  overflow="hidden"
+                  h="full"
+                >
+                  <HStack p={4} borderBottomWidth="1px" borderColor="gray.100">
+                    <Icon as={LuFileText} boxSize={5} color="purple.500" />
+                    <Text fontWeight="semibold" color="gray.700">
+                      Timesheet Summary
+                    </Text>
+                  </HStack>
+                  <Box p={4}>
+                    <TimesheetSummary
+                      todayTimesheet={todayTimesheet}
+                      weeklySummary={weeklySummary}
+                      isLoading={isLoading}
+                    />
+                  </Box>
+                </Box>
+              </GridItem>
+            </Grid>
+
+            {/* Quick Info Card */}
+            <Box mt={6}>
+              <Box
+                bg="blue.50"
+                borderRadius="xl"
+                borderWidth="1px"
+                borderColor="blue.200"
+                p={6}
+              >
+                <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap={6}>
+                  <HStack gap={3}>
+                    <Icon as={LuMapPin} boxSize={6} color="blue.500" />
+                    <VStack align="start" gap={0}>
+                      <Text fontWeight="medium" color="gray.700" fontSize="sm">
+                        GPS Verification
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        Location verified at clock in/out
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  <HStack gap={3}>
+                    <Icon as={LuTimer} boxSize={6} color="blue.500" />
+                    <VStack align="start" gap={0}>
+                      <Text fontWeight="medium" color="gray.700" fontSize="sm">
+                        Break Tracking
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        Paid and unpaid breaks logged
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  <HStack gap={3}>
+                    <Icon as={LuFileText} boxSize={6} color="blue.500" />
+                    <VStack align="start" gap={0}>
+                      <Text fontWeight="medium" color="gray.700" fontSize="sm">
+                        Auto Timesheets
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        Weekly summaries generated
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </Grid>
+              </Box>
             </Box>
           </Tabs.Content>
-        )}
-      </Tabs.Root>
-    </Container>
+
+          {/* Team Overview Tab (Manager Only) */}
+          {isManager && (
+            <Tabs.Content value="team" pt={4}>
+              <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={6}>
+                <GridItem>
+                  <Box
+                    bg="white"
+                    borderRadius="xl"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    overflow="hidden"
+                  >
+                    <HStack p={4} borderBottomWidth="1px" borderColor="gray.100">
+                      <Icon as={LuUsers} boxSize={5} color="green.500" />
+                      <Text fontWeight="semibold" color="gray.700">
+                        Active Guards
+                      </Text>
+                      <Badge colorPalette="green" variant="solid" size="sm">
+                        {stats.activeGuardsCount}
+                      </Badge>
+                    </HStack>
+                    <Box p={4}>
+                      <ActiveGuardsList
+                        guards={activeGuards}
+                        isLoading={isLoading}
+                      />
+                    </Box>
+                  </Box>
+                </GridItem>
+
+                <GridItem>
+                  <VStack align="stretch" gap={4}>
+                    {/* Team Stats */}
+                    <Box
+                      bg="white"
+                      borderRadius="xl"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                      p={5}
+                    >
+                      <Text fontWeight="semibold" color="gray.700" mb={4}>
+                        Team Summary
+                      </Text>
+                      <VStack align="stretch" gap={3}>
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.500">Active Now</Text>
+                          <Text fontWeight="medium">{stats.activeGuardsCount}</Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.500">On Break</Text>
+                          <Text fontWeight="medium">{stats.guardsOnBreak}</Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.500">On Time Today</Text>
+                          <Text fontWeight="medium" color="green.600">
+                            {stats.onTimeClockIns}
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.500">Late Today</Text>
+                          <Text fontWeight="medium" color={stats.lateClockIns > 0 ? 'red.500' : 'gray.600'}>
+                            {stats.lateClockIns}
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </Box>
+
+                    {/* Pending Approvals */}
+                    <Box
+                      bg="white"
+                      borderRadius="xl"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                      p={5}
+                    >
+                      <HStack justify="space-between" mb={4}>
+                        <Text fontWeight="semibold" color="gray.700">
+                          Pending Approvals
+                        </Text>
+                        {stats.pendingApprovals > 0 && (
+                          <Badge colorPalette="orange" variant="solid">
+                            {stats.pendingApprovals}
+                          </Badge>
+                        )}
+                      </HStack>
+                      {stats.pendingApprovals === 0 ? (
+                        <Text fontSize="sm" color="gray.500" textAlign="center" py={4}>
+                          No timesheets pending approval
+                        </Text>
+                      ) : (
+                        <Button colorPalette="orange" size="sm" w="full">
+                          Review Timesheets
+                        </Button>
+                      )}
+                    </Box>
+
+                    {/* Info Card */}
+                    <Box
+                      bg="green.50"
+                      borderRadius="xl"
+                      borderWidth="1px"
+                      borderColor="green.200"
+                      p={6}
+                      textAlign="center"
+                    >
+                      <Icon as={LuUsers} boxSize={10} color="green.400" mb={3} />
+                      <Text fontWeight="semibold" color="gray.700" mb={2}>
+                        Team Management
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        Monitor guard attendance, approve timesheets, and track
+                        punctuality across your team.
+                      </Text>
+                    </Box>
+                  </VStack>
+                </GridItem>
+              </Grid>
+            </Tabs.Content>
+          )}
+        </Tabs.Root>
+      </Box>
+
+      {/* CSS for spinner animation */}
+      <style>{`
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </VStack>
   );
 };
 

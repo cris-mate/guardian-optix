@@ -56,9 +56,9 @@ const MetricCard: React.FC<MetricCardProps> = ({ value, label, status }) => {
 };
 
 const ComplianceDashboard: React.FC = () => {
-  const { metrics, alerts, loading, error } = useComplianceData();
+  const { metrics, alerts, isLoading, error } = useComplianceData();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box textAlign="center" py={10}>
         <Spinner size="lg" color="blue.500" />
