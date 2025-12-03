@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
 const {
   getMetrics,
   getAlerts,
@@ -18,6 +19,7 @@ const {
   getRecentIncidents,
   dismissAlert,
   markAlertRead,
+  getAttendanceIssues,
 } = require('../controllers/dashboardController');
 
 // All dashboard routes require authentication
@@ -29,14 +31,14 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /api/dashboard/metrics
- * @desc    Get operational metrics (KPIs)
+ * @desc    Get operational metrics (KPIs) including late arrivals and no-shows
  * @access  Private
  */
 router.get('/metrics', getMetrics);
 
 /**
  * @route   GET /api/dashboard/alerts
- * @desc    Get active alerts and notifications
+ * @desc    Get active alerts and notifications (includes attendance issues)
  * @access  Private
  */
 router.get('/alerts', getAlerts);
@@ -50,7 +52,7 @@ router.get('/schedule-overview', getScheduleOverview);
 
 /**
  * @route   GET /api/dashboard/guard-statuses
- * @desc    Get current status of all guards
+ * @desc    Get current status of all guards with real-time data
  * @access  Private
  */
 router.get('/guard-statuses', getGuardStatuses);
@@ -75,6 +77,13 @@ router.get('/pending-tasks', getPendingTasks);
  * @access  Private
  */
 router.get('/recent-incidents', getRecentIncidents);
+
+/**
+ * @route   GET /api/dashboard/attendance-issues
+ * @desc    Get detailed late arrivals and no-shows
+ * @access  Private (Manager/Admin)
+ */
+router.get('/attendance-issues', roleMiddleware('Manager', 'Admin'), getAttendanceIssues);
 
 // ============================================
 // Alert Management Routes

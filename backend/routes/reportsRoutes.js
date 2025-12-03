@@ -1,117 +1,91 @@
 /**
  * Reports Routes
  *
- * API endpoints for analytics reports and data exports.
- * All routes require authentication.
+ * API endpoints for report generation and export.
+ * Includes operational, attendance, incident, and timesheet reports.
  */
 
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
 const {
-  getTemplates,
-  getRecentReports,
-  getScheduledReports,
-  getReportStats,
-  generateReport,
-  toggleFavorite,
-  createScheduledReport,
-  deleteScheduledReport,
-  getOperationalData,
+  getOperationalReport,
+  getAttendanceReport,
+  getIncidentReport,
+  getTimesheetReport,
+  exportReport,
   downloadReport,
+  cleanupExports,
+  getQuickStats,
 } = require('../controllers/reportsController');
 
-// All report routes require authentication
+// All routes require authentication
 router.use(authMiddleware);
 
 // ============================================
-// Template Routes
+// Report Data Endpoints
 // ============================================
 
 /**
- * @route   GET /api/reports/templates
- * @desc    Get all report templates
+ * @route   GET /api/reports/quick-stats
+ * @desc    Get quick statistics for reports dashboard
  * @access  Private
  */
-router.get('/templates', getTemplates);
+router.get('/quick-stats', getQuickStats);
 
 /**
- * @route   POST /api/reports/templates/:id/favorite
- * @desc    Toggle template favorite status
- * @access  Private
- */
-router.post('/templates/:id/favorite', toggleFavorite);
-
-// ============================================
-// Report Generation Routes
-// ============================================
-
-/**
- * @route   POST /api/reports/generate
- * @desc    Generate a new report
- * @access  Private
- */
-router.post('/generate', generateReport);
-
-/**
- * @route   GET /api/reports/download/:id
- * @desc    Download a generated report
- * @access  Private
- */
-router.get('/download/:id', downloadReport);
-
-// ============================================
-// Report History Routes
-// ============================================
-
-/**
- * @route   GET /api/reports/recent
- * @desc    Get recently generated reports
- * @access  Private
- */
-router.get('/recent', getRecentReports);
-
-/**
- * @route   GET /api/reports/stats
- * @desc    Get report statistics
- * @access  Private
- */
-router.get('/stats', getReportStats);
-
-// ============================================
-// Scheduled Report Routes
-// ============================================
-
-/**
- * @route   GET /api/reports/scheduled
- * @desc    Get all scheduled reports
- * @access  Private
- */
-router.get('/scheduled', getScheduledReports);
-
-/**
- * @route   POST /api/reports/scheduled
- * @desc    Create a new scheduled report
- * @access  Private
- */
-router.post('/scheduled', createScheduledReport);
-
-/**
- * @route   DELETE /api/reports/scheduled/:id
- * @desc    Delete a scheduled report
- * @access  Private
- */
-router.delete('/scheduled/:id', deleteScheduledReport);
-
-// ============================================
-// Report Data Routes
-// ============================================
-
-/**
- * @route   GET /api/reports/data/operational
+ * @route   GET /api/reports/operational
  * @desc    Get operational report data
- * @access  Private
+ * @access  Private (Manager/Admin)
  */
-router.get('/data/operational', getOperationalData);
+router.get('/operational', roleMiddleware('Manager', 'Admin'), getOperationalReport);
+
+/**
+ * @route   GET /api/reports/attendance
+ * @desc    Get attendance report data with late arrivals and no-shows
+ * @access  Private (Manager/Admin)
+ */
+router.get('/attendance', roleMiddleware('Manager', 'Admin'), getAttendanceReport);
+
+/**
+ * @route   GET /api/reports/incidents
+ * @desc    Get incident report data
+ * @access  Private (Manager/Admin)
+ */
+router.get('/incidents', roleMiddleware('Manager', 'Admin'), getIncidentReport);
+
+/**
+ * @route   GET /api/reports/timesheets
+ * @desc    Get timesheet report data
+ * @access  Private (Manager/Admin)
+ */
+router.get('/timesheets', roleMiddleware('Manager', 'Admin'), getTimesheetReport);
+
+// ============================================
+// Export Endpoints
+// ============================================
+
+/**
+ * @route   POST /api/reports/export
+ * @desc    Generate and export a report (PDF/Excel)
+ * @access  Private (Manager/Admin)
+ * @body    { reportType, format, timeRange, startDate?, endDate?, filters? }
+ */
+router.post('/export', roleMiddleware('Manager', 'Admin'), exportReport);
+
+/**
+ * @route   GET /api/reports/download/:filename
+ * @desc    Download a generated report file
+ * @access  Private (Manager/Admin)
+ */
+router.get('/download/:filename', roleMiddleware('Manager', 'Admin'), downloadReport);
+
+/**
+ * @route   POST /api/reports/cleanup
+ * @desc    Clean up old export files (24+ hours)
+ * @access  Private (Admin only)
+ */
+router.post('/cleanup', roleMiddleware('Admin'), cleanupExports);
 
 module.exports = router;

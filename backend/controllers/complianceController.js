@@ -1,331 +1,513 @@
 /**
  * Compliance Controller
  *
- * Handles compliance-related operations including certifications,
- * incidents, documents, and audit trails.
+ * Handles compliance management including certifications,
+ * incidents, and audit trail. Emits Socket.io events for real-time updates.
  */
 
+const asyncHandler = require('../utils/asyncHandler');
+const User = require('../models/User');
 const Certification = require('../models/Certification');
 const Incident = require('../models/Incident');
 const ComplianceAudit = require('../models/ComplianceAudit');
-const ComplianceDocument = require('../models/ComplianceDocument');
-const { emitIncidentReport } = require('../socket/socketManager');
-const asyncHandler = require('../utils/asyncHandler');
+const {
+  emitIncidentReport,
+  emitActivity,
+  notifyRole,
+} = require('../socket/socketManager');
 
 // ============================================
-// Metrics
+// Helper Functions
 // ============================================
 
 /**
- * @desc    Get compliance dashboard metrics
- * @route   GET /api/compliance/metrics
- * @access  Private
+ * Log compliance audit event
  */
-exports.getComplianceMetrics = asyncHandler(async (req, res) => {
-  const [certStats, incidentStats] = await Promise.all([
-    Certification.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-        },
-      },
-    ]),
-    Incident.aggregate([
-      { $match: { status: { $in: ['open', 'under-review'] } } },
-      { $count: 'openCount' },
-    ]),
-  ]);
+const logAudit = async (action, performedBy, targetId, targetType, details, ipAddress) => {
+  await ComplianceAudit.create({
+    action,
+    performedBy,
+    targetId,
+    targetType,
+    details,
+    ipAddress,
+  });
+};
 
-  const metrics = {
-    validCertifications: certStats.find((s) => s._id === 'valid')?.count || 0,
-    certsExpiringSoon: certStats.find((s) => s._id === 'expiring-soon')?.count || 0,
-    expiredCerts: certStats.find((s) => s._id === 'expired')?.count || 0,
-    openIncidents: incidentStats[0]?.openCount || 0,
-  };
+/**
+ * Calculate compliance score for an officer
+ */
+const calculateComplianceScore = (certifications) => {
+  if (!certifications || certifications.length === 0) return 0;
 
-  const totalCerts =
-    metrics.validCertifications + metrics.certsExpiringSoon + metrics.expiredCerts;
-  metrics.complianceRate = totalCerts
-    ? Math.round((metrics.validCertifications / totalCerts) * 100)
-    : 100;
-
-  res.json(metrics);
-});
+  const validCount = certifications.filter((c) => c.status === 'valid').length;
+  return Math.round((validCount / certifications.length) * 100);
+};
 
 // ============================================
-// Certifications
+// Certification Management
 // ============================================
 
 /**
- * @desc    Get all certifications with optional filtering
  * @route   GET /api/compliance/certifications
+ * @desc    Get all certifications with filtering
  * @access  Private
  */
-exports.getCertifications = asyncHandler(async (req, res) => {
-  const { status, userId, certType } = req.query;
-  const filter = {};
+const getCertifications = asyncHandler(async (req, res) => {
+  const { userId, status, certType, expiringWithin } = req.query;
 
-  if (status) {
-    // Support comma-separated status values
-    const statuses = status.split(',').map((s) => s.trim());
-    filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
+  const query = {};
+
+  if (userId) query.userId = userId;
+  if (status) query.status = status;
+  if (certType) query.certType = certType;
+
+  // Filter for expiring soon
+  if (expiringWithin) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + parseInt(expiringWithin));
+    query.expiryDate = { $lte: futureDate, $gte: new Date() };
   }
-  if (userId) filter.userId = userId;
-  if (certType) filter.certType = certType;
 
-  const certifications = await Certification.find(filter)
-    .populate('userId', 'fullName email')
+  const certifications = await Certification.find(query)
+    .populate('userId', 'fullName username')
+    .populate('verifiedBy', 'fullName')
     .sort({ expiryDate: 1 });
 
-  res.json(certifications);
-});
-
-/**
- * @desc    Add a new certification
- * @route   POST /api/compliance/certifications
- * @access  Private (Manager/Admin)
- */
-exports.addCertification = asyncHandler(async (req, res) => {
-  const certification = await Certification.create(req.body);
-
-  // Log audit trail
-  await ComplianceAudit.create({
-    action: 'cert-uploaded',
-    performedBy: req.user._id,
-    targetId: certification._id,
-    targetType: 'Certification',
-    details: `Added ${certification.certType} for user`,
+  res.json({
+    success: true,
+    data: certifications,
+    count: certifications.length,
   });
-
-  res.status(201).json(certification);
 });
 
 /**
- * @desc    Update a certification
- * @route   PATCH /api/compliance/certifications/:id
- * @access  Private (Manager/Admin)
+ * @route   GET /api/compliance/certifications/:id
+ * @desc    Get a single certification
+ * @access  Private
  */
-exports.updateCertification = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
-
-  const certification = await Certification.findByIdAndUpdate(id, updates, {
-    new: true,
-    runValidators: true,
-  }).populate('userId', 'fullName email');
+const getCertificationById = asyncHandler(async (req, res) => {
+  const certification = await Certification.findById(req.params.id)
+    .populate('userId', 'fullName username email')
+    .populate('verifiedBy', 'fullName');
 
   if (!certification) {
     res.status(404);
     throw new Error('Certification not found');
   }
 
-  // Log audit trail
-  await ComplianceAudit.create({
-    action: 'cert-updated',
-    performedBy: req.user._id,
-    targetId: certification._id,
-    targetType: 'Certification',
-    details: `Updated ${certification.certType} - ${Object.keys(updates).join(', ')}`,
+  res.json({
+    success: true,
+    data: certification,
+  });
+});
+
+/**
+ * @route   POST /api/compliance/certifications
+ * @desc    Add a new certification
+ * @access  Private
+ */
+const createCertification = asyncHandler(async (req, res) => {
+  const { userId, certType, certNumber, issueDate, expiryDate, documentUrl } = req.body;
+
+  // Check for duplicate
+  const existing = await Certification.findOne({
+    userId,
+    certType,
+    certNumber,
   });
 
-  res.json(certification);
+  if (existing) {
+    res.status(400);
+    throw new Error('Certification with this number already exists');
+  }
+
+  const certification = await Certification.create({
+    userId,
+    certType,
+    certNumber,
+    issueDate,
+    expiryDate,
+    documentUrl,
+  });
+
+  // Log audit
+  await logAudit(
+    'cert-uploaded',
+    req.user._id,
+    certification._id,
+    'Certification',
+    `${certType} certification added for user`,
+    req.ip
+  );
+
+  // Emit activity
+  emitActivity({
+    type: 'certification-added',
+    certType,
+    userId,
+  });
+
+  await certification.populate('userId', 'fullName');
+
+  res.status(201).json({
+    success: true,
+    data: certification,
+  });
+});
+
+/**
+ * @route   PUT /api/compliance/certifications/:id
+ * @desc    Update a certification
+ * @access  Private (Manager/Admin)
+ */
+const updateCertification = asyncHandler(async (req, res) => {
+  const certification = await Certification.findById(req.params.id);
+
+  if (!certification) {
+    res.status(404);
+    throw new Error('Certification not found');
+  }
+
+  const allowedUpdates = ['certNumber', 'issueDate', 'expiryDate', 'documentUrl', 'status'];
+  allowedUpdates.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      certification[field] = req.body[field];
+    }
+  });
+
+  await certification.save();
+  await certification.populate('userId', 'fullName');
+
+  res.json({
+    success: true,
+    data: certification,
+  });
+});
+
+/**
+ * @route   PATCH /api/compliance/certifications/:id/verify
+ * @desc    Verify a certification
+ * @access  Private (Manager/Admin)
+ */
+const verifyCertification = asyncHandler(async (req, res) => {
+  const certification = await Certification.findById(req.params.id);
+
+  if (!certification) {
+    res.status(404);
+    throw new Error('Certification not found');
+  }
+
+  certification.verifiedBy = req.user._id;
+  certification.verifiedAt = new Date();
+
+  await certification.save();
+
+  // Log audit
+  await logAudit(
+    'cert-verified',
+    req.user._id,
+    certification._id,
+    'Certification',
+    `${certification.certType} verified`,
+    req.ip
+  );
+
+  await certification.populate('userId', 'fullName');
+  await certification.populate('verifiedBy', 'fullName');
+
+  res.json({
+    success: true,
+    data: certification,
+    message: 'Certification verified',
+  });
+});
+
+/**
+ * @route   DELETE /api/compliance/certifications/:id
+ * @desc    Delete a certification
+ * @access  Private (Admin)
+ */
+const deleteCertification = asyncHandler(async (req, res) => {
+  const certification = await Certification.findById(req.params.id);
+
+  if (!certification) {
+    res.status(404);
+    throw new Error('Certification not found');
+  }
+
+  await certification.deleteOne();
+
+  res.json({
+    success: true,
+    message: 'Certification deleted',
+  });
 });
 
 // ============================================
-// Incidents
+// Incident Management
 // ============================================
 
 /**
- * @desc    Get all incidents with optional filtering
  * @route   GET /api/compliance/incidents
+ * @desc    Get all incidents with filtering
  * @access  Private
  */
-exports.getIncidents = asyncHandler(async (req, res) => {
-  const { status, severity, location, startDate, endDate, limit = 50 } = req.query;
-  const filter = {};
+const getIncidents = asyncHandler(async (req, res) => {
+  const { status, severity, incidentType, startDate, endDate, limit = 50 } = req.query;
 
-  if (status) {
-    // Support comma-separated status values
-    const statuses = status.split(',').map((s) => s.trim());
-    filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
-  }
-  if (severity) {
-    const severities = severity.split(',').map((s) => s.trim());
-    filter.severity = severities.length === 1 ? severities[0] : { $in: severities };
-  }
-  if (location) {
-    filter.location = { $regex: location, $options: 'i' };
-  }
+  const query = {};
+
+  if (status) query.status = status;
+  if (severity) query.severity = severity;
+  if (incidentType) query.incidentType = incidentType;
+
   if (startDate || endDate) {
-    filter.createdAt = {};
-    if (startDate) filter.createdAt.$gte = new Date(startDate);
-    if (endDate) filter.createdAt.$lte = new Date(endDate);
+    query.createdAt = {};
+    if (startDate) query.createdAt.$gte = new Date(startDate);
+    if (endDate) query.createdAt.$lte = new Date(endDate);
   }
 
-  const incidents = await Incident.find(filter)
-    .populate('reportedBy', 'fullName email')
+  const incidents = await Incident.find(query)
+    .populate('reportedBy', 'fullName username')
+    .populate('resolvedBy', 'fullName')
     .sort({ createdAt: -1 })
     .limit(parseInt(limit));
 
-  res.json(incidents);
+  res.json({
+    success: true,
+    data: incidents,
+    count: incidents.length,
+  });
 });
 
 /**
- * @desc    Report a new incident
- * @route   POST /api/compliance/incidents
+ * @route   GET /api/compliance/incidents/:id
+ * @desc    Get a single incident
  * @access  Private
  */
-exports.reportIncident = asyncHandler(async (req, res) => {
-  const incident = await Incident.create({
-    ...req.body,
-    reportedBy: req.user._id,
-  });
-
-  await ComplianceAudit.create({
-    action: 'incident-reported',
-    performedBy: req.user._id,
-    targetId: incident._id,
-    targetType: 'Incident',
-    details: `Reported ${incident.incidentType} at ${incident.location}`,
-  });
-
-  // Emit socket event for real-time updates
-  if (typeof emitIncidentReport === 'function') {
-    emitIncidentReport({
-      incidentId: incident._id,
-      type: incident.incidentType,
-      severity: incident.severity,
-      location: incident.location,
-      reportedBy: req.user._id,
-      reportedByName: req.user.fullName,
-    });
-  }
-
-  res.status(201).json(incident);
-});
-
-/**
- * @desc    Update incident status
- * @route   PATCH /api/compliance/incidents/:id
- * @access  Private (Manager/Admin)
- */
-exports.updateIncident = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
-
-  const incident = await Incident.findByIdAndUpdate(id, updates, {
-    new: true,
-    runValidators: true,
-  }).populate('reportedBy', 'fullName email');
+const getIncidentById = asyncHandler(async (req, res) => {
+  const incident = await Incident.findById(req.params.id)
+    .populate('reportedBy', 'fullName username email')
+    .populate('resolvedBy', 'fullName');
 
   if (!incident) {
     res.status(404);
     throw new Error('Incident not found');
   }
 
-  // Log audit trail
-  await ComplianceAudit.create({
-    action: 'incident-updated',
-    performedBy: req.user._id,
-    targetId: incident._id,
-    targetType: 'Incident',
-    details: `Updated incident status to ${incident.status}`,
-  });
+  // Log view audit
+  await logAudit(
+    'document-viewed',
+    req.user._id,
+    incident._id,
+    'Incident',
+    `Incident ${incident._id} viewed`,
+    req.ip
+  );
 
-  res.json(incident);
+  res.json({
+    success: true,
+    data: incident,
+  });
 });
 
-// ============================================
-// Documents
-// ============================================
-
 /**
- * @desc    Get all compliance documents
- * @route   GET /api/compliance/documents
+ * @route   POST /api/compliance/incidents
+ * @desc    Report a new incident
  * @access  Private
  */
-exports.getDocuments = asyncHandler(async (req, res) => {
-  const { category, search } = req.query;
-  const filter = {};
+const createIncident = asyncHandler(async (req, res) => {
+  const {
+    location,
+    incidentType,
+    severity,
+    description,
+    witnesses,
+    evidenceUrls,
+  } = req.body;
 
-  if (category && category !== 'all') {
-    filter.category = category;
+  const incident = await Incident.create({
+    reportedBy: req.user._id,
+    location,
+    incidentType,
+    severity,
+    description,
+    witnesses: witnesses || [],
+    evidenceUrls: evidenceUrls || [],
+    status: 'open',
+  });
+
+  // Log audit
+  await logAudit(
+    'incident-reported',
+    req.user._id,
+    incident._id,
+    'Incident',
+    `${severity} ${incidentType} incident reported at ${location}`,
+    req.ip
+  );
+
+  // Emit socket event for real-time notification
+  emitIncidentReport({
+    incidentId: incident._id,
+    type: incidentType,
+    severity,
+    location,
+    reportedBy: req.user._id,
+    reportedByName: req.user.fullName,
+  });
+
+  // Emit activity
+  emitActivity({
+    type: 'incident-reported',
+    incidentId: incident._id,
+    incidentType,
+    severity,
+    location,
+    reportedBy: req.user.fullName,
+  });
+
+  // Notify managers for high/critical incidents
+  if (['high', 'critical'].includes(severity)) {
+    notifyRole('Manager', 'alert:incident', {
+      severity,
+      type: incidentType,
+      location,
+      message: `${severity.toUpperCase()} incident reported: ${incidentType} at ${location}`,
+    });
+
+    notifyRole('Admin', 'alert:incident', {
+      severity,
+      type: incidentType,
+      location,
+      message: `${severity.toUpperCase()} incident reported: ${incidentType} at ${location}`,
+    });
   }
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-    ];
-  }
 
-  // Check if ComplianceDocument model exists
-  if (!ComplianceDocument) {
-    // Return mock data if model doesn't exist yet
-    return res.json([
-      {
-        _id: 'doc-001',
-        name: 'Employee Handbook',
-        category: 'policies',
-        description: 'Company policies and procedures',
-        fileType: 'pdf',
-        fileSize: 2500000,
-        uploadedBy: { fullName: 'System Admin' },
-        createdAt: new Date().toISOString(),
-        version: '2.1',
-      },
-      {
-        _id: 'doc-002',
-        name: 'Health & Safety Guidelines',
-        category: 'health-safety',
-        description: 'Workplace health and safety requirements',
-        fileType: 'pdf',
-        fileSize: 1800000,
-        uploadedBy: { fullName: 'System Admin' },
-        createdAt: new Date().toISOString(),
-        version: '1.5',
-      },
-      {
-        _id: 'doc-003',
-        name: 'SIA Licence Requirements',
-        category: 'training',
-        description: 'SIA licensing requirements and renewal process',
-        fileType: 'pdf',
-        fileSize: 950000,
-        uploadedBy: { fullName: 'System Admin' },
-        createdAt: new Date().toISOString(),
-        version: '3.0',
-      },
-    ]);
-  }
+  await incident.populate('reportedBy', 'fullName');
 
-  const documents = await ComplianceDocument.find(filter)
-    .populate('uploadedBy', 'fullName')
-    .sort({ createdAt: -1 });
-
-  res.json(documents);
+  res.status(201).json({
+    success: true,
+    data: incident,
+    message: 'Incident reported successfully',
+  });
 });
 
 /**
- * @desc    Upload a compliance document
- * @route   POST /api/compliance/documents
+ * @route   PUT /api/compliance/incidents/:id
+ * @desc    Update an incident
  * @access  Private (Manager/Admin)
  */
-exports.uploadDocument = asyncHandler(async (req, res) => {
-  const document = await ComplianceDocument.create({
-    ...req.body,
-    uploadedBy: req.user._id,
+const updateIncident = asyncHandler(async (req, res) => {
+  const incident = await Incident.findById(req.params.id);
+
+  if (!incident) {
+    res.status(404);
+    throw new Error('Incident not found');
+  }
+
+  const allowedUpdates = ['location', 'incidentType', 'severity', 'description', 'witnesses', 'evidenceUrls', 'status'];
+  allowedUpdates.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      incident[field] = req.body[field];
+    }
   });
 
-  await ComplianceAudit.create({
-    action: 'document-uploaded',
-    performedBy: req.user._id,
-    targetId: document._id,
-    targetType: 'Document',
-    details: `Uploaded ${document.name}`,
+  await incident.save();
+  await incident.populate('reportedBy', 'fullName');
+
+  // Emit activity for status change
+  if (req.body.status) {
+    emitActivity({
+      type: 'incident-status-updated',
+      incidentId: incident._id,
+      newStatus: req.body.status,
+      updatedBy: req.user.fullName,
+    });
+  }
+
+  res.json({
+    success: true,
+    data: incident,
+  });
+});
+
+/**
+ * @route   PATCH /api/compliance/incidents/:id/resolve
+ * @desc    Resolve an incident
+ * @access  Private (Manager/Admin)
+ */
+const resolveIncident = asyncHandler(async (req, res) => {
+  const { resolution } = req.body;
+
+  const incident = await Incident.findById(req.params.id);
+
+  if (!incident) {
+    res.status(404);
+    throw new Error('Incident not found');
+  }
+
+  if (incident.status === 'closed' || incident.status === 'resolved') {
+    res.status(400);
+    throw new Error('Incident already resolved');
+  }
+
+  incident.status = 'resolved';
+  incident.resolution = resolution;
+  incident.resolvedBy = req.user._id;
+  incident.resolvedAt = new Date();
+
+  await incident.save();
+
+  // Log audit
+  await logAudit(
+    'incident-reported', // Using existing enum value
+    req.user._id,
+    incident._id,
+    'Incident',
+    `Incident resolved: ${resolution}`,
+    req.ip
+  );
+
+  // Emit activity
+  emitActivity({
+    type: 'incident-resolved',
+    incidentId: incident._id,
+    incidentType: incident.incidentType,
+    resolvedBy: req.user.fullName,
+    resolution,
   });
 
-  res.status(201).json(document);
+  await incident.populate('reportedBy', 'fullName');
+  await incident.populate('resolvedBy', 'fullName');
+
+  res.json({
+    success: true,
+    data: incident,
+    message: 'Incident resolved',
+  });
+});
+
+/**
+ * @route   DELETE /api/compliance/incidents/:id
+ * @desc    Delete an incident
+ * @access  Private (Admin)
+ */
+const deleteIncident = asyncHandler(async (req, res) => {
+  const incident = await Incident.findById(req.params.id);
+
+  if (!incident) {
+    res.status(404);
+    throw new Error('Incident not found');
+  }
+
+  await incident.deleteOne();
+
+  res.json({
+    success: true,
+    message: 'Incident deleted',
+  });
 });
 
 // ============================================
@@ -333,32 +515,136 @@ exports.uploadDocument = asyncHandler(async (req, res) => {
 // ============================================
 
 /**
+ * @route   GET /api/compliance/audit-trail
  * @desc    Get audit trail entries
- * @route   GET /api/compliance/audit
  * @access  Private (Manager/Admin)
  */
-exports.getAuditTrail = asyncHandler(async (req, res) => {
-  const { limit = 50, page = 1, action, targetType } = req.query;
-  const filter = {};
+const getAuditTrail = asyncHandler(async (req, res) => {
+  const { action, userId, startDate, endDate, limit = 100 } = req.query;
 
-  if (action) filter.action = action;
-  if (targetType) filter.targetType = targetType;
+  const query = {};
 
-  const audits = await ComplianceAudit.find(filter)
-    .populate('performedBy', 'fullName')
+  if (action) query.action = action;
+  if (userId) query.performedBy = userId;
+
+  if (startDate || endDate) {
+    query.timestamp = {};
+    if (startDate) query.timestamp.$gte = new Date(startDate);
+    if (endDate) query.timestamp.$lte = new Date(endDate);
+  }
+
+  const entries = await ComplianceAudit.find(query)
+    .populate('performedBy', 'fullName username role')
     .sort({ timestamp: -1 })
-    .limit(parseInt(limit))
-    .skip((parseInt(page) - 1) * parseInt(limit));
-
-  const total = await ComplianceAudit.countDocuments(filter);
+    .limit(parseInt(limit));
 
   res.json({
-    audits,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,
-      totalPages: Math.ceil(total / parseInt(limit)),
+    success: true,
+    data: entries,
+    count: entries.length,
+  });
+});
+
+// ============================================
+// Compliance Statistics
+// ============================================
+
+/**
+ * @route   GET /api/compliance/stats
+ * @desc    Get compliance statistics
+ * @access  Private
+ */
+const getComplianceStats = asyncHandler(async (req, res) => {
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const [
+    totalCertifications,
+    validCertifications,
+    expiringSoon,
+    expired,
+    totalIncidents,
+    openIncidents,
+    criticalIncidents,
+  ] = await Promise.all([
+    Certification.countDocuments(),
+    Certification.countDocuments({ status: 'valid' }),
+    Certification.countDocuments({
+      expiryDate: { $lte: thirtyDaysFromNow, $gte: now },
+    }),
+    Certification.countDocuments({ status: 'expired' }),
+    Incident.countDocuments(),
+    Incident.countDocuments({ status: { $in: ['open', 'under-review'] } }),
+    Incident.countDocuments({ severity: 'critical', status: { $in: ['open', 'under-review'] } }),
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      certifications: {
+        total: totalCertifications,
+        valid: validCertifications,
+        expiringSoon,
+        expired,
+        complianceRate: totalCertifications > 0
+          ? Math.round((validCertifications / totalCertifications) * 100)
+          : 100,
+      },
+      incidents: {
+        total: totalIncidents,
+        open: openIncidents,
+        critical: criticalIncidents,
+      },
     },
   });
 });
+
+/**
+ * @route   GET /api/compliance/expiring
+ * @desc    Get certifications expiring soon
+ * @access  Private
+ */
+const getExpiringCertifications = asyncHandler(async (req, res) => {
+  const { days = 30 } = req.query;
+
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + parseInt(days));
+
+  const certifications = await Certification.find({
+    expiryDate: { $lte: futureDate, $gte: new Date() },
+    status: { $ne: 'expired' },
+  })
+    .populate('userId', 'fullName username email phoneNumber')
+    .sort({ expiryDate: 1 });
+
+  res.json({
+    success: true,
+    data: certifications,
+    count: certifications.length,
+  });
+});
+
+module.exports = {
+  // Certifications
+  getCertifications,
+  getCertificationById,
+  createCertification,
+  updateCertification,
+  verifyCertification,
+  deleteCertification,
+
+  // Incidents
+  getIncidents,
+  getIncidentById,
+  createIncident,
+  updateIncident,
+  resolveIncident,
+  deleteIncident,
+
+  // Audit
+  getAuditTrail,
+
+  // Stats
+  getComplianceStats,
+  getExpiringCertifications,
+};

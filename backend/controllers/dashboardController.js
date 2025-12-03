@@ -2,16 +2,15 @@
  * Dashboard Controller
  *
  * Provides aggregated operational data for the Guardian Optix dashboard.
- * Optimised for performance with parallel queries and minimal data transfer.
  */
 
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
 const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
-const TimeEntry = require('../models/TimeEntry');
-// const Site = require('../models/Site');
-// const Certification = require('../models/Certification');
+const { TimeEntry, Timesheet, ActiveSession } = require('../models/TimeEntry');
+const Site = require('../models/Site');
+const { emitMetricsUpdate, emitActivity } = require('../socket/socketManager');
 
 // ============================================
 // Helper Functions
@@ -26,16 +25,135 @@ const getTodayDateString = () => {
 };
 
 /**
- * Calculate time-based attendance metrics from shifts
+ * Parse time string (HH:mm) to minutes since midnight
  */
-const calculateAttendanceMetrics = (shifts) => {
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+/**
+ * Calculate late arrival threshold (default: 5 minutes grace period)
+ */
+const LATE_THRESHOLD_MINUTES = 5;
+
+/**
+ * Detect late arrivals by comparing scheduled start time vs actual clock-in
+ * @param {Array} shifts - Today's shifts with populated officer data
+ * @param {Array} timeEntries - Today's clock-in entries
+ * @returns {Object} Late arrivals data
+ */
+const detectLateArrivals = (shifts, timeEntries) => {
+  const lateArrivals = [];
+  let lateCount = 0;
+
+  // Create a map of officer clock-ins for quick lookup
+  const clockInMap = new Map();
+  timeEntries
+    .filter(entry => entry.type === 'clock-in')
+    .forEach(entry => {
+      const officerId = entry.officer?.toString() || entry.officer;
+      if (!clockInMap.has(officerId)) {
+        clockInMap.set(officerId, entry);
+      }
+    });
+
+  shifts.forEach(shift => {
+    if (shift.status === 'cancelled') return;
+
+    const officerId = shift.officer?._id?.toString() || shift.officer?.toString();
+    const clockInEntry = clockInMap.get(officerId);
+
+    if (!clockInEntry) return; // No clock-in yet (could be no-show or future shift)
+
+    const scheduledStartMinutes = parseTimeToMinutes(shift.startTime);
+    const clockInTime = new Date(clockInEntry.timestamp);
+    const clockInMinutes = clockInTime.getHours() * 60 + clockInTime.getMinutes();
+
+    const minutesLate = clockInMinutes - scheduledStartMinutes;
+
+    if (minutesLate > LATE_THRESHOLD_MINUTES) {
+      lateCount++;
+      lateArrivals.push({
+        shiftId: shift._id,
+        officerId,
+        officerName: shift.officer?.fullName || 'Unknown',
+        siteName: shift.site?.name || 'Unknown Site',
+        scheduledStart: shift.startTime,
+        actualClockIn: clockInTime.toISOString(),
+        minutesLate,
+        severity: minutesLate > 30 ? 'high' : minutesLate > 15 ? 'medium' : 'low',
+      });
+    }
+  });
+
+  return {
+    count: lateCount,
+    details: lateArrivals,
+  };
+};
+
+/**
+ * Detect no-shows by finding scheduled shifts without clock-ins
+ * @param {Array} shifts - Today's shifts with populated officer data
+ * @param {Array} timeEntries - Today's clock-in entries
+ * @returns {Object} No-shows data
+ */
+const detectNoShows = (shifts, timeEntries) => {
+  const noShows = [];
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Create a set of officers who have clocked in today
+  const clockedInOfficers = new Set();
+  timeEntries
+    .filter(entry => entry.type === 'clock-in')
+    .forEach(entry => {
+      const officerId = entry.officer?.toString() || entry.officer;
+      clockedInOfficers.add(officerId);
+    });
+
+  shifts.forEach(shift => {
+    if (shift.status === 'cancelled' || shift.status === 'completed') return;
+
+    const officerId = shift.officer?._id?.toString() || shift.officer?.toString();
+    const scheduledStartMinutes = parseTimeToMinutes(shift.startTime);
+
+    // Check if shift should have started (with 30-minute grace period for no-show)
+    const noShowThreshold = scheduledStartMinutes + 30;
+
+    if (currentMinutes > noShowThreshold && !clockedInOfficers.has(officerId)) {
+      noShows.push({
+        shiftId: shift._id,
+        officerId,
+        officerName: shift.officer?.fullName || 'Unknown',
+        siteName: shift.site?.name || 'Unknown Site',
+        scheduledStart: shift.startTime,
+        scheduledEnd: shift.endTime,
+        shiftType: shift.shiftType,
+        minutesOverdue: currentMinutes - scheduledStartMinutes,
+      });
+    }
+  });
+
+  return {
+    count: noShows.length,
+    details: noShows,
+  };
+};
+
+/**
+ * Calculate attendance metrics from shifts and time entries
+ */
+const calculateAttendanceMetrics = (shifts, timeEntries) => {
   const activeShifts = shifts.filter((s) => s.status === 'in-progress').length;
   const completedShifts = shifts.filter((s) => s.status === 'completed').length;
   const scheduledShifts = shifts.filter((s) => s.status === 'scheduled').length;
   const cancelledShifts = shifts.filter((s) => s.status === 'cancelled').length;
 
-  // Count late arrivals (would need TimeEntry data for accurate tracking)
-  const lateArrivals = 0; // TODO - implement with TimeEntry comparison
+  const lateData = detectLateArrivals(shifts, timeEntries);
+  const noShowData = detectNoShows(shifts, timeEntries);
 
   return {
     totalShifts: shifts.length,
@@ -44,8 +162,10 @@ const calculateAttendanceMetrics = (shifts) => {
     scheduledShifts,
     cancelledShifts,
     upcomingShifts: scheduledShifts,
-    noShows: 0, // Would need to compare scheduled vs clocked-in
-    lateArrivals,
+    lateArrivals: lateData.count,
+    lateArrivalDetails: lateData.details,
+    noShows: noShowData.count,
+    noShowDetails: noShowData.details,
   };
 };
 
@@ -55,388 +175,421 @@ const calculateAttendanceMetrics = (shifts) => {
 const countPendingTasks = (shifts) => {
   let pending = 0;
   let total = 0;
+  let completed = 0;
 
   shifts.forEach((shift) => {
     if (shift.tasks && shift.tasks.length > 0) {
+      total += shift.tasks.length;
       shift.tasks.forEach((task) => {
-        total++;
-        if (!task.completed) {
+        if (task.completed) {
+          completed++;
+        } else {
           pending++;
         }
       });
     }
   });
 
-  return { pending, total };
-};
-
-/**
- * Generate alerts based on current operational data
- */
-const generateAlerts = (metrics, shifts, expiringCerts = []) => {
-  const alerts = [];
-
-  // No-show alerts (critical)
-  if (metrics.noShows > 0) {
-    alerts.push({
-      id: `no-show-${Date.now()}`,
-      type: 'attendance',
-      severity: 'critical',
-      title: 'No-Show Alert',
-      message: `${metrics.noShows} officer(s) have not clocked in for scheduled shifts`,
-      timestamp: new Date().toISOString(),
-      actionRequired: true,
-      actionUrl: '/scheduling',
-      isRead: false,
-      isDismissed: false,
-    });
-  }
-
-  // Late arrivals (warning)
-  if (metrics.lateArrivals > 0) {
-    alerts.push({
-      id: `late-${Date.now()}`,
-      type: 'attendance',
-      severity: 'warning',
-      title: 'Late Arrivals',
-      message: `${metrics.lateArrivals} officer(s) arrived late to shifts today`,
-      timestamp: new Date().toISOString(),
-      actionRequired: false,
-      isRead: false,
-      isDismissed: false,
-    });
-  }
-
-  // Expiring certifications (warning)
-  if (expiringCerts && expiringCerts.length > 0) {
-    alerts.push({
-      id: `cert-expiring-${Date.now()}`,
-      type: 'compliance',
-      severity: 'warning',
-      title: 'Certifications Expiring',
-      message: `${expiringCerts.length} certification(s) expiring within 30 days`,
-      timestamp: new Date().toISOString(),
-      actionRequired: true,
-      actionUrl: '/compliance',
-      isRead: false,
-      isDismissed: false,
-    });
-  }
-
-  // Understaffed shifts
-  const understaffed = shifts.filter(
-    (s) => s.status === 'scheduled' && !s.officer
-  ).length;
-  if (understaffed > 0) {
-    alerts.push({
-      id: `understaffed-${Date.now()}`,
-      type: 'attendance',
-      severity: 'warning',
-      title: 'Unassigned Shifts',
-      message: `${understaffed} shift(s) today have no officer assigned`,
-      timestamp: new Date().toISOString(),
-      actionRequired: true,
-      actionUrl: '/scheduling',
-      isRead: false,
-      isDismissed: false,
-    });
-  }
-
-  return alerts;
+  return { pending, total, completed, completionRate: total > 0 ? Math.round((completed / total) * 100) : 0 };
 };
 
 // ============================================
-// Controller Methods
+// Main Controller Functions
 // ============================================
 
 /**
- * @desc    Get dashboard metrics (KPIs)
  * @route   GET /api/dashboard/metrics
+ * @desc    Get operational metrics (KPIs) with late arrivals and no-shows
  * @access  Private
  */
 const getMetrics = asyncHandler(async (req, res) => {
-  const todayDate = getTodayDateString();
+  const today = getTodayDateString();
 
   // Parallel queries for performance
-  const [guards, todayShifts, openIncidents] = await Promise.all([
-    User.find({ role: 'Guard' }).lean(),
-    Shift.find({ date: todayDate }).lean(),
+  const [guards, todayShifts, openIncidents, timeEntries] = await Promise.all([
+    User.countDocuments({ role: 'Guard' }),
+    Shift.find({ date: today })
+      .populate('officer', 'fullName username')
+      .populate('site', 'name'),
     Incident.countDocuments({ status: { $in: ['open', 'under-review'] } }),
+    TimeEntry.find({ date: today }).lean(),
   ]);
 
-  // Calculate metrics
-  const activeGuards = guards.filter((g) => g.availability === true).length;
-  const totalGuards = guards.length;
+  // Calculate attendance with late arrivals and no-shows
+  const attendance = calculateAttendanceMetrics(todayShifts, timeEntries);
+  const taskMetrics = countPendingTasks(todayShifts);
 
-  const attendanceMetrics = calculateAttendanceMetrics(todayShifts);
-  const taskCounts = countPendingTasks(todayShifts);
+  const metrics = {
+    totalGuards: guards,
+    activeGuards: attendance.activeShifts,
+    shiftsToday: attendance.totalShifts,
+    activeShifts: attendance.activeShifts,
+    completedShifts: attendance.completedShifts,
+    scheduledShifts: attendance.scheduledShifts,
+    cancelledShifts: attendance.cancelledShifts,
+    lateArrivals: attendance.lateArrivals,
+    noShows: attendance.noShows,
+    openIncidents,
+    pendingTasks: taskMetrics.pending,
+    taskCompletionRate: taskMetrics.completionRate,
+    attendanceRate: attendance.totalShifts > 0
+      ? Math.round(((attendance.activeShifts + attendance.completedShifts) / attendance.totalShifts) * 100)
+      : 100,
+  };
 
-  // Attendance rate calculation
-  const attendanceRate =
-    attendanceMetrics.totalShifts > 0
-      ? ((attendanceMetrics.activeShifts + attendanceMetrics.completedShifts) /
-        attendanceMetrics.totalShifts) *
-      100
-      : 100;
-
-  // Patrol completion rate (based on task completion)
-  const patrolCompletionRate =
-    taskCounts.total > 0
-      ? ((taskCounts.total - taskCounts.pending) / taskCounts.total) * 100
-      : 100;
+  // Emit real-time update to dashboard subscribers
+  emitMetricsUpdate(metrics);
 
   res.json({
-    activeGuards,
-    totalScheduled: totalGuards,
-    shiftsToday: attendanceMetrics.totalShifts,
-    shiftsCovered: attendanceMetrics.activeShifts + attendanceMetrics.completedShifts,
-    attendanceRate: Math.round(attendanceRate * 10) / 10,
-    patrolCompletionRate: Math.round(patrolCompletionRate * 10) / 10,
-    openIncidents,
-    pendingTasks: taskCounts.pending,
-    geofenceViolations: 0, // Would come from TimeEntry geofence data
-    complianceScore: 92, // Placeholder - would aggregate from compliance module
+    success: true,
+    data: metrics,
+    timestamp: new Date().toISOString(),
   });
 });
 
 /**
- * @desc    Get dashboard alerts
  * @route   GET /api/dashboard/alerts
+ * @desc    Get active alerts including late arrivals and no-shows
  * @access  Private
  */
 const getAlerts = asyncHandler(async (req, res) => {
-  const todayDate = getTodayDateString();
+  const today = getTodayDateString();
 
-  const [todayShifts, expiringCerts] = await Promise.all([
-    Shift.find({ date: todayDate }).lean(),
-    // Placeholder for certification expiry check
-    Promise.resolve([]),
+  const [todayShifts, timeEntries, openIncidents] = await Promise.all([
+    Shift.find({ date: today })
+      .populate('officer', 'fullName')
+      .populate('site', 'name'),
+    TimeEntry.find({ date: today }).lean(),
+    Incident.find({
+      status: { $in: ['open', 'under-review'] },
+      severity: { $in: ['high', 'critical'] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('reportedBy', 'fullName'),
   ]);
 
-  const metrics = calculateAttendanceMetrics(todayShifts);
-  const alerts = generateAlerts(metrics, todayShifts, expiringCerts);
+  const attendance = calculateAttendanceMetrics(todayShifts, timeEntries);
+  const alerts = [];
 
-  res.json(alerts);
+  // Generate no-show alerts (critical)
+  attendance.noShowDetails.forEach((noShow) => {
+    alerts.push({
+      id: `noshow-${noShow.shiftId}`,
+      type: 'no-show',
+      severity: 'critical',
+      title: 'No-Show Alert',
+      message: `${noShow.officerName} has not clocked in for their ${noShow.shiftType} shift at ${noShow.siteName}`,
+      shiftId: noShow.shiftId,
+      officerId: noShow.officerId,
+      officerName: noShow.officerName,
+      siteName: noShow.siteName,
+      scheduledStart: noShow.scheduledStart,
+      minutesOverdue: noShow.minutesOverdue,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      isDismissed: false,
+    });
+  });
+
+  // Generate late arrival alerts (warning/high based on severity)
+  attendance.lateArrivalDetails.forEach((late) => {
+    alerts.push({
+      id: `late-${late.shiftId}`,
+      type: 'late-arrival',
+      severity: late.severity === 'high' ? 'high' : 'warning',
+      title: 'Late Arrival',
+      message: `${late.officerName} arrived ${late.minutesLate} minutes late at ${late.siteName}`,
+      shiftId: late.shiftId,
+      officerId: late.officerId,
+      officerName: late.officerName,
+      siteName: late.siteName,
+      scheduledStart: late.scheduledStart,
+      actualClockIn: late.actualClockIn,
+      minutesLate: late.minutesLate,
+      timestamp: late.actualClockIn,
+      isRead: false,
+      isDismissed: false,
+    });
+  });
+
+  // Add high-severity incident alerts
+  openIncidents.forEach((incident) => {
+    alerts.push({
+      id: `incident-${incident._id}`,
+      type: 'incident',
+      severity: incident.severity,
+      title: `${incident.severity.toUpperCase()} Incident`,
+      message: `${incident.incidentType} reported at ${incident.location}`,
+      incidentId: incident._id,
+      reportedBy: incident.reportedBy?.fullName,
+      location: incident.location,
+      timestamp: incident.createdAt,
+      isRead: false,
+      isDismissed: false,
+    });
+  });
+
+  // Sort by severity (critical first) then by timestamp
+  const severityOrder = { critical: 0, high: 1, warning: 2, medium: 3, low: 4, info: 5 };
+  alerts.sort((a, b) => {
+    const severityDiff = (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5);
+    if (severityDiff !== 0) return severityDiff;
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+
+  res.json({
+    success: true,
+    data: alerts,
+    summary: {
+      total: alerts.length,
+      critical: alerts.filter((a) => a.severity === 'critical').length,
+      high: alerts.filter((a) => a.severity === 'high').length,
+      warning: alerts.filter((a) => a.severity === 'warning').length,
+    },
+  });
 });
 
 /**
- * @desc    Get today's schedule overview
  * @route   GET /api/dashboard/schedule-overview
+ * @desc    Get today's schedule summary
  * @access  Private
  */
 const getScheduleOverview = asyncHandler(async (req, res) => {
-  const todayDate = getTodayDateString();
+  const today = getTodayDateString();
 
-  const shifts = await Shift.find({ date: todayDate })
-    .populate('officer', 'fullName phoneNumber role guardType')
+  const shifts = await Shift.find({ date: today })
+    .populate('officer', 'fullName username badgeNumber')
     .populate('site', 'name address')
-    .sort({ startTime: 1 })
-    .lean();
+    .sort({ startTime: 1 });
 
-  const metrics = calculateAttendanceMetrics(shifts);
-
-  const formattedShifts = shifts.map((s) => ({
-    id: s._id,
-    guardId: s.officer?._id || null,
-    guardName: s.officer?.fullName || 'Unassigned',
-    siteName: s.site?.name || 'Unknown Site',
-    siteId: s.site?._id || null,
-    role: s.officer?.guardType || 'Security Officer',
-    startTime: `${s.date}T${s.startTime}:00`,
-    endTime: `${s.date}T${s.endTime}:00`,
-    status: s.status,
-    shiftType: s.shiftType,
-    tasksTotal: s.tasks?.length || 0,
-    tasksCompleted: s.tasks?.filter((t) => t.completed).length || 0,
-    notes: s.notes,
-  }));
+  const byShiftType = {
+    Morning: shifts.filter((s) => s.shiftType === 'Morning'),
+    Afternoon: shifts.filter((s) => s.shiftType === 'Afternoon'),
+    Night: shifts.filter((s) => s.shiftType === 'Night'),
+  };
 
   res.json({
-    ...metrics,
-    shifts: formattedShifts,
+    success: true,
+    data: {
+      date: today,
+      totalShifts: shifts.length,
+      shifts,
+      byShiftType: {
+        morning: byShiftType.Morning.length,
+        afternoon: byShiftType.Afternoon.length,
+        night: byShiftType.Night.length,
+      },
+    },
   });
 });
 
 /**
- * @desc    Get guard statuses
  * @route   GET /api/dashboard/guard-statuses
+ * @desc    Get current status of all guards with real-time data
  * @access  Private
  */
 const getGuardStatuses = asyncHandler(async (req, res) => {
-  const todayDate = getTodayDateString();
+  const today = getTodayDateString();
 
-  // Get all guards
-  const guards = await User.find({
-    role: { $in: ['Guard', 'Manager', 'Admin'] },
-  })
-    .select('fullName role guardType phoneNumber email availability shiftTime avatar')
-    .lean();
+  // Get all guards with their active sessions
+  const [guards, activeSessions, todayShifts] = await Promise.all([
+    User.find({ role: 'Guard' }).select('fullName username phoneNumber availability'),
+    ActiveSession.find().populate('site', 'name'),
+    Shift.find({ date: today }).populate('site', 'name'),
+  ]);
 
-  // Get today's shifts to determine current assignments
-  const todayShifts = await Shift.find({ date: todayDate })
-    .populate('site', 'name')
-    .lean();
+  // Map active sessions by officer ID
+  const sessionMap = new Map();
+  activeSessions.forEach((session) => {
+    sessionMap.set(session.officer.toString(), session);
+  });
 
-  // Map guards to their current status
-  const formattedGuards = guards.map((g) => {
-    // Find if guard has an active shift today
-    const activeShift = todayShifts.find(
-      (s) =>
-        s.officer?.toString() === g._id.toString() &&
-        s.status === 'in-progress'
-    );
-
-    const scheduledShift = todayShifts.find(
-      (s) =>
-        s.officer?.toString() === g._id.toString() && s.status === 'scheduled'
-    );
-
-    let status = 'off-duty';
-    if (activeShift) {
-      status = 'on-duty';
-    } else if (scheduledShift) {
-      status = 'scheduled';
+  // Map shifts by officer ID
+  const shiftMap = new Map();
+  todayShifts.forEach((shift) => {
+    const officerId = shift.officer.toString();
+    if (!shiftMap.has(officerId)) {
+      shiftMap.set(officerId, []);
     }
+    shiftMap.get(officerId).push(shift);
+  });
+
+  const guardStatuses = guards.map((guard) => {
+    const session = sessionMap.get(guard._id.toString());
+    const shifts = shiftMap.get(guard._id.toString()) || [];
+    const currentShift = shifts.find((s) => s.status === 'in-progress');
+    const nextShift = shifts.find((s) => s.status === 'scheduled');
 
     return {
-      id: g._id,
-      name: g.fullName,
-      role: g.role,
-      guardType: g.guardType,
-      status,
-      currentSite: activeShift?.site?.name || null,
-      shiftTime: g.shiftTime,
-      contactInfo: {
-        phone: g.phoneNumber,
-        email: g.email,
-      },
-      availability: g.availability,
-      lastActivity: activeShift?.updatedAt || null,
-      avatar: g.avatar || null,
+      id: guard._id,
+      name: guard.fullName,
+      username: guard.username,
+      phoneNumber: guard.phoneNumber,
+      availability: guard.availability,
+      clockStatus: session?.clockStatus || 'clocked-out',
+      currentSite: session?.site?.name || currentShift?.site?.name || null,
+      geofenceStatus: session?.geofenceStatus || 'unknown',
+      lastLocation: session?.lastKnownLocation || null,
+      currentShift: currentShift ? {
+        id: currentShift._id,
+        startTime: currentShift.startTime,
+        endTime: currentShift.endTime,
+        shiftType: currentShift.shiftType,
+      } : null,
+      nextShift: nextShift ? {
+        id: nextShift._id,
+        startTime: nextShift.startTime,
+        endTime: nextShift.endTime,
+        siteName: nextShift.site?.name,
+      } : null,
     };
   });
 
-  res.json(formattedGuards);
+  res.json({
+    success: true,
+    data: guardStatuses,
+    summary: {
+      total: guards.length,
+      clockedIn: guardStatuses.filter((g) => g.clockStatus === 'clocked-in').length,
+      onBreak: guardStatuses.filter((g) => g.clockStatus === 'on-break').length,
+      clockedOut: guardStatuses.filter((g) => g.clockStatus === 'clocked-out').length,
+      available: guardStatuses.filter((g) => g.availability).length,
+    },
+  });
 });
 
 /**
- * @desc    Get activity feed
  * @route   GET /api/dashboard/activity-feed
+ * @desc    Get recent activity events
  * @access  Private
  */
 const getActivityFeed = asyncHandler(async (req, res) => {
   const { limit = 20 } = req.query;
-  const todayDate = getTodayDateString();
+  const today = getTodayDateString();
 
-  // Get recent time entries as activity
-  const recentEntries = await TimeEntry.find({
-    date: todayDate,
-  })
-    .populate('officer', 'fullName')
-    .populate('site', 'name')
-    .sort({ timestamp: -1 })
-    .limit(parseInt(limit))
-    .lean();
+  // Get recent time entries and incidents
+  const [recentEntries, recentIncidents] = await Promise.all([
+    TimeEntry.find({ date: today })
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit))
+      .populate('officer', 'fullName')
+      .populate('site', 'name'),
+    Incident.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('reportedBy', 'fullName'),
+  ]);
 
-  const activities = recentEntries.map((entry) => {
-    // Generate description based on activity type
-    let description = '';
-    switch (entry.type) {
-      case 'clock-in':
-        description = `Clocked in at ${entry.site?.name || 'site'}`;
-        break;
-      case 'clock-out':
-        description = `Clocked out from ${entry.site?.name || 'site'}`;
-        break;
-      case 'break-start':
-        description = 'Started break';
-        break;
-      case 'break-end':
-        description = 'Ended break';
-        break;
-      default:
-        description = entry.notes || `${entry.type} recorded`;
-    }
+  const activities = [];
 
-    return {
+  // Convert time entries to activity events
+  recentEntries.forEach((entry) => {
+    activities.push({
       id: entry._id,
-      type: entry.type, // 'clock-in', 'clock-out', 'break-start', 'break-end'
-      guardId: entry.officer?._id,
-      guardName: entry.officer?.fullName || 'Unknown',
-      siteName: entry.site?.name || null,
-      timestamp: entry.timestamp,
-      location: entry.location,
+      type: 'clock-action',
+      action: entry.type,
+      actorId: entry.officer?._id,
+      actorName: entry.officer?.fullName || 'Unknown',
+      siteName: entry.site?.name || 'Unknown Site',
       geofenceStatus: entry.geofenceStatus,
-      notes: entry.notes,
-      description,
-      severity: entry.geofenceStatus === 'outside' ? 'warning' : undefined,
-    };
+      timestamp: entry.timestamp,
+      description: getClockActionDescription(entry),
+    });
   });
 
-  res.json(activities);
+  // Convert incidents to activity events
+  recentIncidents.forEach((incident) => {
+    activities.push({
+      id: incident._id,
+      type: 'incident',
+      action: 'reported',
+      severity: incident.severity,
+      incidentType: incident.incidentType,
+      actorId: incident.reportedBy?._id,
+      actorName: incident.reportedBy?.fullName || 'Unknown',
+      location: incident.location,
+      timestamp: incident.createdAt,
+      description: `${incident.severity} ${incident.incidentType} incident reported`,
+    });
+  });
+
+  // Sort by timestamp descending
+  activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  res.json({
+    success: true,
+    data: activities.slice(0, parseInt(limit)),
+  });
 });
 
 /**
- * @desc    Get pending tasks for dashboard
+ * Helper to generate clock action description
+ */
+const getClockActionDescription = (entry) => {
+  const name = entry.officer?.fullName || 'Officer';
+  const site = entry.site?.name || 'site';
+
+  switch (entry.type) {
+    case 'clock-in':
+      return `${name} clocked in at ${site}`;
+    case 'clock-out':
+      return `${name} clocked out from ${site}`;
+    case 'break-start':
+      return `${name} started break at ${site}`;
+    case 'break-end':
+      return `${name} ended break at ${site}`;
+    default:
+      return `${name} performed ${entry.type}`;
+  }
+};
+
+/**
  * @route   GET /api/dashboard/pending-tasks
+ * @desc    Get pending tasks for dashboard display
  * @access  Private
  */
 const getPendingTasks = asyncHandler(async (req, res) => {
-  const { limit = 10 } = req.query;
-  const todayDate = getTodayDateString();
+  const today = getTodayDateString();
 
-  // Get today's shifts with incomplete tasks
-  const shiftsWithTasks = await Shift.find({
-    date: todayDate,
+  const shifts = await Shift.find({
+    date: today,
+    status: { $in: ['scheduled', 'in-progress'] },
     'tasks.completed': false,
   })
     .populate('officer', 'fullName')
-    .populate('site', 'name')
-    .lean();
+    .populate('site', 'name');
 
-  // Extract and format pending tasks
   const pendingTasks = [];
 
-  shiftsWithTasks.forEach((shift) => {
+  shifts.forEach((shift) => {
     shift.tasks
       .filter((task) => !task.completed)
       .forEach((task) => {
         pendingTasks.push({
-          id: task._id,
+          taskId: task._id,
           shiftId: shift._id,
-          title: task.description.split(' - ')[0] || task.description.substring(0, 30),
           description: task.description,
           frequency: task.frequency,
-          priority: task.frequency === 'once' ? 'high' : 'medium',
-          status: 'pending',
-          dueDate: `${shift.date}T${shift.endTime}:00`,
-          assignedTo: shift.officer
-            ? {
-              id: shift.officer._id,
-              name: shift.officer.fullName,
-            }
-            : null,
-          site: shift.site
-            ? {
-              id: shift.site._id,
-              name: shift.site.name,
-            }
-            : null,
+          officerId: shift.officer?._id,
+          officerName: shift.officer?.fullName || 'Unassigned',
+          siteName: shift.site?.name || 'Unknown Site',
+          shiftType: shift.shiftType,
+          shiftStatus: shift.status,
         });
       });
   });
 
-  // Sort by due date and limit
-  const sortedTasks = pendingTasks
-    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-    .slice(0, parseInt(limit));
-
-  res.json(sortedTasks);
+  res.json({
+    success: true,
+    data: pendingTasks,
+    count: pendingTasks.length,
+  });
 });
 
 /**
- * @desc    Get recent incidents for dashboard
  * @route   GET /api/dashboard/recent-incidents
+ * @desc    Get recent open incidents
  * @access  Private
  */
 const getRecentIncidents = asyncHandler(async (req, res) => {
@@ -447,57 +600,83 @@ const getRecentIncidents = asyncHandler(async (req, res) => {
   })
     .sort({ createdAt: -1 })
     .limit(parseInt(limit))
-    .populate('reportedBy', 'fullName')
-    .lean();
+    .populate('reportedBy', 'fullName');
 
-  const formattedIncidents = incidents.map((i) => ({
-    id: i._id,
-    title: `${i.incidentType} - ${i.location}`,
-    incidentType: i.incidentType,
-    severity: i.severity,
-    status: i.status,
-    location: i.location,
-    description: i.description,
-    reportedAt: i.createdAt,
-    reportedBy: i.reportedBy
-      ? {
-        id: i.reportedBy._id,
-        name: i.reportedBy.fullName,
-      }
-      : null,
-  }));
-
-  res.json(formattedIncidents);
+  res.json({
+    success: true,
+    data: incidents,
+  });
 });
 
 /**
- * @desc    Dismiss an alert
  * @route   PATCH /api/dashboard/alerts/:id/dismiss
+ * @desc    Dismiss an alert
  * @access  Private
  */
 const dismissAlert = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // In a full implementation, this would update an Alert collection
-  // For now, acknowledge the request
-  res.json({ success: true, id, dismissed: true });
+  // In a production system, you'd store dismissed alerts in a separate collection
+  // For now, emit activity to notify other dashboard users
+  emitActivity({
+    type: 'alert-dismissed',
+    alertId: id,
+    dismissedBy: req.user._id,
+    dismissedByName: req.user.fullName,
+  });
+
+  res.json({
+    success: true,
+    message: 'Alert dismissed',
+  });
 });
 
 /**
- * @desc    Mark alert as read
  * @route   PATCH /api/dashboard/alerts/:id/read
+ * @desc    Mark an alert as read
  * @access  Private
  */
 const markAlertRead = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // In a full implementation, this would update an Alert collection
-  res.json({ success: true, id, isRead: true });
+  res.json({
+    success: true,
+    message: 'Alert marked as read',
+  });
 });
 
-// ============================================
-// Exports
-// ============================================
+/**
+ * @route   GET /api/dashboard/attendance-issues
+ * @desc    Get detailed late arrivals and no-shows
+ * @access  Private (Manager/Admin)
+ */
+const getAttendanceIssues = asyncHandler(async (req, res) => {
+  const { date = getTodayDateString() } = req.query;
+
+  const [shifts, timeEntries] = await Promise.all([
+    Shift.find({ date })
+      .populate('officer', 'fullName username phoneNumber')
+      .populate('site', 'name address'),
+    TimeEntry.find({ date }).lean(),
+  ]);
+
+  const attendance = calculateAttendanceMetrics(shifts, timeEntries);
+
+  res.json({
+    success: true,
+    data: {
+      date,
+      lateArrivals: {
+        count: attendance.lateArrivals,
+        details: attendance.lateArrivalDetails,
+      },
+      noShows: {
+        count: attendance.noShows,
+        details: attendance.noShowDetails,
+      },
+    },
+  });
+});
 
 module.exports = {
   getMetrics,
@@ -509,4 +688,5 @@ module.exports = {
   getRecentIncidents,
   dismissAlert,
   markAlertRead,
+  getAttendanceIssues,
 };
