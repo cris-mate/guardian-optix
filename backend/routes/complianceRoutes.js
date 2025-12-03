@@ -1,8 +1,9 @@
 /**
  * Compliance Routes
  *
- * API endpoints for compliance management including
- * certifications, incidents, and audit trail.
+ * API endpoints for compliance management including certifications,
+ * incidents, documents, and audit trails.
+ * All routes require authentication.
  */
 
 const express = require('express');
@@ -10,152 +11,109 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const {
-  // Certifications
+  getComplianceMetrics,
   getCertifications,
-  getCertificationById,
-  createCertification,
+  addCertification,
   updateCertification,
-  verifyCertification,
-  deleteCertification,
-
-  // Incidents
   getIncidents,
-  getIncidentById,
-  createIncident,
+  reportIncident,
   updateIncident,
-  resolveIncident,
-  deleteIncident,
-
-  // Audit
+  getDocuments,
+  uploadDocument,
   getAuditTrail,
-
-  // Stats
-  getComplianceStats,
-  getExpiringCertifications,
 } = require('../controllers/complianceController');
 
 // All routes require authentication
 router.use(authMiddleware);
 
 // ============================================
-// Statistics & Overview
+// Metrics
 // ============================================
 
 /**
- * @route   GET /api/compliance/stats
- * @desc    Get compliance statistics
+ * @route   GET /api/compliance/metrics
+ * @desc    Get compliance dashboard metrics
  * @access  Private
  */
-router.get('/stats', getComplianceStats);
-
-/**
- * @route   GET /api/compliance/expiring
- * @desc    Get certifications expiring soon
- * @access  Private
- */
-router.get('/expiring', getExpiringCertifications);
+router.get('/metrics', getComplianceMetrics);
 
 // ============================================
-// Certification Routes
+// Certifications
 // ============================================
 
 /**
  * @route   GET /api/compliance/certifications
- * @desc    Get all certifications
+ * @desc    Get all certifications with optional filtering
  * @access  Private
  */
 router.get('/certifications', getCertifications);
 
 /**
- * @route   GET /api/compliance/certifications/:id
- * @desc    Get a single certification
- * @access  Private
- */
-router.get('/certifications/:id', getCertificationById);
-
-/**
  * @route   POST /api/compliance/certifications
  * @desc    Add a new certification
- * @access  Private
+ * @access  Private (Manager/Admin)
  */
-router.post('/certifications', createCertification);
+router.post('/certifications', roleMiddleware(['Manager', 'Admin']), addCertification);
 
 /**
- * @route   PUT /api/compliance/certifications/:id
+ * @route   PATCH /api/compliance/certifications/:id
  * @desc    Update a certification
  * @access  Private (Manager/Admin)
  */
-router.put('/certifications/:id', roleMiddleware('Manager', 'Admin'), updateCertification);
-
-/**
- * @route   PATCH /api/compliance/certifications/:id/verify
- * @desc    Verify a certification
- * @access  Private (Manager/Admin)
- */
-router.patch('/certifications/:id/verify', roleMiddleware('Manager', 'Admin'), verifyCertification);
-
-/**
- * @route   DELETE /api/compliance/certifications/:id
- * @desc    Delete a certification
- * @access  Private (Admin)
- */
-router.delete('/certifications/:id', roleMiddleware('Admin'), deleteCertification);
+router.patch('/certifications/:id', roleMiddleware(['Manager', 'Admin']), updateCertification);
 
 // ============================================
-// Incident Routes
+// Incidents
 // ============================================
 
 /**
  * @route   GET /api/compliance/incidents
- * @desc    Get all incidents
+ * @desc    Get all incidents with optional filtering
  * @access  Private
  */
 router.get('/incidents', getIncidents);
-
-/**
- * @route   GET /api/compliance/incidents/:id
- * @desc    Get a single incident
- * @access  Private
- */
-router.get('/incidents/:id', getIncidentById);
 
 /**
  * @route   POST /api/compliance/incidents
  * @desc    Report a new incident
  * @access  Private
  */
-router.post('/incidents', createIncident);
+router.post('/incidents', reportIncident);
 
 /**
- * @route   PUT /api/compliance/incidents/:id
- * @desc    Update an incident
+ * @route   PATCH /api/compliance/incidents/:id
+ * @desc    Update incident status
  * @access  Private (Manager/Admin)
  */
-router.put('/incidents/:id', roleMiddleware('Manager', 'Admin'), updateIncident);
-
-/**
- * @route   PATCH /api/compliance/incidents/:id/resolve
- * @desc    Resolve an incident
- * @access  Private (Manager/Admin)
- */
-router.patch('/incidents/:id/resolve', roleMiddleware('Manager', 'Admin'), resolveIncident);
-
-/**
- * @route   DELETE /api/compliance/incidents/:id
- * @desc    Delete an incident
- * @access  Private (Admin)
- */
-router.delete('/incidents/:id', roleMiddleware('Admin'), deleteIncident);
+router.patch('/incidents/:id', roleMiddleware(['Manager', 'Admin']), updateIncident);
 
 // ============================================
-// Audit Trail Routes
+// Documents
 // ============================================
 
 /**
- * @route   GET /api/compliance/audit-trail
+ * @route   GET /api/compliance/documents
+ * @desc    Get all compliance documents
+ * @access  Private
+ */
+router.get('/documents', getDocuments);
+
+/**
+ * @route   POST /api/compliance/documents
+ * @desc    Upload a compliance document
+ * @access  Private (Manager/Admin)
+ */
+router.post('/documents', roleMiddleware(['Manager', 'Admin']), uploadDocument);
+
+// ============================================
+// Audit Trail
+// ============================================
+
+/**
+ * @route   GET /api/compliance/audit
  * @desc    Get audit trail entries
  * @access  Private (Manager/Admin)
  */
-router.get('/audit-trail', roleMiddleware('Manager', 'Admin'), getAuditTrail);
+router.get('/audit', roleMiddleware(['Manager', 'Admin']), getAuditTrail);
 
 module.exports = router;

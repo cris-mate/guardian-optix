@@ -1,109 +1,78 @@
 /**
- * Dashboard Types for Guardian Optix
+ * Dashboard Types
  *
- * Enhanced TypeScript interfaces including late arrivals and no-shows detection.
+ * TypeScript interfaces for the operations dashboard.
  */
 
 // ============================================
-// Constants
+// Core Enums & Types
 // ============================================
 
-export const REFRESH_INTERVALS = {
-  metrics: 30000,      // 30 seconds
-  alerts: 15000,       // 15 seconds
-  activity: 10000,     // 10 seconds
-  guardStatus: 20000,  // 20 seconds
-} as const;
+export type AlertSeverity = 'critical' | 'warning' | 'info';
+export type AlertType = 'attendance' | 'incident' | 'compliance' | 'geofence' | 'system' | 'task';
 
-export const DEFAULT_DASHBOARD_STATE = {
-  metrics: {
-    totalGuards: 0,
-    activeGuards: 0,
-    shiftsToday: 0,
-    activeShifts: 0,
-    completedShifts: 0,
-    scheduledShifts: 0,
-    cancelledShifts: 0,
-    lateArrivals: 0,
-    noShows: 0,
-    openIncidents: 0,
-    pendingTasks: 0,
-    taskCompletionRate: 0,
-    attendanceRate: 100,
-  },
-  alerts: [],
-  activities: [],
-  guardStatuses: [],
-  tasks: [],
-  isLoading: true,
-  error: null,
-} as const;
+// Note: Additional statuses for UI component compatibility
+export type ShiftStatus = 'scheduled' | 'in-progress' | 'active' | 'upcoming' | 'completed' | 'cancelled' | 'no-show' | 'late';
+export type GuardStatus = 'on-duty' | 'off-duty' | 'scheduled' | 'on-break' | 'break' | 'late' | 'absent';
+
+export type TaskPriority = 'high' | 'medium' | 'low';
+export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'overdue';
+export type TaskFrequency = 'once' | 'hourly' | 'periodic';
+
+export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type IncidentStatus = 'open' | 'under-review' | 'resolved' | 'closed';
+
+export type ActivityType =
+  | 'clock-in'
+  | 'clock-out'
+  | 'break-start'
+  | 'break-end'
+  | 'checkpoint-scan'
+  | 'incident-report'
+  | 'task-completed'
+  | 'geofence-violation'
+  | 'shift-swap';
+
+export type GeofenceStatus = 'inside' | 'outside' | 'unknown';
+export type ActivitySeverity = 'critical' | 'warning' | 'info' | 'normal';
 
 // ============================================
-// Core Metrics
+// Dashboard Metrics
 // ============================================
 
-export interface DashboardMetrics {
-  totalGuards: number;
+export interface OperationalMetrics {
   activeGuards: number;
+  totalScheduled: number;
   shiftsToday: number;
-  activeShifts: number;
-  completedShifts: number;
-  scheduledShifts: number;
-  cancelledShifts: number;
-  lateArrivals: number;
-  noShows: number;
+  shiftsCovered: number;
+  attendanceRate: number;
+  patrolCompletionRate: number;
   openIncidents: number;
   pendingTasks: number;
-  taskCompletionRate: number;
-  attendanceRate: number;
+  geofenceViolations: number;
+  complianceScore: number;
+}
+
+export interface MetricTrend {
+  current: number;
+  previous: number;
+  changePercent: number;
+  direction: 'up' | 'down' | 'stable';
+}
+
+export interface DashboardMetric {
+  id: string;
+  label: string;
+  value: number | string;
+  unit?: string;
+  trend?: MetricTrend;
+  status: 'success' | 'warning' | 'danger' | 'neutral';
+  icon?: string;
 }
 
 // ============================================
-// Attendance Issues
+// Alerts & Notifications
 // ============================================
-
-export type AlertSeverity = 'critical' | 'high' | 'warning' | 'medium' | 'low' | 'info';
-
-export interface LateArrival {
-  shiftId: string;
-  officerId: string;
-  officerName: string;
-  siteName: string;
-  scheduledStart: string;
-  actualClockIn: string;
-  minutesLate: number;
-  severity: 'high' | 'medium' | 'low';
-}
-
-export interface NoShow {
-  shiftId: string;
-  officerId: string;
-  officerName: string;
-  siteName: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  shiftType: 'Morning' | 'Afternoon' | 'Night';
-  minutesOverdue: number;
-}
-
-export interface AttendanceIssues {
-  date: string;
-  lateArrivals: {
-    count: number;
-    details: LateArrival[];
-  };
-  noShows: {
-    count: number;
-    details: NoShow[];
-  };
-}
-
-// ============================================
-// Alerts
-// ============================================
-
-export type AlertType = 'no-show' | 'late-arrival' | 'incident' | 'geofence' | 'certification' | 'system';
 
 export interface DashboardAlert {
   id: string;
@@ -112,238 +81,315 @@ export interface DashboardAlert {
   title: string;
   message: string;
   timestamp: string;
+  actionRequired: boolean;
+  actionUrl?: string;
+  relatedEntity?: {
+    type: 'guard' | 'shift' | 'site' | 'incident';
+    id: string;
+    name: string;
+  };
   isRead: boolean;
   isDismissed: boolean;
-
-  // Optional type-specific fields
-  shiftId?: string;
-  officerId?: string;
-  officerName?: string;
-  siteName?: string;
-  incidentId?: string;
-  scheduledStart?: string;
-  actualClockIn?: string;
-  minutesLate?: number;
-  minutesOverdue?: number;
-}
-
-export interface AlertsSummary {
-  total: number;
-  critical: number;
-  high: number;
-  warning: number;
 }
 
 // ============================================
-// Guard Status
+// Shift & Schedule Types
 // ============================================
 
-export type ClockStatus = 'clocked-in' | 'clocked-out' | 'on-break';
-export type GeofenceStatus = 'inside' | 'outside' | 'unknown';
+export interface ShiftSummary {
+  id: string;
+  guardId: string | null;
+  guardName: string;
+  siteName: string;
+  siteId: string | null;
+  role: string;
+  startTime: string;
+  endTime: string;
+  status: ShiftStatus;
+  shiftType: 'Morning' | 'Afternoon' | 'Night';
+  tasksTotal: number;
+  tasksCompleted: number;
+  notes?: string;
+}
+
+export interface TodayScheduleOverview {
+  totalShifts: number;
+  activeShifts: number;
+  completedShifts: number;
+  scheduledShifts: number;
+  cancelledShifts: number;
+  upcomingShifts: number;
+  noShows: number;
+  lateArrivals: number;
+  shifts: ShiftSummary[];
+}
+
+// ============================================
+// Guard Status Types
+// ============================================
 
 export interface GuardStatusEntry {
   id: string;
   name: string;
-  username: string;
-  phoneNumber?: string;
-  availability: boolean;
-  clockStatus: ClockStatus;
+  role: string;
+  guardType?: string;
+  status: GuardStatus;
   currentSite: string | null;
-  geofenceStatus: GeofenceStatus;
-  lastLocation?: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
+  shiftTime?: string;
+  contactInfo: {
+    phone: string;
+    email: string;
   };
-  currentShift?: {
-    id: string;
-    startTime: string;
-    endTime: string;
-    shiftType: string;
-  };
-  nextShift?: {
-    id: string;
-    startTime: string;
-    endTime: string;
-    siteName: string;
-  };
-}
-
-export interface GuardStatusSummary {
-  total: number;
-  clockedIn: number;
-  onBreak: number;
-  clockedOut: number;
-  available: number;
+  availability: boolean;
+  lastActivity?: string;
+  avatar?: string;
 }
 
 // ============================================
-// Activity Feed
+// Activity Feed Types
 // ============================================
 
-export type ActivityType = 'clock-action' | 'incident' | 'shift-status' | 'task-complete' | 'alert';
+export interface GeoLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  address?: string;
+  timestamp?: string;
+}
 
 export interface ActivityEvent {
   id: string;
   type: ActivityType;
-  action: string;
-  actorId?: string;
-  actorName: string;
-  siteName?: string;
-  description: string;
+  guardId?: string;
+  guardName: string;
+  siteName: string | null;
   timestamp: string;
-  severity?: AlertSeverity;
+  location?: GeoLocation;
   geofenceStatus?: GeofenceStatus;
+  notes?: string;
+  // Additional fields used by LiveActivityFeed
+  severity?: ActivitySeverity;
+  description?: string;
 }
 
 // ============================================
-// Tasks
+// Task Types (embedded in Shifts)
 // ============================================
 
 export interface Task {
-  taskId: string;
+  id: string;
   shiftId: string;
+  title?: string; // Optional title for display
   description: string;
-  frequency: 'once' | 'hourly' | 'periodic';
-  officerId?: string;
-  officerName: string;
-  siteName: string;
-  shiftType: string;
-  shiftStatus: string;
-  completed?: boolean;
-  completedAt?: string;
-}
-
-// ============================================
-// Schedule Overview
-// ============================================
-
-export interface ScheduleOverview {
-  date: string;
-  totalShifts: number;
-  shifts: ShiftSummary[];
-  byShiftType: {
-    morning: number;
-    afternoon: number;
-    night: number;
-  };
-}
-
-export interface ShiftSummary {
-  _id: string;
-  officer: {
-    _id: string;
-    fullName: string;
-    username: string;
-  };
-  site: {
-    _id: string;
+  frequency: TaskFrequency;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate: string;
+  assignedTo: {
+    id: string;
     name: string;
-  };
-  date: string;
-  startTime: string;
-  endTime: string;
-  shiftType: string;
-  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
-  tasks: Task[];
+  } | null;
+  site: {
+    id: string;
+    name: string;
+  } | null;
+  completedAt?: string;
+  completedBy?: string;
 }
 
 // ============================================
-// Socket Events
+// Incident Types
 // ============================================
 
-export interface SocketClockAction {
-  officerId: string;
-  officerName: string;
-  action: 'clock-in' | 'clock-out' | 'break-start' | 'break-end';
-  siteId?: string;
-  siteName: string;
-  geofenceStatus: GeofenceStatus;
-  timestamp: string;
-}
-
-export interface SocketShiftUpdate {
-  shiftId: string;
-  status: string;
-  previousStatus?: string;
-  officerId?: string;
-  officerName?: string;
-  siteName?: string;
-  timestamp: string;
-}
-
-export interface SocketTaskComplete {
-  shiftId: string;
-  taskId: string;
-  taskDescription: string;
-  completedBy: string;
-  completedByName: string;
-  timestamp: string;
-}
-
-export interface SocketIncidentReport {
-  incidentId: string;
-  type: string;
-  severity: AlertSeverity;
+export interface IncidentSummary {
+  id: string;
+  title: string;
+  incidentType: string;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
   location: string;
-  reportedBy: string;
-  reportedByName: string;
-  timestamp: string;
+  description: string;
+  reportedAt: string;
+  reportedBy: {
+    id: string;
+    name: string;
+  } | null;
 }
 
-export interface SocketGeofenceViolation {
-  severity: 'critical';
-  officerId: string;
-  officerName: string;
-  siteId?: string;
-  siteName: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  action: string;
-  timestamp: string;
+// ============================================
+// Quick Actions
+// ============================================
+
+export interface QuickAction {
+  id: string;
+  label: string;
+  icon: string;
+  href: string;
+  colorScheme: string;
+  description?: string;
+  requiresPermission?: string;
 }
 
-export interface SocketMetricsUpdate {
-  metrics: DashboardMetrics;
-  timestamp: string;
+// ============================================
+// Dashboard State
+// ============================================
+
+export interface DashboardState {
+  metrics: OperationalMetrics | null;
+  alerts: DashboardAlert[];
+  scheduleOverview: TodayScheduleOverview | null;
+  guardStatuses: GuardStatusEntry[];
+  activityFeed: ActivityEvent[];
+  pendingTasks: Task[];
+  recentIncidents: IncidentSummary[];
+  isLoading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
 }
 
 // ============================================
 // API Response Types
 // ============================================
 
-export interface DashboardMetricsResponse {
+export interface DashboardDataResponse {
   success: boolean;
-  data: DashboardMetrics;
+  data: {
+    metrics: OperationalMetrics;
+    alerts: DashboardAlert[];
+    scheduleOverview: TodayScheduleOverview;
+    guardStatuses: GuardStatusEntry[];
+    activityFeed: ActivityEvent[];
+    pendingTasks: Task[];
+    recentIncidents: IncidentSummary[];
+  };
   timestamp: string;
 }
 
-export interface DashboardAlertsResponse {
-  success: boolean;
-  data: DashboardAlert[];
-  summary: AlertsSummary;
+// ============================================
+// Component Props Types
+// ============================================
+
+export interface MetricCardProps {
+  metric: DashboardMetric;
+  onClick?: () => void;
 }
 
-export interface GuardStatusesResponse {
-  success: boolean;
-  data: GuardStatusEntry[];
-  summary: GuardStatusSummary;
+export interface AlertsPanelProps {
+  alerts: DashboardAlert[];
+  onDismiss: (alertId: string) => void;
+  onMarkRead: (alertId: string) => void;
+  maxVisible?: number;
+  showViewAll?: boolean;
 }
 
-export interface ActivityFeedResponse {
-  success: boolean;
-  data: ActivityEvent[];
+export interface ActivityFeedProps {
+  activities: ActivityEvent[];
+  maxVisible?: number;
+  showViewAll?: boolean;
+  onViewAll?: () => void;
 }
 
-export interface PendingTasksResponse {
-  success: boolean;
-  data: Task[];
-  count: number;
+export interface ShiftOverviewProps {
+  overview: TodayScheduleOverview | null;
+  onShiftClick?: (shift: ShiftSummary) => void;
+  isLoading?: boolean;
 }
 
-export interface AttendanceIssuesResponse {
-  success: boolean;
-  data: AttendanceIssues;
+export interface GuardStatusTableProps {
+  guards: GuardStatusEntry[];
+  onGuardClick?: (guard: GuardStatusEntry) => void;
+  showFilters?: boolean;
+  isLoading?: boolean;
 }
+
+export interface TaskListProps {
+  tasks: Task[];
+  onTaskClick?: (task: Task) => void;
+  onTaskComplete?: (taskId: string) => void;
+  showAll?: boolean;
+  isLoading?: boolean;
+}
+
+// ============================================
+// Constants & Configurations
+// ============================================
+
+export const ALERT_SEVERITY_CONFIG: Record<AlertSeverity, { label: string; color: string; icon: string }> = {
+  critical: { label: 'Critical', color: 'red', icon: 'FiAlertTriangle' },
+  warning: { label: 'Warning', color: 'orange', icon: 'FiAlertCircle' },
+  info: { label: 'Info', color: 'blue', icon: 'FiInfo' },
+};
+
+export const ALERT_TYPE_CONFIG: Record<AlertType, { label: string; icon: string }> = {
+  attendance: { label: 'Attendance', icon: 'FiClock' },
+  incident: { label: 'Incident', icon: 'FiAlertCircle' },
+  compliance: { label: 'Compliance', icon: 'FiShield' },
+  geofence: { label: 'Geofence', icon: 'FiMapPin' },
+  system: { label: 'System', icon: 'FiBell' },
+  task: { label: 'Task', icon: 'FiCheckSquare' },
+};
+
+export const SHIFT_STATUS_CONFIG: Record<ShiftStatus, { label: string; color: string }> = {
+  scheduled: { label: 'Scheduled', color: 'blue' },
+  'in-progress': { label: 'In Progress', color: 'green' },
+  active: { label: 'Active', color: 'green' },
+  upcoming: { label: 'Upcoming', color: 'blue' },
+  completed: { label: 'Completed', color: 'gray' },
+  cancelled: { label: 'Cancelled', color: 'red' },
+  'no-show': { label: 'No Show', color: 'red' },
+  late: { label: 'Late', color: 'orange' },
+};
+
+export const GUARD_STATUS_CONFIG: Record<GuardStatus, { label: string; color: string }> = {
+  'on-duty': { label: 'On Duty', color: 'green' },
+  'off-duty': { label: 'Off Duty', color: 'gray' },
+  scheduled: { label: 'Scheduled', color: 'blue' },
+  'on-break': { label: 'On Break', color: 'yellow' },
+  break: { label: 'On Break', color: 'yellow' },
+  late: { label: 'Late', color: 'orange' },
+  absent: { label: 'Absent', color: 'red' },
+};
+
+export const TASK_PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
+  high: { label: 'High', color: 'red' },
+  medium: { label: 'Medium', color: 'orange' },
+  low: { label: 'Low', color: 'gray' },
+};
+
+export const INCIDENT_SEVERITY_CONFIG: Record<IncidentSeverity, { label: string; color: string }> = {
+  critical: { label: 'Critical', color: 'red' },
+  high: { label: 'High', color: 'orange' },
+  medium: { label: 'Medium', color: 'yellow' },
+  low: { label: 'Low', color: 'gray' },
+};
+
+export const ACTIVITY_TYPE_CONFIG: Record<ActivityType, { label: string; color: string; icon: string }> = {
+  'clock-in': { label: 'Clock In', color: 'green', icon: 'FiLogIn' },
+  'clock-out': { label: 'Clock Out', color: 'gray', icon: 'FiLogOut' },
+  'break-start': { label: 'Break Start', color: 'yellow', icon: 'FiCoffee' },
+  'break-end': { label: 'Break End', color: 'blue', icon: 'FiPlay' },
+  'checkpoint-scan': { label: 'Checkpoint', color: 'purple', icon: 'FiMapPin' },
+  'incident-report': { label: 'Incident', color: 'red', icon: 'FiAlertTriangle' },
+  'task-completed': { label: 'Task Done', color: 'green', icon: 'FiCheckCircle' },
+  'geofence-violation': { label: 'Geofence Alert', color: 'red', icon: 'FiAlertCircle' },
+  'shift-swap': { label: 'Shift Swap', color: 'blue', icon: 'FiRefreshCw' },
+};
+
+export const REFRESH_INTERVALS = {
+  metrics: 30000, // 30 seconds
+  activity: 10000, // 10 seconds
+  alerts: 15000, // 15 seconds
+} as const;
+
+export const DEFAULT_DASHBOARD_STATE: DashboardState = {
+  metrics: null,
+  alerts: [],
+  scheduleOverview: null,
+  guardStatuses: [],
+  activityFeed: [],
+  pendingTasks: [],
+  recentIncidents: [],
+  isLoading: true,
+  error: null,
+  lastUpdated: null,
+};

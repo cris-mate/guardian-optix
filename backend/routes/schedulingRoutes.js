@@ -59,13 +59,6 @@ router.get('/available-officers', getAvailableOfficers);
 router.get('/available-sites', getAvailableSites);
 
 /**
- * @route   GET /api/scheduling/recommended-officers/:siteId
- * @desc    Get recommended officers for a site based on scoring
- * @access  Private
- */
-router.get('/recommended-officers/:siteId', getRecommendedOfficers);
-
-/**
  * @route   GET /api/scheduling/shifts/:id
  * @desc    Get single shift by ID
  * @access  Private
@@ -110,5 +103,7 @@ router.patch('/shifts/:shiftId/tasks/:taskId', updateTaskStatus);
  * @access  Private (Admin/Manager)
  */
 router.delete('/shifts/:id', authorize('Admin', 'Manager'), deleteShift);
+
+router.get('/recommended-officers/:siteId', getRecommendedOfficers);
 
 module.exports = router;
