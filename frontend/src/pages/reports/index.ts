@@ -33,7 +33,7 @@ export type {
   GeneratedReport,
 
   // Operational Data
-  ShiftSummary,
+  ShiftStateSummary,
   PatrolSummary,
   SiteActivitySummary,
   OperationalReportData,
@@ -46,7 +46,7 @@ export type {
   // Incident Data
   IncidentSeverity,
   IncidentCategory,
-  IncidentSummary,
+  IncidentStateSummary,
   IncidentByCategory,
   IncidentBySeverity,
   IncidentBySite,

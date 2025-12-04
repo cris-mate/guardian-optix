@@ -15,8 +15,8 @@ export type AlertType = 'attendance' | 'incident' | 'compliance' | 'geofence' | 
 export type ShiftStatus = 'scheduled' | 'in-progress' | 'active' | 'upcoming' | 'completed' | 'cancelled' | 'no-show' | 'late';
 export type GuardStatus = 'on-duty' | 'off-duty' | 'scheduled' | 'on-break' | 'break' | 'late' | 'absent';
 
-export type TaskPriority = 'high' | 'medium' | 'low';
-export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'overdue';
+export type TaskPriority = 'low' | 'medium' | 'high';
+//export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'overdue';
 export type TaskFrequency = 'once' | 'hourly' | 'periodic';
 
 export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
@@ -61,7 +61,7 @@ export interface MetricTrend {
 }
 
 export interface DashboardMetric {
-  id: string;
+  _id: string;
   label: string;
   value: number | string;
   unit?: string;
@@ -75,7 +75,7 @@ export interface DashboardMetric {
 // ============================================
 
 export interface DashboardAlert {
-  id: string;
+  _id: string;
   type: AlertType;
   severity: AlertSeverity;
   title: string;
@@ -85,7 +85,7 @@ export interface DashboardAlert {
   actionUrl?: string;
   relatedEntity?: {
     type: 'guard' | 'shift' | 'site' | 'incident';
-    id: string;
+    _id: string;
     name: string;
   };
   isRead: boolean;
@@ -97,7 +97,7 @@ export interface DashboardAlert {
 // ============================================
 
 export interface ShiftSummary {
-  id: string;
+  _id: string;
   guardId: string | null;
   guardName: string;
   siteName: string;
@@ -129,7 +129,7 @@ export interface TodayScheduleOverview {
 // ============================================
 
 export interface GuardStatusEntry {
-  id: string;
+  _id: string;
   name: string;
   role: string;
   guardType?: string;
@@ -158,7 +158,7 @@ export interface GeoLocation {
 }
 
 export interface ActivityEvent {
-  id: string;
+  _id: string;
   type: ActivityType;
   guardId?: string;
   guardName: string;
@@ -173,26 +173,16 @@ export interface ActivityEvent {
 }
 
 // ============================================
-// Task Types (embedded in Shifts)
+// Task embedded within a Shift
 // ============================================
 
 export interface Task {
-  id: string;
-  shiftId: string;
-  title?: string; // Optional title for display
+  _id: string;
+  title?: string;
   description: string;
   frequency: TaskFrequency;
   priority: TaskPriority;
-  status: TaskStatus;
-  dueDate: string;
-  assignedTo: {
-    id: string;
-    name: string;
-  } | null;
-  site: {
-    id: string;
-    name: string;
-  } | null;
+  completed: boolean;
   completedAt?: string;
   completedBy?: string;
 }
@@ -202,7 +192,7 @@ export interface Task {
 // ============================================
 
 export interface IncidentSummary {
-  id: string;
+  _id: string;
   title: string;
   incidentType: string;
   severity: IncidentSeverity;
@@ -211,7 +201,7 @@ export interface IncidentSummary {
   description: string;
   reportedAt: string;
   reportedBy: {
-    id: string;
+    _id: string;
     name: string;
   } | null;
 }
@@ -221,7 +211,7 @@ export interface IncidentSummary {
 // ============================================
 
 export interface QuickAction {
-  id: string;
+  _id: string;
   label: string;
   icon: string;
   href: string;

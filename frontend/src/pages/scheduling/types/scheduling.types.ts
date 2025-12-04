@@ -12,6 +12,7 @@
 export type ShiftType = 'Morning' | 'Afternoon' | 'Night';
 export type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
 export type TaskFrequency = 'once' | 'hourly' | 'periodic';
+export type TaskPriority = 'low' | 'medium' | 'high';
 export type ViewMode = 'day' | 'week' | 'month';
 
 // ============================================
@@ -20,8 +21,10 @@ export type ViewMode = 'day' | 'week' | 'month';
 
 export interface ShiftTask {
   _id: string;
+  title?: string;
   description: string;
   frequency: TaskFrequency;
+  priority: TaskPriority;
   completed: boolean;
   completedAt?: string;
   completedBy?: string;
@@ -74,8 +77,10 @@ export interface ShiftFormData {
 }
 
 export interface TaskFormData {
+  title?: string;
   description: string;
   frequency: TaskFrequency;
+  priority: TaskPriority;
 }
 
 // ============================================

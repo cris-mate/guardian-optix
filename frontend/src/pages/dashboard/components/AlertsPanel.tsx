@@ -235,7 +235,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
   // Handle action navigation
   const handleAction = (alert: DashboardAlert) => {
     if (alert.actionUrl) {
-      onMarkRead(alert.id);
+      onMarkRead(alert._id);
       navigate(alert.actionUrl);
     }
   };
@@ -302,9 +302,9 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
       <VStack gap={3} align="stretch">
         {visibleAlerts.map(alert => (
           <AlertItem
-            key={alert.id}
+            key={alert._id}
             alert={alert}
-            onDismiss={() => onDismiss(alert.id)}
+            onDismiss={() => onDismiss(alert._id)}
             onAction={() => handleAction(alert)}
           />
         ))}

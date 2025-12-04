@@ -50,7 +50,7 @@ export type IncidentType =
   | 'medical-emergency'
   | 'fire-alarm'
   | 'suspicious-activity'
-  | 'trespass'
+  | 'trespassing'
   | 'assault'
   | 'property-damage'
   | 'other';

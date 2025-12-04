@@ -271,7 +271,7 @@ const LiveActivityFeed: React.FC<LiveActivityFeedProps> = ({
         <VStack align="stretch" gap={0} maxH="400px" overflowY="auto">
           {visibleActivities.map((activity, index) => (
             <ActivityItem
-              key={activity.id}
+              key={activity._id}
               activity={activity}
               isFirst={index === 0}
             />

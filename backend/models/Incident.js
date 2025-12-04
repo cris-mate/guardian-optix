@@ -5,8 +5,20 @@ const incidentSchema = new mongoose.Schema({
   location: { type: String, required: true },
   incidentType: {
     type: String,
-    enum: ['security-breach', 'injury', 'property-damage', 'unauthorized-access',
-      'equipment-failure', 'policy-violation', 'other'],
+    enum: [
+      'security-breach',
+      'theft',
+      'vandalism',
+      'trespassing',
+      'suspicious-activity',
+      'medical-emergency',
+      'fire-alarm',
+      'equipment-failure',
+      'unauthorized-access',
+      'property-damage',
+      'assault',
+      'other'
+    ],
     required: true
   },
   severity: { type: String, enum: ['low', 'medium', 'high', 'critical'], required: true },
@@ -18,7 +30,7 @@ const incidentSchema = new mongoose.Schema({
     enum: ['open', 'under-review', 'resolved', 'closed'],
     default: 'open'
   },
-  resolution: String,
+  actionTaken: String,
   resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   resolvedAt: Date
 }, { timestamps: true });

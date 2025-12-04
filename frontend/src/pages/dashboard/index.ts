@@ -24,7 +24,6 @@ export type {
   ShiftStatus,
   GuardStatus,
   TaskPriority,
-  TaskStatus,
   TaskFrequency,
   IncidentSeverity,
   IncidentStatus,

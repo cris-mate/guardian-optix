@@ -195,7 +195,7 @@ export const useDashboardData = (
       setState((prev) => ({
         ...prev,
         alerts: prev.alerts.map((alert) =>
-          alert.id === alertId ? { ...alert, isDismissed: true } : alert
+          alert._id === alertId ? { ...alert, isDismissed: true } : alert
         ),
       }));
     } catch (err) {
@@ -210,7 +210,7 @@ export const useDashboardData = (
       setState((prev) => ({
         ...prev,
         alerts: prev.alerts.map((alert) =>
-          alert.id === alertId ? { ...alert, isRead: true } : alert
+          alert._id === alertId ? { ...alert, isRead: true } : alert
         ),
       }));
     } catch (err) {
@@ -228,7 +228,7 @@ export const useDashboardData = (
       await api.patch(`/scheduling/shifts/tasks/${taskId}/complete`);
       setState((prev) => ({
         ...prev,
-        pendingTasks: prev.pendingTasks.filter((task) => task.id !== taskId),
+        pendingTasks: prev.pendingTasks.filter((task) => task._id !== taskId),
         metrics: prev.metrics
           ? { ...prev.metrics, pendingTasks: prev.metrics.pendingTasks - 1 }
           : null,
@@ -314,7 +314,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     },
     alerts: [
       {
-        id: 'alert-1',
+        _id: 'alert-1',
         type: 'attendance',
         severity: 'warning',
         title: 'Late Arrival',
@@ -326,7 +326,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
         isDismissed: false,
       },
       {
-        id: 'alert-2',
+        _id: 'alert-2',
         type: 'compliance',
         severity: 'warning',
         title: 'Certification Expiring',
@@ -349,7 +349,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
       lateArrivals: 2,
       shifts: [
         {
-          id: 'shift-1',
+          _id: 'shift-1',
           guardId: 'guard-1',
           guardName: 'James Wilson',
           siteName: 'Westfield Shopping Centre',
@@ -363,7 +363,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
           tasksCompleted: 3,
         },
         {
-          id: 'shift-2',
+          _id: 'shift-2',
           guardId: 'guard-2',
           guardName: 'Sarah Chen',
           siteName: 'Tech Park Building A',
@@ -380,7 +380,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     },
     guardStatuses: [
       {
-        id: 'guard-1',
+        _id: 'guard-1',
         name: 'James Wilson',
         role: 'Guard',
         guardType: 'Static',
@@ -393,7 +393,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
         avatar: undefined,
       },
       {
-        id: 'guard-2',
+        _id: 'guard-2',
         name: 'Sarah Chen',
         role: 'Guard',
         guardType: 'Mobile Patrol',
@@ -406,7 +406,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
         avatar: undefined,
       },
       {
-        id: 'guard-3',
+        _id: 'guard-3',
         name: 'Michael Brown',
         role: 'Guard',
         guardType: 'Dog Handler',
@@ -421,7 +421,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     ],
     activityFeed: [
       {
-        id: 'activity-1',
+        _id: 'activity-1',
         type: 'clock-in',
         guardId: 'guard-1',
         guardName: 'James Wilson',
@@ -431,7 +431,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
         description: 'Clocked in for morning shift',
       },
       {
-        id: 'activity-2',
+        _id: 'activity-2',
         type: 'task-completed',
         guardId: 'guard-2',
         guardName: 'Sarah Chen',
@@ -443,33 +443,25 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     ],
     pendingTasks: [
       {
-        id: 'task-1',
-        shiftId: 'shift-1',
+        _id: 'task-1',
         title: 'Fire Exit Check',
         description: 'Check fire exits - North Wing',
         frequency: 'once',
         priority: 'high',
-        status: 'pending',
-        dueDate: new Date(Date.now() + 2 * 3600000).toISOString(),
-        assignedTo: { id: 'guard-1', name: 'James Wilson' },
-        site: { id: 'site-1', name: 'Westfield Shopping Centre' },
+        completed: false,
       },
       {
-        id: 'task-2',
-        shiftId: 'shift-2',
+        _id: 'task-2',
         title: 'Perimeter Patrol',
         description: 'Hourly patrol - Perimeter',
         frequency: 'hourly',
         priority: 'medium',
-        status: 'pending',
-        dueDate: new Date(Date.now() + 30 * 60000).toISOString(),
-        assignedTo: { id: 'guard-2', name: 'Sarah Chen' },
-        site: { id: 'site-2', name: 'Tech Park Building A' },
+        completed: false,
       },
     ],
     recentIncidents: [
       {
-        id: 'incident-1',
+        _id: 'incident-1',
         title: 'Suspicious Activity - Car Park',
         incidentType: 'suspicious-activity',
         severity: 'medium',
@@ -477,7 +469,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
         location: 'Car Park Level 2',
         description: 'Unknown individual observed checking vehicle doors',
         reportedAt: new Date(Date.now() - 4 * 3600000).toISOString(),
-        reportedBy: { id: 'guard-1', name: 'James Wilson' },
+        reportedBy: { _id: 'guard-1', name: 'James Wilson' },
       },
     ],
   });
@@ -491,7 +483,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     setState((prev) => ({
       ...prev,
       alerts: prev.alerts.map((alert) =>
-        alert.id === alertId ? { ...alert, isDismissed: true } : alert
+        alert._id === alertId ? { ...alert, isDismissed: true } : alert
       ),
     }));
   }, []);
@@ -500,7 +492,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     setState((prev) => ({
       ...prev,
       alerts: prev.alerts.map((alert) =>
-        alert.id === alertId ? { ...alert, isRead: true } : alert
+        alert._id === alertId ? { ...alert, isRead: true } : alert
       ),
     }));
   }, []);
@@ -508,7 +500,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
   const completeTask = useCallback(async (taskId: string) => {
     setState((prev) => ({
       ...prev,
-      pendingTasks: prev.pendingTasks.filter((task) => task.id !== taskId),
+      pendingTasks: prev.pendingTasks.filter((task) => task._id !== taskId),
       metrics: prev.metrics
         ? { ...prev.metrics, pendingTasks: prev.metrics.pendingTasks - 1 }
         : null,

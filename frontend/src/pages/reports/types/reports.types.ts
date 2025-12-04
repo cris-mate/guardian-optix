@@ -9,13 +9,9 @@
 // ============================================
 
 export type TimeRange = 'today' | 'yesterday' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
-
 export type ReportCategory = 'operational' | 'attendance' | 'incidents' | 'clients' | 'compliance';
-
 export type ExportFormat = 'pdf' | 'csv' | 'xlsx';
-
 export type ReportStatus = 'ready' | 'generating' | 'scheduled' | 'failed';
-
 export interface DateRange {
   start: Date;
   end: Date;
@@ -84,7 +80,7 @@ export interface GeneratedReport {
 // Operational Report Data
 // ============================================
 
-export interface ShiftSummary {
+export interface ShiftStateSummary {
   totalShifts: number;
   completedShifts: number;
   activeShifts: number;
@@ -118,7 +114,7 @@ export interface SiteActivitySummary {
 
 export interface OperationalReportData {
   period: DateRange;
-  shifts: ShiftSummary;
+  shifts: ShiftStateSummary;
   patrols: PatrolSummary;
   siteActivity: SiteActivitySummary[];
   topPerformingSites: SiteActivitySummary[];
@@ -183,12 +179,12 @@ export type IncidentCategory =
   | 'vandalism'
   | 'trespassing'
   | 'suspicious-activity'
-  | 'medical'
-  | 'fire'
+  | 'medical-emergency'
+  | 'fire-alarm'
   | 'equipment-failure'
   | 'other';
 
-export interface IncidentSummary {
+export interface IncidentStateSummary {
   totalIncidents: number;
   openIncidents: number;
   resolvedIncidents: number;
@@ -221,7 +217,7 @@ export interface IncidentBySite {
 
 export interface IncidentReportData {
   period: DateRange;
-  summary: IncidentSummary;
+  summary: IncidentStateSummary;
   byCategory: IncidentByCategory[];
   bySeverity: IncidentBySeverity[];
   bySite: IncidentBySite[];
@@ -375,8 +371,8 @@ export const INCIDENT_CATEGORY_LABELS: Record<IncidentCategory, string> = {
   'vandalism': 'Vandalism',
   'trespassing': 'Trespassing',
   'suspicious-activity': 'Suspicious Activity',
-  'medical': 'Medical Emergency',
-  'fire': 'Fire/Alarm',
+  'medical-emergency': 'Medical Emergency',
+  'fire-alarm': 'Fire/Alarm',
   'equipment-failure': 'Equipment Failure',
   'other': 'Other',
 };

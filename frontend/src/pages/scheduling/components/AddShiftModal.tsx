@@ -31,6 +31,7 @@ import {
   AvailableSite,
   ShiftType,
   TaskFrequency,
+  TaskPriority,
 } from '../types/scheduling.types';
 import RecommendedOfficersPanel from './RecommendedOfficersPanel';
 
@@ -106,8 +107,10 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
     getInitialFormData(selectedDate)
   );
   const [newTask, setNewTask] = useState<TaskFormData>({
+    title: '',
     description: '',
     frequency: 'once',
+    priority: 'medium',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ShiftFormData, string>>>({});
 
@@ -132,7 +135,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
   // Reset form when modal closes
   const handleClose = () => {
     setFormData(getInitialFormData(selectedDate));
-    setNewTask({ description: '', frequency: 'once' });
+    setNewTask({ title: '', description: '', frequency: 'once', priority: 'medium' });
     setErrors({});
     onClose();
   };
@@ -163,10 +166,27 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
 
     setFormData((prev) => ({
       ...prev,
-      tasks: [...prev.tasks, { ...newTask }],
+      tasks: [
+        ...prev.tasks,
+        {
+          title: newTask.title?.trim() || undefined,
+          description: newTask.description.trim(),
+          frequency: newTask.frequency,
+          priority: newTask.priority,
+        },
+      ],
     }));
-    setNewTask({ description: '', frequency: 'once' });
+
+    setNewTask({ title: '', description: '', frequency: 'once', priority: 'medium' });
   };
+
+  const priorityOptions = createListCollection({
+    items: [
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' },
+    ],
+  });
 
   // Remove task
   const handleRemoveTask = (index: number) => {
@@ -452,63 +472,55 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
 
                 {/* Add New Task */}
                 <VStack gap={2} align="stretch">
+                  <Input
+                    placeholder="Task title (optional)"
+                    value={newTask.title}
+                    onChange={(e) =>
+                      setNewTask((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                  />
                   <HStack gap={2}>
                     <Input
                       flex="1"
                       placeholder="Task description"
                       value={newTask.description}
                       onChange={(e) =>
-                        setNewTask((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
+                        setNewTask((prev) => ({ ...prev, description: e.target.value }))
                       }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddTask();
-                        }
-                      }}
                     />
                     <Select.Root
                       collection={frequencyOptions}
                       value={[newTask.frequency]}
                       onValueChange={(e) =>
-                        setNewTask((prev) => ({
-                          ...prev,
-                          frequency: e.value[0] as TaskFrequency,
-                        }))
+                        setNewTask((prev) => ({ ...prev, frequency: e.value[0] as TaskFrequency }))
                       }
-                      w="140px"
+                      width="140px"
+                    >
+                      {/* ... */}
+                    </Select.Root>
+                    <Select.Root
+                      collection={priorityOptions}
+                      value={[newTask.priority]}
+                      onValueChange={(e) =>
+                        setNewTask((prev) => ({ ...prev, priority: e.value[0] as TaskPriority }))
+                      }
+                      width="120px"
                     >
                       <Select.Trigger>
-                        <Select.ValueText />
+                        <Select.ValueText placeholder="Priority" />
                       </Select.Trigger>
-                      <Select.Content
-                        bg="white"
-                        borderColor="gray.200"
-                        boxShadow="lg"
-                      >
-                        {frequencyOptions.items.map((item) => (
-                          <Select.Item
-                            key={item.value}
-                            item={item}
-                            _hover={{ bg: 'gray.100' }}
-                            _highlighted={{ bg: 'gray.100' }}
-                            color="gray.800"
-                          >
+                      <Select.Content>
+                        {priorityOptions.items.map((item) => (
+                          <Select.Item key={item.value} item={item}>
                             {item.label}
                           </Select.Item>
                         ))}
                       </Select.Content>
                     </Select.Root>
-                    <Button variant="outline" size="md" onClick={handleAddTask}>
-                      <LuPlus size={16} />
-                    </Button>
+                    <IconButton onClick={handleAddTask} colorPalette="blue">
+                      <LuPlus />
+                    </IconButton>
                   </HStack>
-                  <Text fontSize="xs" color="gray.500">
-                    Press Enter or click + to add a task
-                  </Text>
                 </VStack>
               </Box>
 

@@ -120,7 +120,7 @@ const GuardRow: React.FC<GuardRowProps> = ({ guard, onClick }) => {
   const handleMenuAction = (value: string) => {
     switch (value) {
       case 'profile':
-        navigate(`/guards/${guard.id}`);
+        navigate(`/guards/${guard._id}`);
         break;
       case 'call':
         if (guard.contactInfo?.phone) {
@@ -133,7 +133,7 @@ const GuardRow: React.FC<GuardRowProps> = ({ guard, onClick }) => {
         }
         break;
       case 'location':
-        navigate(`/tracking/${guard.id}`);
+        navigate(`/tracking/${guard._id}`);
         break;
     }
   };
@@ -401,7 +401,7 @@ const GuardStatusTable: React.FC<GuardStatusTableProps> = ({
           <Table.Body>
             {visibleGuards.map(guard => (
               <GuardRow
-                key={guard.id}
+                key={guard._id}
                 guard={guard}
                 onClick={onGuardClick ? () => onGuardClick(guard) : undefined}
               />

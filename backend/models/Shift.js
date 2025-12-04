@@ -7,8 +7,15 @@
 
 const mongoose = require('mongoose');
 
-// Task subdocument schema
+// ============================================
+// Task Subdocument Schema
+// ============================================
 const TaskSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Task title cannot exceed 100 characters'],
+  },
   description: {
     type: String,
     required: [true, 'Task description is required'],
@@ -19,6 +26,11 @@ const TaskSchema = new mongoose.Schema({
     type: String,
     enum: ['once', 'hourly', 'periodic'],
     default: 'once',
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium',
   },
   completed: {
     type: Boolean,
@@ -33,7 +45,9 @@ const TaskSchema = new mongoose.Schema({
   },
 });
 
-// Shift schema
+// ============================================
+// Shift Schema
+// ============================================
 const ShiftSchema = new mongoose.Schema(
   {
     officer: {
@@ -102,24 +116,31 @@ const ShiftSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for efficient querying
+// ============================================
+// Indexes
+// ============================================
+
 ShiftSchema.index({ date: 1, officer: 1 });
 ShiftSchema.index({ date: 1, site: 1 });
 ShiftSchema.index({ date: 1, status: 1 });
 ShiftSchema.index({ officer: 1, status: 1 });
 
-// Virtual for shift duration in hours
+// ============================================
+// Virtuals
+// ============================================
+
 ShiftSchema.virtual('durationHours').get(function () {
   const start = parseInt(this.startTime.split(':')[0]);
   const end = parseInt(this.endTime.split(':')[0]);
   return end > start ? end - start : 24 - start + end;
 });
 
-// Virtual for task completion percentage
-ShiftSchema.virtual('taskCompletionPercentage').get(function () {
-  if (this.tasks.length === 0) return 100;
-  const completed = this.tasks.filter((t) => t.completed).length;
-  return Math.round((completed / this.tasks.length) * 100);
+ShiftSchema.virtual('tasksCompleted').get(function () {
+  return this.tasks.filter((t) => t.completed).length;
+});
+
+ShiftSchema.virtual('tasksTotal').get(function () {
+  return this.tasks.length;
 });
 
 // Ensure virtuals are included in JSON output

@@ -334,7 +334,7 @@ const Dashboard: React.FC = () => {
     timestamp: string;
   }) => {
     const activityItem: ActivityEvent = {
-      id: `realtime-${Date.now()}`,
+      _id: `realtime-${Date.now()}`,
       type: data.action as ActivityEvent['type'],
       guardId: data.officerId,
       guardName: data.officerName,
@@ -362,7 +362,7 @@ const Dashboard: React.FC = () => {
     timestamp: string;
   }) => {
     const activityItem: ActivityEvent = {
-      id: `geofence-${Date.now()}`,
+      _id: `geofence-${Date.now()}`,
       type: 'geofence-violation',
       guardName: data.officerName,
       siteName: data.siteName,
@@ -411,7 +411,7 @@ const Dashboard: React.FC = () => {
     timestamp: string;
   }) => {
     const activityItem: ActivityEvent = {
-      id: `shift-${Date.now()}`,
+      _id: `shift-${Date.now()}`,
       type: 'clock-in',
       guardName: data.officerName,
       siteName: null,
@@ -425,7 +425,7 @@ const Dashboard: React.FC = () => {
   const handleActivityNew = useCallback((data: unknown) => {
     const activityData = data as Partial<ActivityEvent>;
     const activityItem: ActivityEvent = {
-      id: activityData.id || `activity-${Date.now()}`,
+      _id: activityData._id || `activity-${Date.now()}`,
       type: activityData.type || 'clock-in',
       guardId: activityData.guardId,
       guardName: activityData.guardName || 'Unknown',
@@ -457,8 +457,8 @@ const Dashboard: React.FC = () => {
     const merged = [...realtimeActivity, ...activityFeed];
     const uniqueMap = new Map<string, ActivityEvent>();
     merged.forEach(item => {
-      if (!uniqueMap.has(item.id)) {
-        uniqueMap.set(item.id, item);
+      if (!uniqueMap.has(item._id)) {
+        uniqueMap.set(item._id, item);
       }
     });
     return Array.from(uniqueMap.values())
@@ -468,11 +468,11 @@ const Dashboard: React.FC = () => {
 
   // Handlers
   const handleGuardClick = (guard: GuardStatusEntry) => {
-    console.log('Guard clicked:', guard.id);
+    console.log('Guard clicked:', guard._id);
   };
 
   const handleTaskClick = (task: Task) => {
-    console.log('Task clicked:', task.id);
+    console.log('Task clicked:', task._id);
   };
 
   const handleRefresh = () => {

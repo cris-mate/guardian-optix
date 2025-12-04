@@ -12,15 +12,13 @@ import {
 import {
   FiClipboard,
   FiChevronRight,
-  FiClock,
-  FiMapPin,
-  FiUser,
   FiFlag,
   FiCheck,
   FiSquare,
   FiCheckSquare,
+  FiRefreshCw,
 } from 'react-icons/fi';
-import type { Task, TaskPriority, TaskStatus } from '../types/dashboard.types';
+import type { Task, TaskPriority, TaskFrequency } from '../types/dashboard.types';
 
 // ============================================
 // Types
@@ -38,35 +36,34 @@ interface UpcomingTasksProps {
 // ============================================
 
 const priorityConfig: Record<TaskPriority, {
-  colorScheme: string;
+  colorPalette: string;
   icon: React.ElementType;
   label: string;
 }> = {
   high: {
-    colorScheme: 'red',
+    colorPalette: 'red',
     icon: FiFlag,
     label: 'High',
   },
   medium: {
-    colorScheme: 'orange',
+    colorPalette: 'orange',
     icon: FiFlag,
     label: 'Medium',
   },
   low: {
-    colorScheme: 'gray',
+    colorPalette: 'gray',
     icon: FiFlag,
     label: 'Low',
   },
 };
 
-const statusConfig: Record<TaskStatus, {
-  colorScheme: string;
+const frequencyConfig: Record<TaskFrequency, {
+  colorPalette: string;
   label: string;
 }> = {
-  pending: { colorScheme: 'gray', label: 'Pending' },
-  'in-progress': { colorScheme: 'blue', label: 'In Progress' },
-  completed: { colorScheme: 'green', label: 'Completed' },
-  overdue: { colorScheme: 'red', label: 'Overdue' },
+  once: { colorPalette: 'gray', label: 'One-time' },
+  hourly: { colorPalette: 'blue', label: 'Hourly' },
+  periodic: { colorPalette: 'purple', label: 'Periodic' },
 };
 
 // ============================================
@@ -119,35 +116,19 @@ interface TaskItemProps {
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onClick, onComplete }) => {
   const priorityCfg = priorityConfig[task.priority];
-  const statusCfg = statusConfig[task.status];
-
-  const formatDueDate = (dueDate: Date | string) => {
-    const date = new Date(dueDate);
-    const now = new Date();
-    const diffMs = date.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return 'Overdue';
-    if (diffDays === 0) return 'Due today';
-    if (diffDays === 1) return 'Due tomorrow';
-    if (diffDays <= 7) return `Due in ${diffDays} days`;
-    return date.toLocaleDateString();
-  };
-
-  const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
-  const isDueSoon = !isOverdue && new Date(task.dueDate).getTime() - new Date().getTime() < 86400000 * 2;
-  const isCompleted = task.status === 'completed';
+  const frequencyCfg = frequencyConfig[task.frequency];
+  const isCompleted = task.completed;
 
   return (
     <Box
       p={4}
-      bg={isOverdue ? 'red.50' : isDueSoon ? 'orange.50' : 'white'}
+      bg={isCompleted ? 'gray.50' : 'white'}
       borderWidth="1px"
-      borderColor={isOverdue ? 'red.200' : isDueSoon ? 'orange.200' : 'gray.200'}
+      borderColor={isCompleted ? 'gray.200' : task.priority === 'high' ? 'orange.200' : 'gray.200'}
       borderRadius="lg"
       transition="all 0.2s"
       _hover={{
-        borderColor: isOverdue ? 'red.300' : 'blue.300',
+        borderColor: 'blue.300',
         boxShadow: 'sm',
       }}
     >
@@ -175,10 +156,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onClick, onComplete }) => {
                 textDecoration={isCompleted ? 'line-through' : 'none'}
                 color={isCompleted ? 'gray.400' : 'gray.800'}
               >
-                {task.title}
+                {task.title || task.description}
               </Text>
               <Badge
-                colorScheme={priorityCfg.colorScheme}
+                colorPalette={priorityCfg.colorPalette}
                 size="sm"
                 variant="subtle"
               >
@@ -189,15 +170,16 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onClick, onComplete }) => {
               </Badge>
             </HStack>
             <Badge
-              colorScheme={isOverdue ? 'red' : statusCfg.colorScheme}
-              variant={isOverdue ? 'solid' : 'subtle'}
+              colorPalette={isCompleted ? 'green' : frequencyCfg.colorPalette}
+              variant={isCompleted ? 'solid' : 'subtle'}
               size="sm"
             >
-              {isOverdue ? 'Overdue' : statusCfg.label}
+              {isCompleted ? 'Completed' : frequencyCfg.label}
             </Badge>
           </HStack>
 
-          {task.description && (
+          {/* Show description if title exists */}
+          {task.title && task.description && (
             <Text
               fontSize="xs"
               color="gray.500"
@@ -211,38 +193,22 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onClick, onComplete }) => {
           )}
 
           <HStack gap={4} flexWrap="wrap">
-            {/* Due Date */}
-            <HStack gap={1}>
-              <Icon
-                as={FiClock}
-                boxSize={3}
-                color={isOverdue ? 'red.500' : isDueSoon ? 'orange.500' : 'gray.400'}
-              />
-              <Text
-                fontSize="xs"
-                color={isOverdue ? 'red.600' : isDueSoon ? 'orange.600' : 'gray.500'}
-                fontWeight={isOverdue || isDueSoon ? 'medium' : 'normal'}
-              >
-                {formatDueDate(task.dueDate)}
-              </Text>
-            </HStack>
-
-            {/* Assigned To */}
-            {task.assignedTo && (
+            {/* Frequency indicator */}
+            {task.frequency !== 'once' && (
               <HStack gap={1}>
-                <Icon as={FiUser} boxSize={3} color="gray.400" />
+                <Icon as={FiRefreshCw} boxSize={3} color="gray.400" />
                 <Text fontSize="xs" color="gray.500">
-                  {task.assignedTo.name}
+                  {task.frequency === 'hourly' ? 'Every hour' : 'Periodic'}
                 </Text>
               </HStack>
             )}
 
-            {/* Site */}
-            {task.site && (
+            {/* Completed timestamp */}
+            {task.completedAt && (
               <HStack gap={1}>
-                <Icon as={FiMapPin} boxSize={3} color="gray.400" />
+                <Icon as={FiCheck} boxSize={3} color="green.500" />
                 <Text fontSize="xs" color="gray.500">
-                  {task.site.name}
+                  Completed {new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </HStack>
             )}
@@ -265,24 +231,15 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
                                                      }) => {
   const navigate = useNavigate();
 
-  // Sort tasks: overdue first, then by priority, then by due date
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aOverdue = new Date(a.dueDate) < new Date() && a.status !== 'completed';
-    const bOverdue = new Date(b.dueDate) < new Date() && b.status !== 'completed';
-
-    if (aOverdue && !bOverdue) return -1;
-    if (!aOverdue && bOverdue) return 1;
-
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-    if (priorityDiff !== 0) return priorityDiff;
-
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  // Filter to pending tasks and sort by priority
+  const pendingTasks = tasks.filter((t) => !t.completed);
+  const sortedTasks = [...pendingTasks].sort((a, b) => {
+    const priorityOrder: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 
   const visibleTasks = sortedTasks.slice(0, maxVisible);
-  const overdueCount = tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'completed').length;
-  const highPriorityCount = tasks.filter(t => t.priority === 'high' && t.status !== 'completed').length;
+  const highPriorityCount = pendingTasks.filter((t) => t.priority === 'high').length;
 
   return (
     <Box
@@ -290,7 +247,7 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
       p={5}
       borderRadius="xl"
       borderWidth="1px"
-      borderColor={overdueCount > 0 ? 'red.200' : 'gray.200'}
+      borderColor={highPriorityCount > 0 ? 'orange.200' : 'gray.200'}
       boxShadow="sm"
     >
       {/* Header */}
@@ -300,13 +257,8 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
           <Text fontWeight="semibold" color="gray.800">
             Pending Tasks
           </Text>
-          {overdueCount > 0 && (
-            <Badge colorScheme="red" variant="solid">
-              {overdueCount} overdue
-            </Badge>
-          )}
-          {highPriorityCount > 0 && overdueCount === 0 && (
-            <Badge colorScheme="orange" variant="subtle">
+          {highPriorityCount > 0 && (
+            <Badge colorPalette="orange" variant="subtle">
               {highPriorityCount} high priority
             </Badge>
           )}
@@ -314,8 +266,8 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
         <Button
           size="xs"
           variant="ghost"
-          colorScheme="blue"
-          onClick={() => navigate('/tasks')}
+          colorPalette="blue"
+          onClick={() => navigate('/scheduling')}
         >
           View All
           <Icon as={FiChevronRight} ml={1} />
@@ -323,7 +275,7 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
       </HStack>
 
       {/* Task List */}
-      {tasks.length === 0 ? (
+      {pendingTasks.length === 0 ? (
         <Box py={8} textAlign="center">
           <Icon as={FiCheck} boxSize={8} color="green.300" mb={2} />
           <Text color="gray.500" fontSize="sm">All caught up!</Text>
@@ -331,27 +283,27 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
         </Box>
       ) : (
         <VStack gap={3} align="stretch">
-          {visibleTasks.map(task => (
+          {visibleTasks.map((task) => (
             <TaskItem
-              key={task.id}
+              key={task._id}
               task={task}
               onClick={onTaskClick ? () => onTaskClick(task) : undefined}
-              onComplete={onTaskComplete ? () => onTaskComplete(task.id) : undefined}
+              onComplete={onTaskComplete ? () => onTaskComplete(task._id) : undefined}
             />
           ))}
         </VStack>
       )}
 
       {/* Show more */}
-      {tasks.length > maxVisible && (
+      {pendingTasks.length > maxVisible && (
         <Box mt={3} textAlign="center">
           <Button
             size="sm"
             variant="ghost"
-            colorScheme="gray"
-            onClick={() => navigate('/tasks')}
+            colorPalette="gray"
+            onClick={() => navigate('/scheduling')}
           >
-            View {tasks.length - maxVisible} more tasks
+            View {pendingTasks.length - maxVisible} more tasks
           </Button>
         </Box>
       )}
