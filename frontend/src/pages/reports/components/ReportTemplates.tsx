@@ -45,7 +45,7 @@ interface ReportTemplatesProps {
   onToggleFavorite: (templateId: string) => void;
   selectedTemplateId?: string | null;
   isLoading?: boolean;
-  isGenerating?: boolean;
+  generatingTemplateId: string | null;
 }
 
 // ============================================
@@ -101,7 +101,7 @@ interface TemplateCardProps {
   onSelect: () => void;
   onGenerate: () => void;
   onToggleFavorite: () => void;
-  isGenerating: boolean;
+  generatingTemplateId: string | null;
 }
 
 const TemplateCard: React.FC<TemplateCardProps> = ({
@@ -110,7 +110,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                                                      onSelect,
                                                      onGenerate,
                                                      onToggleFavorite,
-                                                     isGenerating,
+                                                     generatingTemplateId,
                                                    }) => {
   const IconComponent = getIconComponent(template.icon);
   const categoryColor = getCategoryColor(template.category);
@@ -197,8 +197,8 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             e.stopPropagation();
             onGenerate();
           }}
-          disabled={isGenerating}
-          loading={isGenerating}
+          loading={generatingTemplateId === template.id}
+          disabled={generatingTemplateId !== null}
         >
           <Icon as={LuDownload} boxSize={4} mr={2} />
           Generate Report
@@ -278,7 +278,7 @@ const ReportTemplates: React.FC<ReportTemplatesProps> = ({
                                                            onToggleFavorite,
                                                            selectedTemplateId,
                                                            isLoading = false,
-                                                           isGenerating = false,
+                                                           generatingTemplateId,
                                                          }) => {
   if (isLoading) {
     return (
@@ -304,7 +304,7 @@ const ReportTemplates: React.FC<ReportTemplatesProps> = ({
           onSelect={() => onSelect(template.id)}
           onGenerate={() => onGenerate(template.id)}
           onToggleFavorite={() => onToggleFavorite(template.id)}
-          isGenerating={isGenerating}
+          generatingTemplateId={generatingTemplateId}
         />
       ))}
     </SimpleGrid>

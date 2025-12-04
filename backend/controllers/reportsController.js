@@ -9,6 +9,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
 const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
+const { generateCSV, generatePDF } = require('../services/exportService');
 // const Client = require('../models/Client');
 // const Site = require('../models/Site');
 
@@ -524,6 +525,31 @@ const downloadReport = asyncHandler(async (req, res) => {
     },
   });
 });
+
+const downloadReport = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { format = 'pdf' } = req.query;
+
+  // Fetch report data (use your existing getOperationalData logic)
+  const reportData = await aggregateReportData(id);
+
+  if (format === 'csv') {
+    const csv = generateCSV(reportData.rows, reportData.columns);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${reportData.name}.csv"`);
+    return res.send(csv);
+  }
+
+  if (format === 'pdf') {
+    const pdfBuffer = await generatePDF(reportData, reportData.name);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${reportData.name}.pdf"`);
+    return res.send(pdfBuffer);
+  }
+
+  res.status(400).json({ error: 'Unsupported format' });
+});
+
 
 // ============================================
 // Exports

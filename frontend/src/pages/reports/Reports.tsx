@@ -52,7 +52,7 @@ import ScheduledReports from './components/ScheduledReports';
 import { useReportsData } from './hooks/useReportsData';
 
 // Types
-import type { ReportCategory } from './types/reports.types';
+import type { ReportCategory, ExportFormat } from './types/reports.types';
 
 // ============================================
 // Tab Configuration
@@ -250,6 +250,7 @@ const Reports: React.FC = () => {
     quickStats,
     isLoading,
     isGenerating,
+    generatingTemplateId,
     error,
     activeCategory,
     setActiveCategory,
@@ -281,11 +282,32 @@ const Reports: React.FC = () => {
     }
   };
 
-  const handleDownloadReport = (reportId: string) => {
-    // Would trigger actual download
+  const handleDownloadReport = async (reportId: string) => {
+    // Find the report to get its format
     const report = recentReports.find(r => r.id === reportId);
-    if (report?.downloadUrl) {
-      window.open(report.downloadUrl, '_blank');
+    if (!report) return;
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch(
+        `/api/reports/download/${reportId}?format=${report.format}`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+          },
+        }
+      );
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report-${reportId}.${report.format}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
     }
   };
 
@@ -387,7 +409,7 @@ const Reports: React.FC = () => {
                     onToggleFavorite={toggleFavorite}
                     selectedTemplateId={selectedTemplateId}
                     isLoading={isLoading}
-                    isGenerating={isGenerating}
+                    generatingTemplateId={generatingTemplateId}
                   />
                 </GridItem>
 

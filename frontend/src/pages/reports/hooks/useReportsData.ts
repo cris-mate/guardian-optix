@@ -383,7 +383,7 @@ interface ReportsState {
   attendanceData: AttendanceReportData | null;
   incidentData: IncidentReportData | null;
   isLoading: boolean;
-  isGenerating: boolean;
+  generatingTemplateId: string | null;
   error: string | null;
   lastUpdated: Date | null;
 }
@@ -402,7 +402,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
     attendanceData: null,
     incidentData: null,
     isLoading: true,
-    isGenerating: false,
+    generatingTemplateId: null,
     error: null,
     lastUpdated: null,
   });
@@ -428,7 +428,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
           attendanceData: generateMockAttendanceData(),
           incidentData: generateMockIncidentData(),
           isLoading: false,
-          isGenerating: false,
+          generatingTemplateId: null,
           error: null,
           lastUpdated: new Date(),
         });
@@ -449,7 +449,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
           attendanceData: null,
           incidentData: null,
           isLoading: false,
-          isGenerating: false,
+          generatingTemplateId: null,
           error: null,
           lastUpdated: new Date(),
         });
@@ -491,7 +491,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
     format: ExportFormat = 'pdf',
     dateRange?: { start: Date; end: Date }
   ) => {
-    setState(prev => ({ ...prev, isGenerating: true }));
+    setState(prev => ({ ...prev, generatingTemplateId: templateId }));
 
     try {
       if (USE_MOCK_DATA) {
@@ -518,7 +518,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
         setState(prev => ({
           ...prev,
           recentReports: [newReport, ...prev.recentReports],
-          isGenerating: false,
+          generatingTemplateId: null,
           quickStats: prev.quickStats ? {
             ...prev.quickStats,
             reportsGenerated: prev.quickStats.reportsGenerated + 1,
@@ -540,14 +540,14 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
       setState(prev => ({
         ...prev,
         recentReports: [data.report, ...prev.recentReports],
-        isGenerating: false,
+        generatingTemplateId: null,
       }));
 
       return data.report;
     } catch (err) {
       setState(prev => ({
         ...prev,
-        isGenerating: false,
+        generatingTemplateId: null,
         error: 'Failed to generate report',
       }));
       throw err;
@@ -587,7 +587,8 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
 
     // State
     isLoading: state.isLoading,
-    isGenerating: state.isGenerating,
+    isGenerating: state.generatingTemplateId !== null,
+    generatingTemplateId: state.generatingTemplateId,
     error: state.error,
     lastUpdated: state.lastUpdated,
 
