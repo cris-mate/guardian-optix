@@ -8,7 +8,8 @@
 const asyncHandler = require('../utils/asyncHandler');
 const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
-const { generateCSV, generatePDF } = require('../services/exportService');
+const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
 
 // ============================================
 // Helper Functions

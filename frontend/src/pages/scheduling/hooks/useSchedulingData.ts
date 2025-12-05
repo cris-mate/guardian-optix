@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import {
   Shift,
   ShiftFormData,
@@ -16,8 +18,8 @@ import {
   CalendarDay,
 } from '../../../types/scheduling.types';
 
-// Toggle between mock data and API
-const USE_MOCK_DATA = true;
+// Use centralized config instead of local toggle
+const USE_MOCK_DATA = MOCK_CONFIG.scheduling;
 
 // ============================================
 // Mock Data

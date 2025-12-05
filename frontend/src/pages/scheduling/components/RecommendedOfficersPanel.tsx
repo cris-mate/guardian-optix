@@ -85,10 +85,10 @@ const getRankBadgeColor = (rank: number): string => {
 };
 
 // ============================================
-// Mock Data (for development)
+// Mock Data
 // ============================================
 
-const USE_MOCK_DATA = true; // Toggle for development
+import { USE_MOCK_DATA } from '../../../config/api.config';
 
 const generateMockRecommendations = (): Recommendation[] => [
   {
