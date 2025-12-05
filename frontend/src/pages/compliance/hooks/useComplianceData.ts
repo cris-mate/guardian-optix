@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import type {
   ComplianceMetrics,
   ComplianceAlert,
@@ -20,7 +21,7 @@ import type {
 // Configuration
 // ============================================
 
-const USE_MOCK_DATA = true; // Toggle for development
+const USE_MOCK_DATA = MOCK_CONFIG.compliance;
 
 // ============================================
 // Mock Data

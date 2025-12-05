@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import type {
   ReportFilters,
   ReportTemplate,
@@ -19,8 +21,7 @@ import type {
   ReportCategory,
 } from '../../../types/reports.types';
 
-// Toggle for development - set to false when backend is ready
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = MOCK_CONFIG.reports;
 
 // ============================================
 // Mock Data Generators
@@ -417,7 +418,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await simulateDelay('medium');
 
         setState({
           templates: generateMockTemplates(),
@@ -495,7 +496,7 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await simulateDelay('long');
 
         const template = state.templates.find(t => t.id === templateId);
         const newReport: GeneratedReport = {

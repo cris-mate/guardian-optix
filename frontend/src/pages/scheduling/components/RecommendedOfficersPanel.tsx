@@ -21,6 +21,9 @@ import {
 } from '@chakra-ui/react';
 import { LuSparkles, LuMapPin, LuShield, LuAward } from 'react-icons/lu';
 import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
+
+const USE_MOCK_DATA = MOCK_CONFIG.recommendedOfficers;
 
 // ============================================
 // Types
@@ -87,8 +90,6 @@ const getRankBadgeColor = (rank: number): string => {
 // ============================================
 // Mock Data
 // ============================================
-
-import { USE_MOCK_DATA } from '../../../config/api.config';
 
 const generateMockRecommendations = (): Recommendation[] => [
   {
@@ -303,7 +304,7 @@ const RecommendedOfficersPanel: React.FC<RecommendedOfficersPanelProps> = ({
       try {
         if (USE_MOCK_DATA) {
           // Simulate API delay
-          await new Promise((resolve) => setTimeout(resolve, 600));
+          await simulateDelay('medium');
           setRecommendations(generateMockRecommendations());
         } else {
           const response = await api.get(

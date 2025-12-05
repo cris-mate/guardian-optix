@@ -48,6 +48,7 @@ export const MOCK_CONFIG = {
   activityHub: USE_MOCK_DATA,
   compliance: USE_MOCK_DATA,
   analytics: USE_MOCK_DATA,
+  performance: USE_MOCK_DATA,
   notifications: USE_MOCK_DATA,
 
   // Specific components

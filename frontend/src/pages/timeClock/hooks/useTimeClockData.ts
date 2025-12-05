@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import {
   ClockStatus,
   BreakType,
@@ -21,8 +22,8 @@ import {
   GeofenceStatus,
 } from '../../../types/timeClock.types';
 
-// Toggle this to switch between mock data and API calls
-const USE_MOCK_DATA = true;
+
+const USE_MOCK_DATA = MOCK_CONFIG.timeClock;
 
 // ============================================
 // Mock Data
@@ -297,7 +298,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
         const mockLoc = generateMockLocation(true);
         setCurrentLocation(mockLoc);
         setGeofenceStatus('inside');
@@ -341,7 +342,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await simulateDelay('medium');
 
         setActiveShift(MOCK_ACTIVE_SHIFT);
         setTimeEntries(generateMockTimeEntries());
@@ -402,7 +403,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
       await refreshLocation();
 
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await simulateDelay('long');
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
@@ -454,7 +455,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
       await refreshLocation();
 
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await simulateDelay('long');
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
@@ -503,7 +504,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
@@ -550,7 +551,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,

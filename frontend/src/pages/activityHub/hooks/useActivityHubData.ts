@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import {
   SystemActivity,
   Update,
@@ -22,8 +23,7 @@ import {
   ActivitySeverity,
 } from '../../../types/activityHub.types';
 
-// Toggle this to switch between mock data and API calls
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = MOCK_CONFIG.activityHub;
 
 // ============================================
 // Mock Data
@@ -562,7 +562,7 @@ export const useActivityHubData = (): UseActivityHubDataReturn => {
     try {
       if (USE_MOCK_DATA) {
         // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await simulateDelay('medium');
 
         const mockActivities = generateMockActivities();
         const mockUpdates = generateMockUpdates();
@@ -599,7 +599,7 @@ export const useActivityHubData = (): UseActivityHubDataReturn => {
     setIsLoadingMore(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await simulateDelay('short');
         // In mock mode, we already have all activities
       } else {
         const response = await api.get('/api/activity-hub/activities', {
@@ -637,7 +637,7 @@ export const useActivityHubData = (): UseActivityHubDataReturn => {
   const createUpdate = useCallback(async (data: UpdateFormData) => {
     try {
       if (USE_MOCK_DATA) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await simulateDelay('medium');
         // In mock mode, add to local state
         const newUpdate: Update = {
           _id: `upd-${Date.now()}`,

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import {
   Guards,
   GuardsFilters,
@@ -16,8 +17,7 @@ import {
   DEFAULT_FILTERS,
 } from '../../../types/guards.types';
 
-// Toggle this to switch between mock data and API calls
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = MOCK_CONFIG.guards;
 
 // ============================================
 // Mock Data
@@ -358,7 +358,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     try {
       if (USE_MOCK_DATA) {
         // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
         setGuards(MOCK_GUARDS);
       } else {
         const response = await api.get('/api/guards');
@@ -377,7 +377,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await simulateDelay('short');
         const officer = MOCK_GUARDS.find(p => p._id === id);
         setSelectedOfficer(officer || null);
       } else {
@@ -422,7 +422,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
         // In mock mode, just refetch
       } else {
         await api.post('/api/guards', data);
@@ -441,7 +441,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
       } else {
         await api.put(`/api/guards/${id}`, data);
       }
@@ -462,7 +462,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('medium');
       } else {
         await api.delete(`/api/guards/${id}`);
       }

@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { api } from '../../../utils/api';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import type {
   PerformanceFilters,
   OverviewMetrics,
@@ -18,8 +20,7 @@ import type {
   PerformanceRating,
 } from '../../../types/performance.types';
 
-// Toggle for development - set to false when backend is ready
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = MOCK_CONFIG.performance;
 
 // ============================================
 // Mock Data Generators
@@ -546,7 +547,7 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
     try {
       if (USE_MOCK_DATA) {
         // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await simulateDelay('long');
 
         const officers = generateMockOfficers();
 

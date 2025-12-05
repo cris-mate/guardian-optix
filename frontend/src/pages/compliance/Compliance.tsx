@@ -38,6 +38,7 @@ import {
 } from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
 import { useAuth } from '../../context/AuthContext';
+import { MOCK_CONFIG } from '../../config/api.config';
 
 // Components
 import ComplianceDashboard from './components/ComplianceDashboard';
@@ -56,7 +57,7 @@ import type { ComplianceMetrics } from '../../types/compliance.types';
 // Configuration
 // ============================================
 
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = MOCK_CONFIG.compliance;
 
 // ============================================
 // Tab Configuration

@@ -18,7 +18,6 @@ import {
   CalendarDay,
 } from '../../../types/scheduling.types';
 
-// Use centralized config instead of local toggle
 const USE_MOCK_DATA = MOCK_CONFIG.scheduling;
 
 // ============================================
@@ -253,7 +252,7 @@ export const useSchedulingData = () => {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await simulateDelay('medium');
         setShifts(generateMockShifts());
         setAvailableOfficers(mockOfficers);
         setAvailableSites(mockSites);
@@ -387,7 +386,7 @@ export const useSchedulingData = () => {
     setIsMutating(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await simulateDelay('medium');
 
         const officer = mockOfficers.find((o) => o._id === data.officerId);
         const site = mockSites.find((s) => s._id === data.siteId);
@@ -448,7 +447,7 @@ export const useSchedulingData = () => {
     setIsMutating(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await simulateDelay('medium');
 
         setShifts((prev) =>
           prev.map((shift): Shift => {
@@ -503,7 +502,7 @@ export const useSchedulingData = () => {
     setIsMutating(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await simulateDelay('short');
         setShifts((prev) => prev.filter((s) => s._id !== shiftId));
       } else {
         await fetch(`/api/scheduling/shifts/${shiftId}`, { method: 'DELETE' });
