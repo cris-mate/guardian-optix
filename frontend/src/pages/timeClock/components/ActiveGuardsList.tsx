@@ -26,7 +26,7 @@ import {
   LuTriangleAlert,
   LuCircleOff,
 } from 'react-icons/lu';
-import type { ActiveGuard, ClockStatus, GeofenceStatus } from '../types/timeClock.types';
+import type { ActiveGuard, ClockStatus, GeofenceStatus } from '../../../types/timeClock.types';
 
 // ============================================
 // Props Interface

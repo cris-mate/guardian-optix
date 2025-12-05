@@ -26,7 +26,7 @@ import {
   LuTrendingDown,
   LuMinus,
 } from 'react-icons/lu';
-import type { OverviewMetrics, TrendDirection } from '../types/performance.types';
+import type { OverviewMetrics, TrendDirection } from '../../../types/performance.types';
 
 // ============================================
 // Props Interface

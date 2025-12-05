@@ -19,7 +19,7 @@ import {
   FiChevronRight,
   FiTrendingUp,
 } from 'react-icons/fi';
-import type { TodayScheduleOverview, ShiftStatus } from '../types/dashboard.types';
+import type { TodayScheduleOverview, ShiftStatus } from '../../../types/dashboard.types';
 
 // ============================================
 // Types

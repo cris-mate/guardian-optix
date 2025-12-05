@@ -17,7 +17,7 @@ import type {
   IncidentReportData,
   ExportFormat,
   ReportCategory,
-} from '../types/reports.types';
+} from '../../../types/reports.types';
 
 // Toggle for development - set to false when backend is ready
 const USE_MOCK_DATA = true;

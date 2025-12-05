@@ -55,7 +55,7 @@ export type {
   ShiftOverviewProps,
   GuardStatusTableProps,
   TaskListProps,
-} from './types/dashboard.types';
+} from '../../types/dashboard.types';
 
 // Constants
 export {
@@ -68,4 +68,4 @@ export {
   ACTIVITY_TYPE_CONFIG,
   REFRESH_INTERVALS,
   DEFAULT_DASHBOARD_STATE,
-} from './types/dashboard.types';
+} from '../../types/dashboard.types';

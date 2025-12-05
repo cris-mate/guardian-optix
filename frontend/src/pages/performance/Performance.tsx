@@ -49,7 +49,7 @@ import PerformanceAlerts from './components/PerformanceAlerts';
 import { usePerformanceData } from './hooks/usePerformanceData';
 
 // Types
-import type { TimeRange } from './types/performance.types';
+import type { TimeRange } from '../../types/performance.types';
 
 // ============================================
 // Tab Configuration

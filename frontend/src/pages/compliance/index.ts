@@ -47,7 +47,7 @@ export type {
   CertificationFilters,
   IncidentFilters,
   DocumentFilters,
-} from './types/compliance.types';
+} from '../../types/compliance.types';
 
 // Constants
 export {
@@ -55,4 +55,4 @@ export {
   INCIDENT_SEVERITY_CONFIG,
   INCIDENT_STATUS_CONFIG,
   DOCUMENT_CATEGORY_CONFIG,
-} from './types/compliance.types';
+} from '../../types/compliance.types';

@@ -63,7 +63,7 @@ export type {
 
   // API Response
   ReportsResponse,
-} from './types/reports.types';
+} from '../../types/reports.types';
 
 // Constants
 export {
@@ -72,4 +72,4 @@ export {
   EXPORT_FORMAT_CONFIG,
   INCIDENT_CATEGORY_LABELS,
   DEFAULT_FILTERS,
-} from './types/reports.types';
+} from '../../types/reports.types';

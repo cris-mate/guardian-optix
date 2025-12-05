@@ -29,7 +29,7 @@ import {
 import type {
   OfficerPerformance,
   OfficerRanking,
-} from '../types/performance.types';
+} from '../../../types/performance.types';
 
 // ============================================
 // Props Interface

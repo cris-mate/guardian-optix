@@ -18,7 +18,7 @@ import {
   FiCheckSquare,
   FiRefreshCw,
 } from 'react-icons/fi';
-import type { Task, TaskPriority, TaskFrequency } from '../types/dashboard.types';
+import type { Task, TaskPriority, TaskFrequency } from '../../../types/dashboard.types';
 
 // ============================================
 // Types

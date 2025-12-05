@@ -34,7 +34,7 @@ import type {
   ActiveShift,
   GPSLocation,
   GeofenceStatus,
-} from '../types/timeClock.types';
+} from '../../../types/timeClock.types';
 
 // ============================================
 // Props Interface

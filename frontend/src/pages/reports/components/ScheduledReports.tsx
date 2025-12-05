@@ -27,7 +27,7 @@ import {
   LuTable,
   LuSheet,
 } from 'react-icons/lu';
-import type { ScheduledReport, ExportFormat } from '../types/reports.types';
+import type { ScheduledReport, ExportFormat } from '../../../types/reports.types';
 
 // ============================================
 // Props Interface

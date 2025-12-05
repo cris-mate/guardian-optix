@@ -16,7 +16,7 @@ import type {
   IncidentMetrics,
   PerformanceAlert,
   PerformanceRating,
-} from '../types/performance.types';
+} from '../../../types/performance.types';
 
 // Toggle for development - set to false when backend is ready
 const USE_MOCK_DATA = true;

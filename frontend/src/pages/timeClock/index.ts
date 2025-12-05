@@ -54,4 +54,4 @@ export type {
   // Component Props
   ClockWidgetProps,
   TimeEntriesTableProps,
-} from './types/timeClock.types';
+} from '../../types/timeClock.types';

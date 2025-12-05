@@ -39,7 +39,7 @@ import {
   UpdateFilters,
   UPDATE_TYPE_CONFIG,
   PRIORITY_CONFIG,
-} from '../types/activityHub.types';
+} from '../../../types/activityHub.types';
 
 // ============================================
 // Types

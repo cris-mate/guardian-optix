@@ -19,7 +19,7 @@ import {
   ClockActionPayload,
   GPSLocation,
   GeofenceStatus,
-} from '../types/timeClock.types';
+} from '../../../types/timeClock.types';
 
 // Toggle this to switch between mock data and API calls
 const USE_MOCK_DATA = true;

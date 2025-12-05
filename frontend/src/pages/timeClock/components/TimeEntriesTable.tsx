@@ -25,7 +25,7 @@ import {
   LuTriangleAlert,
   LuClock,
 } from 'react-icons/lu';
-import type { TimeEntry, EntryType, GeofenceStatus } from '../types/timeClock.types';
+import type { TimeEntry, EntryType, GeofenceStatus } from '../../../types/timeClock.types';
 
 // ============================================
 // Props Interface

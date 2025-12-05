@@ -32,7 +32,7 @@ import {
   LuDownload,
   LuCalendar,
 } from 'react-icons/lu';
-import type { ReportTemplate, ReportCategory } from '../types/reports.types';
+import type { ReportTemplate, ReportCategory } from '../../../types/reports.types';
 
 // ============================================
 // Props Interface

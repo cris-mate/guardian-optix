@@ -11,7 +11,7 @@ import type {
   ClientFilters,
   CreateClientPayload,
   UpdateClientPayload,
-} from '../types/client.types';
+} from '../../../types/client.types';
 
 // ============================================
 // Configuration

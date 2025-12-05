@@ -19,7 +19,7 @@ import {
   Separator,
 } from '@chakra-ui/react';
 import { api } from '../../../utils/api';
-import { Incident } from '../types/compliance.types';
+import { Incident } from '../../../types/compliance.types';
 
 type FilterStatus = 'all' | 'open' | 'under-review' | 'resolved' | 'closed';
 

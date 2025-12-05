@@ -37,7 +37,7 @@ import {
   ActivitySeverity,
   ActivityFilters,
   CATEGORY_CONFIG,
-} from '../types/activityHub.types';
+} from '../../../types/activityHub.types';
 
 // ============================================
 // Types

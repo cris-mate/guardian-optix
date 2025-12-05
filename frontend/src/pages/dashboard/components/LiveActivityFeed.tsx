@@ -20,7 +20,7 @@ import {
   FiChevronRight,
   FiActivity,
 } from 'react-icons/fi';
-import type { ActivityEvent, ActivityType } from '../types/dashboard.types';
+import type { ActivityEvent, ActivityType } from '../../../types/dashboard.types';
 
 // ============================================
 // Types

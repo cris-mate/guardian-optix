@@ -14,7 +14,7 @@ import type {
   Incident,
   ComplianceDocument,
   AuditEntry,
-} from '../types/compliance.types';
+} from '../../../types/compliance.types';
 
 // ============================================
 // Configuration

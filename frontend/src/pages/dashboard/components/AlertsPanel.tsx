@@ -21,7 +21,7 @@ import {
   FiUser,
   FiBell,
 } from 'react-icons/fi';
-import type { DashboardAlert, AlertSeverity } from '../types/dashboard.types';
+import type { DashboardAlert, AlertSeverity } from '../../../types/dashboard.types';
 
 // ============================================
 // Types

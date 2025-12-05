@@ -27,7 +27,7 @@ import {
   ActivityStats as ActivityStatsType,
   UpdateStats,
   CATEGORY_CONFIG,
-} from '../types/activityHub.types';
+} from '../../../types/activityHub.types';
 
 // ============================================
 // Types

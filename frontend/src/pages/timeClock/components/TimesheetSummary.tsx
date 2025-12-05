@@ -22,7 +22,7 @@ import {
   LuCalendarDays,
   LuFileCheck,
 } from 'react-icons/lu';
-import type { TodayTimesheet, WeeklySummary, TimesheetStatus } from '../types/timeClock.types';
+import type { TodayTimesheet, WeeklySummary, TimesheetStatus } from '../../../types/timeClock.types';
 
 // ============================================
 // Props Interface

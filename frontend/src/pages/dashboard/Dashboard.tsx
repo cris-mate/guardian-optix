@@ -53,7 +53,7 @@ import { useDashboardData, useMockDashboardData } from './hooks/useDashboardData
 import { useDashboardSocket } from '../../hooks/useSocket';
 
 // Types
-import type { GuardStatusEntry, Task, ActivityEvent } from './types/dashboard.types';
+import type { GuardStatusEntry, Task, ActivityEvent } from '../../types/dashboard.types';
 
 // ============================================
 // Configuration

@@ -50,7 +50,7 @@ import AuditTrail from './components/AuditTrail';
 import { useComplianceData, useMockComplianceData } from './hooks/useComplianceData';
 
 // Types
-import type { ComplianceMetrics } from './types/compliance.types';
+import type { ComplianceMetrics } from '../../types/compliance.types';
 
 // ============================================
 // Configuration

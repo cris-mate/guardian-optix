@@ -16,11 +16,11 @@ import type {
   ActivityEvent,
   Task,
   IncidentSummary,
-} from '../types/dashboard.types';
+} from '../../../types/dashboard.types';
 import {
   REFRESH_INTERVALS,
   DEFAULT_DASHBOARD_STATE,
-} from '../types/dashboard.types';
+} from '../../../types/dashboard.types';
 
 // ============================================
 // Hook Options & Return Types

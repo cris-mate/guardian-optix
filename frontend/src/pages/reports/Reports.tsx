@@ -52,7 +52,7 @@ import ScheduledReports from './components/ScheduledReports';
 import { useReportsData } from './hooks/useReportsData';
 
 // Types
-import type { ReportCategory, ExportFormat } from './types/reports.types';
+import type { ReportCategory, ExportFormat } from '../../types/reports.types';
 
 // ============================================
 // Tab Configuration

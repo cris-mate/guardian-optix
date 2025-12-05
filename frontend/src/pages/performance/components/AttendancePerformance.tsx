@@ -33,7 +33,7 @@ import type {
   AttendanceMetrics,
   AttendanceRecord,
   AttendanceStatus,
-} from '../types/performance.types';
+} from '../../../types/performance.types';
 
 // ============================================
 // Props Interface

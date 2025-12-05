@@ -29,7 +29,7 @@ import {
   LuMapPin,
   LuGraduationCap,
 } from 'react-icons/lu';
-import type { PerformanceAlert, AlertSeverity } from '../types/performance.types';
+import type { PerformanceAlert, AlertSeverity } from '../../../types/performance.types';
 
 // ============================================
 // Props Interface

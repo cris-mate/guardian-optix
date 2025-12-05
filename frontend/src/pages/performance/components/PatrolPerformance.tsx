@@ -31,7 +31,7 @@ import type {
   PatrolMetrics,
   PatrolRecord,
   PatrolStatus,
-} from '../types/performance.types';
+} from '../../../types/performance.types';
 
 // ============================================
 // Props Interface

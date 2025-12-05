@@ -51,7 +51,7 @@ import TimesheetSummary from './components/TimesheetSummary';
 import { useTimeClockData } from './hooks/useTimeClockData';
 
 // Types
-import type { TimeClockStats } from './types/timeClock.types';
+import type { TimeClockStats } from '../../types/timeClock.types';
 
 // ============================================
 // Tab Configuration

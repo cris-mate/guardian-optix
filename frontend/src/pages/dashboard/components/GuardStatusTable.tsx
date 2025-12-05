@@ -23,7 +23,7 @@ import {
   FiUser,
   FiFilter,
 } from 'react-icons/fi';
-import type { GuardStatusEntry, GuardStatus } from '../types/dashboard.types';
+import type { GuardStatusEntry, GuardStatus } from '../../../types/dashboard.types';
 
 // ============================================
 // Types

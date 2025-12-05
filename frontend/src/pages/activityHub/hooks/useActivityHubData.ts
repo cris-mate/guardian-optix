@@ -20,7 +20,7 @@ import {
   DEFAULT_UPDATE_FILTERS,
   ActivityCategory,
   ActivitySeverity,
-} from '../types/activityHub.types';
+} from '../../../types/activityHub.types';
 
 // Toggle this to switch between mock data and API calls
 const USE_MOCK_DATA = true;

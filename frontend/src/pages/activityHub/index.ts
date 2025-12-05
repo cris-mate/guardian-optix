@@ -42,7 +42,7 @@ export type {
 
   // API response types
   ActivityHubResponse,
-} from './types/activityHub.types';
+} from '../../types/activityHub.types';
 
 // Constants
 export {
@@ -52,4 +52,4 @@ export {
   PRIORITY_CONFIG,
   DEFAULT_ACTIVITY_FILTERS,
   DEFAULT_UPDATE_FILTERS,
-} from './types/activityHub.types';
+} from '../../types/activityHub.types';

@@ -25,7 +25,7 @@ import {
   LuMapPin,
   LuUsers,
 } from 'react-icons/lu';
-import type { Client, ClientTableProps, ClientFilters } from '../types/client.types';
+import type { Client, ClientTableProps, ClientFilters } from '../../../types/client.types';
 
 // ============================================
 // Helpers

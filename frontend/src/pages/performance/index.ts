@@ -52,7 +52,7 @@ export type {
 
   // API Response
   PerformanceResponse,
-} from './types/performance.types';
+} from '../../types/performance.types';
 
 // Constants
 export {
@@ -62,4 +62,4 @@ export {
   PATROL_STATUS_CONFIG,
   ATTENDANCE_STATUS_CONFIG,
   DEFAULT_FILTERS,
-} from './types/performance.types';
+} from '../../types/performance.types';

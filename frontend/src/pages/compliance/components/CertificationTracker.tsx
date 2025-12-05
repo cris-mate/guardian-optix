@@ -12,7 +12,7 @@ import {
   Flex,
 } from '@chakra-ui/react';
 import { api } from '../../../utils/api';
-import { Certification } from '../types/compliance.types';
+import { Certification } from '../../../types/compliance.types';
 
 type FilterType = 'all' | 'valid' | 'expiring-soon' | 'expired';
 

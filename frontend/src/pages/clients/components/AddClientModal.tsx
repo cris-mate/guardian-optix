@@ -22,7 +22,7 @@ import {
 import { Dialog } from '@chakra-ui/react';
 import { Field } from '@chakra-ui/react';
 import { LuX, LuBuilding2, LuUser } from 'react-icons/lu';
-import type { CreateClientPayload, ClientStatus } from '../types/client.types';
+import type { CreateClientPayload, ClientStatus } from '../../../types/client.types';
 
 interface AddClientModalProps {
   isOpen: boolean;

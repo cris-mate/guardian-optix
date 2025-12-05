@@ -8,7 +8,7 @@ import React from 'react';
 import { HStack, Button, Box, Text } from '@chakra-ui/react';
 import { Menu } from '@chakra-ui/react';
 import { LuFilter, LuChevronDown, LuArrowUpDown } from 'react-icons/lu';
-import type { ClientFilters as ClientFiltersType, ClientStatus } from '../types/client.types';
+import type { ClientFilters as ClientFiltersType, ClientStatus } from '../../../types/client.types';
 
 interface ClientFiltersProps {
   filters: ClientFiltersType;

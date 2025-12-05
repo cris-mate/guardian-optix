@@ -20,7 +20,7 @@ import {
   LuStar,
   LuTrendingUp,
 } from 'react-icons/lu';
-import type { ReportQuickStats as QuickStatsType } from '../types/reports.types';
+import type { ReportQuickStats as QuickStatsType } from '../../../types/reports.types';
 
 // ============================================
 // Props Interface

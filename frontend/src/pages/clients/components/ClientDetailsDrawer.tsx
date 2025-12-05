@@ -37,7 +37,7 @@ import {
   LuClock,
   LuShield,
 } from 'react-icons/lu';
-import type { ClientDetailsDrawerProps, Client, ClientSite, ClientContact } from '../types/client.types';
+import type { ClientDetailsDrawerProps, Client, ClientSite, ClientContact } from '../../../types/client.types';
 
 // ============================================
 // Helpers
