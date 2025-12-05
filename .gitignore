@@ -1,3 +1,4 @@
+node_modules/
 # IDE and OS files
 .idea/*
 !.idea/codeStyles

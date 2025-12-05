@@ -40,12 +40,8 @@ const statusConfig: Record<ShiftStatus, {
 }> = {
   scheduled: { colorScheme: 'blue', label: 'Scheduled' },
   'in-progress': { colorScheme: 'green', label: 'In Progress' },
-  active: { colorScheme: 'green', label: 'Active' },
-  upcoming: { colorScheme: 'blue', label: 'Upcoming' },
   completed: { colorScheme: 'gray', label: 'Completed' },
   cancelled: { colorScheme: 'red', label: 'Cancelled' },
-  'no-show': { colorScheme: 'red', label: 'No-Show' },
-  late: { colorScheme: 'orange', label: 'Late' },
 };
 
 // ============================================

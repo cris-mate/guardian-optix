@@ -171,7 +171,7 @@ export interface AttendanceReportData {
 // Incident Report Data
 // ============================================
 
-export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical' ;
 
 export type IncidentCategory =
   | 'security-breach'
@@ -182,6 +182,9 @@ export type IncidentCategory =
   | 'medical-emergency'
   | 'fire-alarm'
   | 'equipment-failure'
+  | 'unauthorized-access'
+  | 'property-damage'
+  | 'assault'
   | 'other';
 
 export interface IncidentStateSummary {
@@ -374,6 +377,9 @@ export const INCIDENT_CATEGORY_LABELS: Record<IncidentCategory, string> = {
   'medical-emergency': 'Medical Emergency',
   'fire-alarm': 'Fire/Alarm',
   'equipment-failure': 'Equipment Failure',
+  'unauthorized-access': 'Unauthorized Access',
+  'property-damage': 'Property Damage',
+  'assault': 'Assault',
   'other': 'Other',
 };
 

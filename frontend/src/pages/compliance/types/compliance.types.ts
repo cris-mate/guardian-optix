@@ -47,12 +47,14 @@ export type IncidentType =
   | 'security-breach'
   | 'theft'
   | 'vandalism'
+  | 'trespassing'
+  | 'suspicious-activity'
   | 'medical-emergency'
   | 'fire-alarm'
-  | 'suspicious-activity'
-  | 'trespassing'
-  | 'assault'
+  | 'equipment-failure'
+  | 'unauthorized-access'
   | 'property-damage'
+  | 'assault'
   | 'other';
 
 export interface Incident {

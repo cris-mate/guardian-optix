@@ -12,7 +12,7 @@ export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type AlertType = 'attendance' | 'incident' | 'compliance' | 'geofence' | 'system' | 'task';
 
 // Note: Additional statuses for UI component compatibility
-export type ShiftStatus = 'scheduled' | 'in-progress' | 'active' | 'upcoming' | 'completed' | 'cancelled' | 'no-show' | 'late';
+export type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled' ;
 export type GuardStatus = 'on-duty' | 'off-duty' | 'scheduled' | 'on-break' | 'break' | 'late' | 'absent';
 
 export type TaskPriority = 'low' | 'medium' | 'high';
@@ -322,12 +322,8 @@ export const ALERT_TYPE_CONFIG: Record<AlertType, { label: string; icon: string 
 export const SHIFT_STATUS_CONFIG: Record<ShiftStatus, { label: string; color: string }> = {
   scheduled: { label: 'Scheduled', color: 'blue' },
   'in-progress': { label: 'In Progress', color: 'green' },
-  active: { label: 'Active', color: 'green' },
-  upcoming: { label: 'Upcoming', color: 'blue' },
   completed: { label: 'Completed', color: 'gray' },
   cancelled: { label: 'Cancelled', color: 'red' },
-  'no-show': { label: 'No Show', color: 'red' },
-  late: { label: 'Late', color: 'orange' },
 };
 
 export const GUARD_STATUS_CONFIG: Record<GuardStatus, { label: string; color: string }> = {
