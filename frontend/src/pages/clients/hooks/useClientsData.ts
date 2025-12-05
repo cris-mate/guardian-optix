@@ -1,9 +1,11 @@
 /**
  * useClientsData Hook
  * Centralized data fetching for Clients page.
+ * Includes site creation functionality.
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import { api } from '../../../utils/api';
 import type {
   Client,
@@ -11,13 +13,15 @@ import type {
   ClientFilters,
   CreateClientPayload,
   UpdateClientPayload,
+  ClientSite,
 } from '../../../types/client.types';
+import type { CreateSiteFormData } from '../components/AddSiteModal';
 
 // ============================================
 // Configuration
 // ============================================
 
-const USE_MOCK_DATA = true; // Set to 'false' to use real API
+const USE_MOCK_DATA = MOCK_CONFIG.clients ?? true;
 
 // ============================================
 // Mock Data
@@ -30,7 +34,6 @@ const mockClients: Client[] = [
     tradingName: 'Canary Wharf',
     status: 'active',
     industry: 'Real Estate',
-    logoUrl: '',
     address: {
       street: 'One Canada Square',
       city: 'London',
@@ -73,7 +76,6 @@ const mockClients: Client[] = [
         guardsAssigned: 8,
         shiftsThisWeek: 42,
         hasGeofence: true,
-        lastActivityAt: '2025-11-29T08:15:00Z',
       },
       {
         id: 's2',
@@ -86,19 +88,19 @@ const mockClients: Client[] = [
         },
         siteType: 'Retail',
         status: 'active',
-        guardsAssigned: 4,
+        guardsAssigned: 6,
         shiftsThisWeek: 28,
         hasGeofence: true,
-        lastActivityAt: '2025-11-29T07:45:00Z',
       },
     ],
     totalSites: 2,
     activeSites: 2,
-    totalGuardsAssigned: 12,
+    totalGuardsAssigned: 14,
     incidentsThisMonth: 3,
-    createdAt: '2024-01-10T09:00:00Z',
-    updatedAt: '2025-11-28T16:00:00Z',
-    lastActivityAt: '2025-11-29T08:15:00Z',
+    notes: 'Premium client. Requires senior officers only.',
+    createdAt: '2024-01-15T09:00:00Z',
+    updatedAt: '2025-11-28T14:30:00Z',
+    lastActivityAt: '2025-11-28T14:30:00Z',
   },
   {
     id: '2',
@@ -114,176 +116,76 @@ const mockClients: Client[] = [
     contacts: [
       {
         id: 'c2',
-        firstName: 'David',
+        firstName: 'James',
         lastName: 'Chen',
-        email: 'david.chen@westfield.com',
-        phone: '+44 20 3371 2300',
-        jobTitle: 'Security Director',
+        email: 'j.chen@westfield.com',
+        phone: '+44 20 8743 8000',
+        jobTitle: 'Security Manager',
         isPrimary: true,
       },
     ],
     primaryContact: {
       id: 'c2',
-      firstName: 'David',
+      firstName: 'James',
       lastName: 'Chen',
-      email: 'david.chen@westfield.com',
-      phone: '+44 20 3371 2300',
-      jobTitle: 'Security Director',
+      email: 'j.chen@westfield.com',
+      phone: '+44 20 8743 8000',
+      jobTitle: 'Security Manager',
       isPrimary: true,
     },
     sites: [
       {
         id: 's3',
-        name: 'Westfield London Main',
+        name: 'Main Entrance - Ground Floor',
         address: {
           street: 'Ariel Way',
           city: 'London',
           postCode: 'W12 7GF',
           country: 'United Kingdom',
         },
-        siteType: 'Shopping Centre',
+        siteType: 'Retail',
         status: 'active',
-        guardsAssigned: 15,
-        shiftsThisWeek: 84,
+        guardsAssigned: 12,
+        shiftsThisWeek: 56,
         hasGeofence: true,
-        lastActivityAt: '2025-11-29T09:00:00Z',
       },
     ],
     totalSites: 1,
     activeSites: 1,
-    totalGuardsAssigned: 15,
+    totalGuardsAssigned: 12,
     incidentsThisMonth: 7,
-    createdAt: '2023-05-20T09:00:00Z',
-    updatedAt: '2025-11-27T14:00:00Z',
-    lastActivityAt: '2025-11-29T09:00:00Z',
+    createdAt: '2024-03-01T10:00:00Z',
+    updatedAt: '2025-11-27T16:00:00Z',
   },
   {
     id: '3',
-    companyName: 'British Museum',
+    companyName: 'TechHub Kings Cross',
     status: 'active',
-    industry: 'Cultural Institution',
+    industry: 'Technology',
     address: {
-      street: 'Great Russell Street',
+      street: '20 Ropemaker Street',
       city: 'London',
-      postCode: 'WC1B 3DG',
+      postCode: 'N1C 4AG',
       country: 'United Kingdom',
     },
     contacts: [
       {
         id: 'c3',
-        firstName: 'Emma',
-        lastName: 'Thompson',
-        email: 'emma.thompson@britishmuseum.org',
-        phone: '+44 20 7323 8000',
-        jobTitle: 'Security Manager',
+        firstName: 'Emily',
+        lastName: 'Watson',
+        email: 'emily@techhub.com',
+        phone: '+44 20 3137 7500',
+        jobTitle: 'Operations Director',
         isPrimary: true,
       },
     ],
     primaryContact: {
       id: 'c3',
-      firstName: 'Emma',
-      lastName: 'Thompson',
-      email: 'emma.thompson@britishmuseum.org',
-      phone: '+44 20 7323 8000',
-      jobTitle: 'Security Manager',
-      isPrimary: true,
-    },
-    sites: [
-      {
-        id: 's4',
-        name: 'British Museum Main Building',
-        address: {
-          street: 'Great Russell Street',
-          city: 'London',
-          postCode: 'WC1B 3DG',
-          country: 'United Kingdom',
-        },
-        siteType: 'Museum',
-        status: 'active',
-        guardsAssigned: 20,
-        shiftsThisWeek: 112,
-        hasGeofence: true,
-        lastActivityAt: '2025-11-29T08:30:00Z',
-      },
-    ],
-    totalSites: 1,
-    activeSites: 1,
-    totalGuardsAssigned: 20,
-    incidentsThisMonth: 2,
-    createdAt: '2022-08-15T09:00:00Z',
-    updatedAt: '2025-11-25T11:00:00Z',
-    lastActivityAt: '2025-11-29T08:30:00Z',
-  },
-  {
-    id: '4',
-    companyName: 'Heathrow Airport Holdings',
-    tradingName: 'Heathrow Airport',
-    status: 'active',
-    industry: 'Aviation',
-    address: {
-      street: 'The Compass Centre',
-      city: 'Hounslow',
-      postCode: 'TW6 2GW',
-      country: 'United Kingdom',
-    },
-    contacts: [
-      {
-        id: 'c4',
-        firstName: 'Michael',
-        lastName: 'Roberts',
-        email: 'michael.roberts@heathrow.com',
-        phone: '+44 844 335 1801',
-        jobTitle: 'Chief Security Officer',
-        isPrimary: true,
-      },
-    ],
-    primaryContact: {
-      id: 'c4',
-      firstName: 'Michael',
-      lastName: 'Roberts',
-      email: 'michael.roberts@heathrow.com',
-      phone: '+44 844 335 1801',
-      jobTitle: 'Chief Security Officer',
-      isPrimary: true,
-    },
-    sites: [],
-    totalSites: 4,
-    activeSites: 4,
-    totalGuardsAssigned: 50,
-    incidentsThisMonth: 12,
-    createdAt: '2021-03-01T09:00:00Z',
-    updatedAt: '2025-11-28T09:00:00Z',
-    lastActivityAt: '2025-11-29T06:00:00Z',
-  },
-  {
-    id: '5',
-    companyName: 'Savills Property Management',
-    status: 'prospect',
-    industry: 'Property Management',
-    address: {
-      street: '33 Margaret Street',
-      city: 'London',
-      postCode: 'W1G 0JD',
-      country: 'United Kingdom',
-    },
-    contacts: [
-      {
-        id: 'c5',
-        firstName: 'Lisa',
-        lastName: 'Anderson',
-        email: 'lisa.anderson@savills.com',
-        phone: '+44 20 7499 8644',
-        jobTitle: 'Property Manager',
-        isPrimary: true,
-      },
-    ],
-    primaryContact: {
-      id: 'c5',
-      firstName: 'Lisa',
-      lastName: 'Anderson',
-      email: 'lisa.anderson@savills.com',
-      phone: '+44 20 7499 8644',
-      jobTitle: 'Property Manager',
+      firstName: 'Emily',
+      lastName: 'Watson',
+      email: 'emily@techhub.com',
+      phone: '+44 20 3137 7500',
+      jobTitle: 'Operations Director',
       isPrimary: true,
     },
     sites: [],
@@ -291,7 +193,102 @@ const mockClients: Client[] = [
     activeSites: 0,
     totalGuardsAssigned: 0,
     incidentsThisMonth: 0,
-    notes: 'Initial meeting scheduled for December 2025.',
+    notes: 'New client, awaiting site setup.',
+    createdAt: '2025-11-01T09:00:00Z',
+    updatedAt: '2025-11-01T09:00:00Z',
+  },
+  {
+    id: '4',
+    companyName: 'Hilton Hotel Park Lane',
+    status: 'active',
+    industry: 'Hospitality',
+    address: {
+      street: '22 Park Lane',
+      city: 'London',
+      postCode: 'W1K 1BE',
+      country: 'United Kingdom',
+    },
+    contacts: [
+      {
+        id: 'c4',
+        firstName: 'Michael',
+        lastName: 'Brown',
+        email: 'm.brown@hilton.com',
+        phone: '+44 20 7493 8000',
+        jobTitle: 'General Manager',
+        isPrimary: true,
+      },
+    ],
+    primaryContact: {
+      id: 'c4',
+      firstName: 'Michael',
+      lastName: 'Brown',
+      email: 'm.brown@hilton.com',
+      phone: '+44 20 7493 8000',
+      jobTitle: 'General Manager',
+      isPrimary: true,
+    },
+    sites: [
+      {
+        id: 's4',
+        name: 'Main Lobby & Reception',
+        address: {
+          street: '22 Park Lane',
+          city: 'London',
+          postCode: 'W1K 1BE',
+          country: 'United Kingdom',
+        },
+        siteType: 'Hotel',
+        status: 'active',
+        guardsAssigned: 4,
+        shiftsThisWeek: 21,
+        hasGeofence: false,
+      },
+    ],
+    totalSites: 1,
+    activeSites: 1,
+    totalGuardsAssigned: 4,
+    incidentsThisMonth: 1,
+    createdAt: '2024-06-15T11:00:00Z',
+    updatedAt: '2025-11-20T09:00:00Z',
+  },
+  {
+    id: '5',
+    companyName: 'Prospect Construction Ltd',
+    status: 'prospect',
+    industry: 'Construction',
+    address: {
+      street: '45 Builder Street',
+      city: 'London',
+      postCode: 'SE1 9RT',
+      country: 'United Kingdom',
+    },
+    contacts: [
+      {
+        id: 'c5',
+        firstName: 'David',
+        lastName: 'Thompson',
+        email: 'd.thompson@prospectconstruction.co.uk',
+        phone: '+44 20 7123 4567',
+        jobTitle: 'Project Manager',
+        isPrimary: true,
+      },
+    ],
+    primaryContact: {
+      id: 'c5',
+      firstName: 'David',
+      lastName: 'Thompson',
+      email: 'd.thompson@prospectconstruction.co.uk',
+      phone: '+44 20 7123 4567',
+      jobTitle: 'Project Manager',
+      isPrimary: true,
+    },
+    sites: [],
+    totalSites: 0,
+    activeSites: 0,
+    totalGuardsAssigned: 0,
+    incidentsThisMonth: 0,
+    notes: 'Meeting scheduled for December.',
     createdAt: '2025-11-20T14:00:00Z',
     updatedAt: '2025-11-20T14:00:00Z',
   },
@@ -341,6 +338,7 @@ interface UseClientsDataReturn {
   createClient: (payload: CreateClientPayload) => Promise<Client>;
   updateClient: (payload: UpdateClientPayload) => Promise<Client>;
   deleteClient: (clientId: string) => Promise<void>;
+  createSite: (clientId: string, siteData: CreateSiteFormData) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -378,7 +376,7 @@ export function useClientsData(): UseClientsDataReturn {
 
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await simulateDelay('short');
 
         let filtered = [...mockClients];
 
@@ -459,7 +457,7 @@ export function useClientsData(): UseClientsDataReturn {
     setIsLoadingDetails(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await simulateDelay('short');
         const client = mockClients.find(c => c.id === clientId);
         setSelectedClient(client || null);
       } else {
@@ -479,7 +477,7 @@ export function useClientsData(): UseClientsDataReturn {
     setIsMutating(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('short');
         const newClient: Client = {
           id: `new-${Date.now()}`,
           ...payload,
@@ -493,6 +491,7 @@ export function useClientsData(): UseClientsDataReturn {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+        mockClients.unshift(newClient);
         setClients(prev => [newClient, ...prev]);
         return newClient;
       } else {
@@ -510,8 +509,10 @@ export function useClientsData(): UseClientsDataReturn {
     setIsMutating(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await simulateDelay('short');
         const updated = { ...selectedClient, ...payload, updatedAt: new Date().toISOString() } as Client;
+        const index = mockClients.findIndex(c => c.id === payload.id);
+        if (index !== -1) mockClients[index] = updated;
         setClients(prev => prev.map(c => c.id === payload.id ? updated : c));
         setSelectedClient(updated);
         return updated;
@@ -530,7 +531,9 @@ export function useClientsData(): UseClientsDataReturn {
     setIsMutating(true);
     try {
       if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await simulateDelay('short');
+        const index = mockClients.findIndex(c => c.id === clientId);
+        if (index !== -1) mockClients.splice(index, 1);
         setClients(prev => prev.filter(c => c.id !== clientId));
         if (selectedClient?.id === clientId) setSelectedClient(null);
       } else {
@@ -541,6 +544,80 @@ export function useClientsData(): UseClientsDataReturn {
       setIsMutating(false);
     }
   }, [fetchClients, selectedClient]);
+
+  // Create site for a client
+  const createSite = useCallback(async (clientId: string, siteData: CreateSiteFormData): Promise<void> => {
+    setIsMutating(true);
+    setError(null);
+
+    try {
+      if (USE_MOCK_DATA) {
+        await simulateDelay('medium');
+
+        // Create new site object
+        const site: ClientSite = {
+          id: `site-${Date.now()}`,
+          name: siteData.name,
+          address: siteData.address,
+          siteType: siteData.siteType,
+          status: 'active',
+          guardsAssigned: 0,
+          shiftsThisWeek: 0,
+          hasGeofence: !!(siteData.geofence.latitude && siteData.geofence.longitude),
+        };
+
+        // Update mock data
+        const clientIndex = mockClients.findIndex(c => c.id === clientId);
+        if (clientIndex !== -1) {
+          mockClients[clientIndex].sites.push(site);
+          mockClients[clientIndex].totalSites += 1;
+          mockClients[clientIndex].activeSites += 1;
+          mockClients[clientIndex].updatedAt = new Date().toISOString();
+
+          // Update selected client if it's the same
+          if (selectedClient?.id === clientId) {
+            const updatedClient = { ...mockClients[clientIndex] };
+            setSelectedClient(updatedClient);
+          }
+
+          // Update clients list
+          setClients(prev => prev.map(c =>
+            c.id === clientId ? mockClients[clientIndex] : c
+          ));
+        }
+      } else {
+        // Build API payload
+        const payload = {
+          name: siteData.name,
+          client: clientId,
+          address: siteData.address,
+          contactName: siteData.contactName || undefined,
+          contactPhone: siteData.contactPhone || undefined,
+          contactEmail: siteData.contactEmail || undefined,
+          specialInstructions: siteData.specialInstructions || undefined,
+          geofence: (siteData.geofence.latitude && siteData.geofence.longitude) ? {
+            center: {
+              latitude: parseFloat(siteData.geofence.latitude),
+              longitude: parseFloat(siteData.geofence.longitude),
+            },
+            radius: parseInt(siteData.geofence.radius) || 100,
+          } : undefined,
+        };
+
+        await api.post('/sites', payload);
+
+        // Refresh client details to get updated site list
+        await selectClient(clientId);
+        await fetchClients();
+      }
+    } catch (err) {
+      console.error('Error creating site:', err);
+      setError('Failed to create site.');
+      throw err;
+    } finally {
+      setIsMutating(false);
+    }
+  }, [fetchClients, selectClient, selectedClient]);
 
   useEffect(() => {
     fetchClients();
@@ -560,6 +637,7 @@ export function useClientsData(): UseClientsDataReturn {
     createClient,
     updateClient,
     deleteClient,
+    createSite,
     error,
     clearError: () => setError(null),
   };

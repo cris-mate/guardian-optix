@@ -526,6 +526,7 @@ const Clients: React.FC = () => {
     selectClient,
     refreshClients,
     createClient,
+    createSite,
     error,
   } = useClientsData();
 
@@ -575,6 +576,11 @@ const Clients: React.FC = () => {
   const handleRefresh = () => {
     refreshClients();
   };
+
+  // Site creation handler
+  const handleSiteCreated = useCallback(async (clientId: string, siteData: any) => {
+    await createSite(clientId, siteData);
+  }, [createSite]);
 
   const hasFilters = !!(filters.search || filters.status !== 'all');
 
@@ -774,13 +780,15 @@ const Clients: React.FC = () => {
         </Tabs.Root>
       </Box>
 
-      {/* Drawer */}
+      {/* Drawer - Updated with onSiteCreated */}
       <ClientDetailsDrawer
         client={selectedClient}
         isOpen={isDrawerOpen}
         onClose={handleDrawerClose}
         onEdit={handleClientEdit}
         isLoading={isLoadingDetails}
+        onSiteCreated={handleSiteCreated}
+        isMutating={isMutating}
       />
 
       {/* Add Modal */}

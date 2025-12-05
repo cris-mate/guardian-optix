@@ -3,7 +3,7 @@
  *
  * Simplified side panel with tabs for:
  * - Overview (company info, primary contact, metrics)
- * - Sites (jobs/locations)
+ * - Sites (jobs/locations) - with Add Site functionality
  * - Contacts
  */
 
@@ -24,6 +24,7 @@ import {
   IconButton,
   Link,
   Image,
+  Icon,
 } from '@chakra-ui/react';
 import { Drawer } from '@chakra-ui/react';
 import {
@@ -36,8 +37,11 @@ import {
   LuUsers,
   LuClock,
   LuShield,
+  LuPlus,
 } from 'react-icons/lu';
 import type { ClientDetailsDrawerProps, Client, ClientSite, ClientContact } from '../../../types/client.types';
+import AddSiteModal, { type CreateSiteFormData } from './AddSiteModal';
+import { useAuth } from '../../../context/AuthContext';
 
 // ============================================
 // Helpers
@@ -209,17 +213,37 @@ const OverviewTab: React.FC<{ client: Client }> = ({ client }) => (
 );
 
 // ============================================
-// Sites Tab
+// Sites Tab (Updated with Add Site button)
 // ============================================
 
-const SitesTab: React.FC<{ sites: ClientSite[] }> = ({ sites }) => (
+interface SitesTabProps {
+  sites: ClientSite[];
+  onAddSite: () => void;
+  isManager: boolean;
+}
+
+const SitesTab: React.FC<SitesTabProps> = ({ sites, onAddSite, isManager }) => (
   <VStack gap={4} align="stretch">
-    <Text fontWeight="semibold" color="gray.700">Sites / Jobs ({sites.length})</Text>
+    <HStack justify="space-between" align="center">
+      <Text fontWeight="semibold" color="gray.700">Sites / Jobs ({sites.length})</Text>
+      {isManager && (
+        <Button size="sm" colorPalette="purple" onClick={onAddSite}>
+          <Icon as={LuPlus} boxSize={4} mr={1} />
+          Add Site
+        </Button>
+      )}
+    </HStack>
 
     {sites.length === 0 ? (
       <Box textAlign="center" py={8} bg="gray.50" borderRadius="md">
         <LuMapPin size={32} style={{ margin: '0 auto', color: '#A0AEC0' }} />
         <Text color="gray.500" mt={2}>No sites configured</Text>
+        {isManager && (
+          <Button size="sm" variant="outline" mt={3} onClick={onAddSite}>
+            <Icon as={LuPlus} boxSize={4} mr={1} />
+            Add First Site
+          </Button>
+        )}
       </Box>
     ) : (
       <VStack gap={3} align="stretch">
@@ -315,92 +339,130 @@ const ContactsTab: React.FC<{ contacts: ClientContact[] }> = ({ contacts }) => (
 );
 
 // ============================================
+// Extended Props (add onSiteCreated callback)
+// ============================================
+
+interface ExtendedClientDetailsDrawerProps extends ClientDetailsDrawerProps {
+  onSiteCreated?: (clientId: string, siteData: CreateSiteFormData) => Promise<void>;
+  isMutating?: boolean;
+}
+
+// ============================================
 // Main Drawer Component
 // ============================================
 
-const ClientDetailsDrawer: React.FC<ClientDetailsDrawerProps> = ({
-                                                                   client,
-                                                                   isOpen,
-                                                                   onClose,
-                                                                   onEdit,
-                                                                   isLoading = false,
-                                                                 }) => {
+const ClientDetailsDrawer: React.FC<ExtendedClientDetailsDrawerProps> = ({
+                                                                           client,
+                                                                           isOpen,
+                                                                           onClose,
+                                                                           onEdit,
+                                                                           isLoading = false,
+                                                                           onSiteCreated,
+                                                                           isMutating = false,
+                                                                         }) => {
+  const { user } = useAuth();
+  const isManager = user?.role === 'Manager' || user?.role === 'Admin';
+
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
+
+  // Handle site creation
+  const handleAddSite = async (siteData: CreateSiteFormData) => {
+    if (!client || !onSiteCreated) return;
+    await onSiteCreated(client.id, siteData);
+    setIsAddSiteModalOpen(false);
+  };
 
   if (!client) return null;
 
   return (
-    <Drawer.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()} size="lg" placement="end">
-      <Drawer.Backdrop />
-      <Drawer.Positioner>
-        <Drawer.Content>
-          {/* Header */}
-          <Box borderBottomWidth="1px" borderColor="gray.200" px={6} py={4}>
-            <Flex justify="space-between" align="flex-start">
-              <HStack gap={3}>
-                <CompanyLogo logoUrl={client.logoUrl} companyName={client.companyName} />
-                <Box>
-                  <Heading size="md" color="gray.800">{client.companyName}</Heading>
-                  <HStack gap={2} mt={1}>
-                    <Badge colorPalette={getStatusColor(client.status)} variant="subtle">{client.status}</Badge>
-                    {client.industry && <Text fontSize="sm" color="gray.500">{client.industry}</Text>}
+    <>
+      <Drawer.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()} size="lg" placement="end">
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content>
+            {/* Header */}
+            <Box borderBottomWidth="1px" borderColor="gray.200" px={6} py={4}>
+              <Flex justify="space-between" align="flex-start">
+                <HStack gap={3}>
+                  <CompanyLogo logoUrl={client.logoUrl} companyName={client.companyName} />
+                  <Box>
+                    <Heading size="md" color="gray.800">{client.companyName}</Heading>
+                    <HStack gap={2} mt={1}>
+                      <Badge colorPalette={getStatusColor(client.status)} variant="subtle">{client.status}</Badge>
+                      {client.industry && <Text fontSize="sm" color="gray.500">{client.industry}</Text>}
+                    </HStack>
+                  </Box>
+                </HStack>
+                <HStack gap={2}>
+                  <Button size="sm" variant="outline" onClick={() => onEdit(client)}>
+                    <LuPencil size={14} style={{ marginRight: 4 }} />
+                    Edit
+                  </Button>
+                  <IconButton aria-label="Close" variant="ghost" size="sm" onClick={onClose}>
+                    <LuX size={18} />
+                  </IconButton>
+                </HStack>
+              </Flex>
+            </Box>
+
+            {/* Content */}
+            {isLoading ? (
+              <Flex justify="center" align="center" flex={1} py={16}>
+                <VStack gap={4}>
+                  <Spinner size="xl" color="blue.500" />
+                  <Text color="gray.500">Loading...</Text>
+                </VStack>
+              </Flex>
+            ) : (
+              <>
+                <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="line">
+                  <Tabs.List px={6} borderBottomWidth="1px" borderColor="gray.200">
+                    <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+                    <Tabs.Trigger value="sites">Sites ({client.sites?.length || 0})</Tabs.Trigger>
+                    <Tabs.Trigger value="contacts">Contacts ({client.contacts?.length || 0})</Tabs.Trigger>
+                  </Tabs.List>
+
+                  <Box flex={1} overflowY="auto" px={6} py={4}>
+                    <Tabs.Content value="overview">
+                      <OverviewTab client={client} />
+                    </Tabs.Content>
+                    <Tabs.Content value="sites">
+                      <SitesTab
+                        sites={client.sites || []}
+                        onAddSite={() => setIsAddSiteModalOpen(true)}
+                        isManager={isManager}
+                      />
+                    </Tabs.Content>
+                    <Tabs.Content value="contacts">
+                      <ContactsTab contacts={client.contacts || []} />
+                    </Tabs.Content>
+                  </Box>
+                </Tabs.Root>
+
+                {/* Footer */}
+                <Box borderTopWidth="1px" borderColor="gray.200" px={6} py={3}>
+                  <HStack justify="space-between" fontSize="xs" color="gray.500">
+                    <Text>Created: {formatDate(client.createdAt)}</Text>
+                    <Text>Updated: {formatDate(client.updatedAt)}</Text>
                   </HStack>
                 </Box>
-              </HStack>
-              <HStack gap={2}>
-                <Button size="sm" variant="outline" onClick={() => onEdit(client)}>
-                  <LuPencil size={14} style={{ marginRight: 4 }} />
-                  Edit
-                </Button>
-                <IconButton aria-label="Close" variant="ghost" size="sm" onClick={onClose}>
-                  <LuX size={18} />
-                </IconButton>
-              </HStack>
-            </Flex>
-          </Box>
+              </>
+            )}
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Drawer.Root>
 
-          {/* Content */}
-          {isLoading ? (
-            <Flex justify="center" align="center" flex={1} py={16}>
-              <VStack gap={4}>
-                <Spinner size="xl" color="blue.500" />
-                <Text color="gray.500">Loading...</Text>
-              </VStack>
-            </Flex>
-          ) : (
-            <>
-              <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} variant="line">
-                <Tabs.List px={6} borderBottomWidth="1px" borderColor="gray.200">
-                  <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-                  <Tabs.Trigger value="sites">Sites ({client.sites?.length || 0})</Tabs.Trigger>
-                  <Tabs.Trigger value="contacts">Contacts ({client.contacts?.length || 0})</Tabs.Trigger>
-                </Tabs.List>
-
-                <Box flex={1} overflowY="auto" px={6} py={4}>
-                  <Tabs.Content value="overview">
-                    <OverviewTab client={client} />
-                  </Tabs.Content>
-                  <Tabs.Content value="sites">
-                    <SitesTab sites={client.sites || []} />
-                  </Tabs.Content>
-                  <Tabs.Content value="contacts">
-                    <ContactsTab contacts={client.contacts || []} />
-                  </Tabs.Content>
-                </Box>
-              </Tabs.Root>
-
-              {/* Footer */}
-              <Box borderTopWidth="1px" borderColor="gray.200" px={6} py={3}>
-                <HStack justify="space-between" fontSize="xs" color="gray.500">
-                  <Text>Created: {formatDate(client.createdAt)}</Text>
-                  <Text>Updated: {formatDate(client.updatedAt)}</Text>
-                </HStack>
-              </Box>
-            </>
-          )}
-        </Drawer.Content>
-      </Drawer.Positioner>
-    </Drawer.Root>
+      {/* Add Site Modal */}
+      <AddSiteModal
+        isOpen={isAddSiteModalOpen}
+        onClose={() => setIsAddSiteModalOpen(false)}
+        onSubmit={handleAddSite}
+        clientName={client.companyName}
+        clientId={client.id}
+        isSubmitting={isMutating}
+      />
+    </>
   );
 };
 

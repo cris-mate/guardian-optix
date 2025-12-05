@@ -37,6 +37,7 @@ export const USE_MOCK_DATA = false;
 export const MOCK_CONFIG = {
   // Core features
   scheduling: USE_MOCK_DATA,
+  clients: USE_MOCK_DATA,
   guards: USE_MOCK_DATA,
   incidents: USE_MOCK_DATA,
   timeClock: USE_MOCK_DATA,
