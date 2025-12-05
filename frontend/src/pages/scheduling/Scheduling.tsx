@@ -50,7 +50,7 @@ import AddShiftModal from './components/AddShiftModal';
 import { useSchedulingData } from './hooks/useSchedulingData';
 
 // Types
-import type { Shift, SchedulingStats } from './types/scheduling.types';
+import type { Shift, SchedulingStats } from '../../types/scheduling.types';
 
 // ============================================
 // Tab Configuration

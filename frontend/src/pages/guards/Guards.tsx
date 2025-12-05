@@ -22,7 +22,7 @@ import GuardsFilters from './components/GuardsFilters';
 import GuardsTable from './components/GuardsTable';
 import GuardsDrawer from './components/GuardsDrawer';
 import AddGuardsModal from './components/AddGuardsModal';
-import { Guards as GuardsType} from './types/guards.types';
+import { Guards as GuardsType} from '../../types/guards.types';
 
 const Guards: React.FC = () => {
   const { user } = useAuth();

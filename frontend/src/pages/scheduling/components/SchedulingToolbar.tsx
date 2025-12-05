@@ -32,7 +32,7 @@ import {
   AvailableOfficer,
   AvailableSite,
   ViewMode,
-} from '../types/scheduling.types';
+} from '../../../types/scheduling.types';
 
 interface SchedulingToolbarProps {
   filters: SchedulingFilters;

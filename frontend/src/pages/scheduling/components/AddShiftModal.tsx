@@ -32,7 +32,7 @@ import {
   ShiftType,
   TaskFrequency,
   TaskPriority,
-} from '../types/scheduling.types';
+} from '../../../types/scheduling.types';
 import RecommendedOfficersPanel from './RecommendedOfficersPanel';
 
 // ============================================

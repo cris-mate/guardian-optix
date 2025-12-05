@@ -7,4 +7,4 @@
 export { default } from './Guards';
 export { default as Guards } from './Guards';
 export { useGuardsData } from './hooks/useGuardsData';
-export * from './types/guards.types';
+export * from '../../types/guards.types';

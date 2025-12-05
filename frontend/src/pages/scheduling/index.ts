@@ -49,4 +49,4 @@ export type {
   AddShiftModalProps,
   CalendarViewProps,
   SchedulingFiltersProps,
-} from './types/scheduling.types';
+} from '../../types/scheduling.types';

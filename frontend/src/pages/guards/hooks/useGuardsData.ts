@@ -14,7 +14,7 @@ import {
   GuardsFormData,
   Pagination,
   DEFAULT_FILTERS,
-} from '../types/guards.types';
+} from '../../../types/guards.types';
 
 // Toggle this to switch between mock data and API calls
 const USE_MOCK_DATA = true;
@@ -35,11 +35,8 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Static',
     status: 'on-duty',
     badgeNumber: 'GO-2024-001',
-    shift: 'Morning',
     availability: true,
     assignedSite: 'Westminster Office Complex',
-    profileImage: '',
-    startDate: '2023-06-15',
     siaLicence: {
       licenceNumber: '1234567890123456',
       licenceType: 'Security Guard',
@@ -48,11 +45,6 @@ const MOCK_GUARDS: Guards[] = [
       status: 'valid',
     },
     certifications: ['First Aid', 'Fire Safety'],
-    emergencyContact: {
-      name: 'Sarah Wilson',
-      relationship: 'Spouse',
-      phone: '07700 900456',
-    },
     createdAt: '2023-06-15T09:00:00Z',
     lastActiveAt: '2024-11-29T08:30:00Z',
   },
@@ -67,10 +59,8 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Close Protection',
     status: 'on-duty',
     badgeNumber: 'GO-2024-002',
-    shift: 'Night',
     availability: true,
     assignedSite: 'Canary Wharf Tower',
-    startDate: '2022-03-10',
     siaLicence: {
       licenceNumber: '2345678901234567',
       licenceType: 'Close Protection',
@@ -79,11 +69,6 @@ const MOCK_GUARDS: Guards[] = [
       status: 'expiring-soon',
     },
     certifications: ['First Aid', 'Advanced Driving', 'Conflict Management'],
-    emergencyContact: {
-      name: 'David Thompson',
-      relationship: 'Brother',
-      phone: '07700 900567',
-    },
     createdAt: '2022-03-10T09:00:00Z',
     lastActiveAt: '2024-11-28T22:15:00Z',
   },
@@ -98,10 +83,8 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Mobile Patrol',
     status: 'on-duty',
     badgeNumber: 'GO-2024-003',
-    shift: 'Afternoon',
     availability: false,
     assignedSite: 'Manchester Retail Park',
-    startDate: '2023-09-01',
     siaLicence: {
       licenceNumber: '3456789012345678',
       licenceType: 'Security Guard',
@@ -124,9 +107,7 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Dog Handler',
     status: 'off-duty',
     badgeNumber: 'GO-2024-004',
-    shift: 'Night',
     availability: false,
-    startDate: '2021-11-20',
     siaLicence: {
       licenceNumber: '4567890123456789',
       licenceType: 'Security Guard',
@@ -149,10 +130,8 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Static',
     status: 'on-duty',
     badgeNumber: 'GO-2024-005',
-    shift: 'Morning',
     availability: true,
     assignedSite: 'Leeds Business Centre',
-    startDate: '2024-01-08',
     siaLicence: {
       licenceNumber: '5678901234567890',
       licenceType: 'Door Supervisor',
@@ -174,9 +153,7 @@ const MOCK_GUARDS: Guards[] = [
     role: 'Manager',
     managerType: 'Operations Manager',
     status: 'on-duty',
-    shift: null,
     availability: true,
-    startDate: '2020-05-01',
     createdAt: '2020-05-01T09:00:00Z',
     lastActiveAt: '2024-11-29T09:30:00Z',
   },
@@ -191,9 +168,7 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Static',
     status: 'off-duty',
     badgeNumber: 'GO-2024-007',
-    shift: 'Night',
     availability: false,
-    startDate: '2023-02-14',
     siaLicence: {
       licenceNumber: '6789012345678901',
       licenceType: 'Security Guard',
@@ -216,10 +191,8 @@ const MOCK_GUARDS: Guards[] = [
     guardType: 'Close Protection',
     status: 'on-duty',
     badgeNumber: 'GO-2024-008',
-    shift: 'Morning',
     availability: true,
     assignedSite: 'Edinburgh Executive Suites',
-    startDate: '2022-08-22',
     siaLicence: {
       licenceNumber: '7890123456789012',
       licenceType: 'Close Protection',
@@ -313,11 +286,6 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     // Guard type filter
     if (filters.guardType !== 'all') {
       result = result.filter(p => p.guardType === filters.guardType);
-    }
-
-    // Shift filter
-    if (filters.shift !== 'all') {
-      result = result.filter(p => p.shift === filters.shift);
     }
 
     // Availability filter

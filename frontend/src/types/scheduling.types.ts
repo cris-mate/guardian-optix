@@ -1,70 +1,51 @@
 /**
- * Scheduling Types
+ * Scheduling Page Types
  *
- * TypeScript interfaces for the Scheduling page.
- * Includes Shift, ShiftTask, and related types.
+ * UI-specific types for the Scheduling page.
+ * Entity types imported from shared.
  */
 
 // ============================================
-// Core Types
+// Import Shared Entity Types
 // ============================================
 
-export type ShiftType = 'Morning' | 'Afternoon' | 'Night';
-export type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
-export type TaskFrequency = 'once' | 'hourly' | 'periodic';
-export type TaskPriority = 'low' | 'medium' | 'high';
+import type {
+  ShiftType,
+  ShiftStatus,
+  TaskFrequency,
+  TaskPriority,
+  Shift,
+  ShiftTask,
+  ShiftTaskInput,
+  ShiftSummary,
+  UserRef,
+  SiteRef,
+  PaginationMeta,
+} from '@/types/shared';
+
+// ============================================
+// Re-export for backward compatibility
+// ============================================
+
+export type {
+  ShiftType,
+  ShiftStatus,
+  TaskFrequency,
+  TaskPriority,
+  Shift,
+  ShiftTask,
+};
+
+// ============================================
+// UI-Specific Types (Stay Local)
+// ============================================
+
 export type ViewMode = 'day' | 'week' | 'month';
 
-// ============================================
-// Shift Task Interface
-// ============================================
-
-export interface ShiftTask {
-  _id: string;
-  title?: string;
-  description: string;
-  frequency: TaskFrequency;
-  priority: TaskPriority;
-  completed: boolean;
-  completedAt?: string;
-  completedBy?: string;
-}
-
-// ============================================
-// Shift Interface
-// ============================================
-
-export interface Shift {
-  _id: string;
-  officer: {
-    _id: string;
-    fullName: string;
-    badgeNumber?: string;
-    phoneNumber?: string;
-    profileImage?: string;
-  };
-  site: {
-    _id: string;
-    name: string;
-    address?: string;
-    postCode?: string;
-  };
-  date: string; // ISO date string
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
-  shiftType: ShiftType;
-  tasks: ShiftTask[];
-  notes?: string;
-  status: ShiftStatus;
-  createdBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// ============================================
-// Form Data Interfaces
-// ============================================
-
+/**
+ * Form data for creating shifts
+ * Maps to CreateShiftPayload with UI-friendly naming
+ */
 export interface ShiftFormData {
   officerId: string;
   siteId: string;
@@ -72,10 +53,13 @@ export interface ShiftFormData {
   startTime: string;
   endTime: string;
   shiftType: ShiftType;
-  tasks: Omit<ShiftTask, '_id' | 'completed' | 'completedAt' | 'completedBy'>[];
+  tasks: ShiftTaskInput[];
   notes?: string;
 }
 
+/**
+ * Task form data
+ */
 export interface TaskFormData {
   title?: string;
   description: string;
@@ -83,30 +67,36 @@ export interface TaskFormData {
   priority: TaskPriority;
 }
 
-// ============================================
-// Filter & Pagination
-// ============================================
-
+/**
+ * Scheduling page filters - UI state
+ */
 export interface SchedulingFilters {
   viewMode: ViewMode;
-  selectedDate: string; // ISO date string
+  selectedDate: string;
   officerId?: string;
   siteId?: string;
   shiftType?: ShiftType | 'all';
   status?: ShiftStatus | 'all';
 }
 
-export interface SchedulingPagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
+/**
+ * Default filter values
+ */
+export const DEFAULT_FILTERS: SchedulingFilters = {
+  viewMode: 'week',
+  selectedDate: new Date().toISOString().split('T')[0],
+  shiftType: 'all',
+  status: 'all',
+};
 
-// ============================================
-// Statistics
-// ============================================
+/**
+ * Pagination - use shared type
+ */
+export type SchedulingPagination = PaginationMeta;
 
+/**
+ * Statistics for scheduling overview
+ */
 export interface SchedulingStats {
   totalShifts: number;
   scheduledShifts: number;
@@ -117,10 +107,9 @@ export interface SchedulingStats {
   coveragePercentage: number;
 }
 
-// ============================================
-// Available Resources (for dropdowns)
-// ============================================
-
+/**
+ * Available officer for dropdowns
+ */
 export interface AvailableOfficer {
   _id: string;
   fullName: string;
@@ -129,6 +118,9 @@ export interface AvailableOfficer {
   availability: boolean;
 }
 
+/**
+ * Available site for dropdowns
+ */
 export interface AvailableSite {
   _id: string;
   name: string;
@@ -138,11 +130,11 @@ export interface AvailableSite {
 }
 
 // ============================================
-// Calendar Helpers
+// Calendar Types (UI-specific)
 // ============================================
 
 export interface CalendarDay {
-  date: string; // ISO date string
+  date: string;
   dayOfMonth: number;
   isCurrentMonth: boolean;
   isToday: boolean;
@@ -155,7 +147,7 @@ export interface CalendarWeek {
 }
 
 // ============================================
-// Component Props
+// Component Props (Always Local)
 // ============================================
 
 export interface ShiftCardProps {

@@ -14,7 +14,7 @@ import {
   AvailableOfficer,
   AvailableSite,
   CalendarDay,
-} from '../types/scheduling.types';
+} from '../../../types/scheduling.types';
 
 // Toggle between mock data and API
 const USE_MOCK_DATA = true;

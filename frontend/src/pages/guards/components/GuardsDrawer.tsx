@@ -12,7 +12,6 @@ import {
   VStack,
   HStack,
   Text,
-  Avatar,
   Badge,
   Button,
   Spinner,
@@ -27,14 +26,13 @@ import {
   LuMapPin,
   LuCalendar,
   LuShield,
-  LuClock,
   LuUser,
   LuTriangleAlert,
   LuPencil,
   LuBadgeCheck,
   LuFileText,
 } from 'react-icons/lu';
-import { Guards, LicenceStatus, GuardsStatus } from '../types/guards.types';
+import { Guards, LicenceStatus, GuardsStatus } from '../../../types/guards.types';
 
 interface GuardsDrawerProps {
   officer: Guards | null;
@@ -159,10 +157,6 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                 {/* Profile Header */}
                 <Box bg="gray.50" p={6}>
                   <VStack gap={4}>
-                    <Avatar.Root size="sm">
-                      <Avatar.Image src={officer.profileImage} />
-                      <Avatar.Fallback name={officer.fullName} />
-                    </Avatar.Root>
                     <VStack gap={1}>
                       <Text fontSize="xl" fontWeight="semibold">{officer.fullName}</Text>
                       {officer.badgeNumber && (
@@ -255,16 +249,6 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                           )}
                         </VStack>
                       }
-                    />
-                    <InfoRow
-                      icon={<LuClock size={14} />}
-                      label="Shift"
-                      value={officer.shift || 'Not assigned'}
-                    />
-                    <InfoRow
-                      icon={<LuCalendar size={14} />}
-                      label="Start Date"
-                      value={formatDate(officer.startDate)}
                     />
                     {officer.assignedSite && (
                       <InfoRow
@@ -376,40 +360,6 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                     </Box>
                     <Separator />
                   </>
-                )}
-
-                {/* Emergency Contact */}
-                {officer.emergencyContact && (
-                  <Box px={6} py={4}>
-                    <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={3}>
-                      Emergency Contact
-                    </Text>
-                    <VStack gap={0} align="stretch">
-                      <InfoRow
-                        icon={<LuUser size={14} />}
-                        label="Name"
-                        value={officer.emergencyContact.name}
-                      />
-                      <InfoRow
-                        icon={<LuUser size={14} />}
-                        label="Relationship"
-                        value={officer.emergencyContact.relationship}
-                      />
-                      <InfoRow
-                        icon={<LuPhone size={14} />}
-                        label="Phone"
-                        value={
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            onClick={() => window.open(`tel:${officer.emergencyContact?.phone}`)}
-                          >
-                            {officer.emergencyContact.phone}
-                          </Button>
-                        }
-                      />
-                    </VStack>
-                  </Box>
                 )}
               </VStack>
             ) : (

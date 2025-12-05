@@ -20,7 +20,7 @@ import {
   Select,
 } from '@chakra-ui/react';
 import { LuX, LuUserPlus } from 'react-icons/lu';
-import { GuardsFormData, UserRole, GuardType, SIALicenceType } from '../types/guards.types';
+import { GuardsFormData, GuardType, SIALicenceType } from '../../../types/guards.types';
 
 interface AddGuardsModalProps {
   isOpen: boolean;
@@ -29,36 +29,12 @@ interface AddGuardsModalProps {
   isSubmitting?: boolean;
 }
 
-// Select collections
-const roleOptions = createListCollection({
-  items: [
-    { value: 'Guard', label: 'Security Officer' },
-    { value: 'Manager', label: 'Manager' },
-  ],
-});
-
 const guardTypeOptions = createListCollection({
   items: [
     { value: 'Static', label: 'Static' },
     { value: 'Mobile Patrol', label: 'Mobile Patrol' },
     { value: 'Close Protection', label: 'Close Protection' },
     { value: 'Dog Handler', label: 'Dog Handler' },
-  ],
-});
-
-const managerTypeOptions = createListCollection({
-  items: [
-    { value: 'Operations Manager', label: 'Operations Manager' },
-    { value: 'Account Manager', label: 'Account Manager' },
-    { value: 'Business Support Manager', label: 'Business Support Manager' },
-  ],
-});
-
-const shiftOptions = createListCollection({
-  items: [
-    { value: 'Morning', label: 'Morning' },
-    { value: 'Afternoon', label: 'Afternoon' },
-    { value: 'Night', label: 'Night' },
   ],
 });
 
@@ -75,23 +51,16 @@ const licenceTypeOptions = createListCollection({
 // Initial form state
 const initialFormData: GuardsFormData = {
   fullName: '',
+  username: '',
   email: '',
   phoneNumber: '',
   postCode: '',
   role: 'Guard',
   guardType: undefined,
-  managerType: undefined,
-  shift: undefined,
   badgeNumber: '',
-  startDate: '',
   siaLicenceNumber: '',
   siaLicenceType: undefined,
   siaLicenceExpiry: '',
-  emergencyContact: {
-    name: '',
-    relationship: '',
-    phone: '',
-  },
 };
 
 const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
@@ -117,17 +86,6 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
-  };
-
-  // Handle emergency contact change
-  const handleEmergencyContactChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      emergencyContact: {
-        ...prev.emergencyContact!,
-        [field]: value,
-      },
-    }));
   };
 
   // Validate form
@@ -250,15 +208,6 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                       />
                       {errors.postCode && <Field.ErrorText>{errors.postCode}</Field.ErrorText>}
                     </Field.Root>
-
-                    <Field.Root>
-                      <Field.Label>Start Date</Field.Label>
-                      <Input
-                        type="date"
-                        value={formData.startDate || ''}
-                        onChange={(e) => handleChange('startDate', e.target.value)}
-                      />
-                    </Field.Root>
                   </HStack>
                 </VStack>
               </Box>
@@ -270,79 +219,27 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                 </Text>
                 <VStack gap={4}>
                   <HStack gap={4} width="100%">
-                    <Field.Root>
-                      <Field.Label>Role</Field.Label>
+                    <Field.Root required invalid={!!errors.guardType}>
+                      <Field.Label>Guard Type</Field.Label>
                       <Select.Root
-                        collection={roleOptions}
-                        value={[formData.role]}
-                        onValueChange={(e) => {
-                          handleChange('role', e.value[0] as UserRole);
-                          // Clear type fields when role changes
-                          if (e.value[0] === 'Guard') {
-                            handleChange('managerType', undefined);
-                          } else {
-                            handleChange('guardType', undefined);
-                          }
-                        }}
+                        collection={guardTypeOptions}
+                        value={formData.guardType ? [formData.guardType] : []}
+                        onValueChange={(e) => handleChange('guardType', e.value[0] as GuardType)}
                       >
                         <Select.Trigger>
-                          <Select.ValueText placeholder="Select role" />
+                          <Select.ValueText placeholder="Select type" />
                         </Select.Trigger>
                         <Select.Content>
-                          {roleOptions.items.map((item) => (
+                          {guardTypeOptions.items.map((item) => (
                             <Select.Item key={item.value} item={item}>
                               {item.label}
                             </Select.Item>
                           ))}
                         </Select.Content>
                       </Select.Root>
+                      {errors.guardType && <Field.ErrorText>{errors.guardType}</Field.ErrorText>}
                     </Field.Root>
 
-                    {isGuard ? (
-                      <Field.Root required invalid={!!errors.guardType}>
-                        <Field.Label>Guard Type</Field.Label>
-                        <Select.Root
-                          collection={guardTypeOptions}
-                          value={formData.guardType ? [formData.guardType] : []}
-                          onValueChange={(e) => handleChange('guardType', e.value[0] as GuardType)}
-                        >
-                          <Select.Trigger>
-                            <Select.ValueText placeholder="Select type" />
-                          </Select.Trigger>
-                          <Select.Content>
-                            {guardTypeOptions.items.map((item) => (
-                              <Select.Item key={item.value} item={item}>
-                                {item.label}
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Root>
-                        {errors.guardType && <Field.ErrorText>{errors.guardType}</Field.ErrorText>}
-                      </Field.Root>
-                    ) : (
-                      <Field.Root>
-                        <Field.Label>Manager Type</Field.Label>
-                        <Select.Root
-                          collection={managerTypeOptions}
-                          value={formData.managerType ? [formData.managerType] : []}
-                          onValueChange={(e) => handleChange('managerType', e.value[0])}
-                        >
-                          <Select.Trigger>
-                            <Select.ValueText placeholder="Select type" />
-                          </Select.Trigger>
-                          <Select.Content>
-                            {managerTypeOptions.items.map((item) => (
-                              <Select.Item key={item.value} item={item}>
-                                {item.label}
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Root>
-                      </Field.Root>
-                    )}
-                  </HStack>
-
-                  <HStack gap={4} width="100%">
                     <Field.Root>
                       <Field.Label>Badge Number</Field.Label>
                       <Input
@@ -350,25 +247,6 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                         value={formData.badgeNumber || ''}
                         onChange={(e) => handleChange('badgeNumber', e.target.value)}
                       />
-                    </Field.Root>
-                    <Field.Root>
-                      <Field.Label>Default Shift</Field.Label>
-                      <Select.Root
-                        collection={shiftOptions}
-                        value={formData.shift ? [formData.shift] : []}
-                        onValueChange={(e) => handleChange('shift', e.value[0] || undefined)}
-                      >
-                        <Select.Trigger>
-                          <Select.ValueText placeholder="Select shift" />
-                        </Select.Trigger>
-                        <Select.Content>
-                          {shiftOptions.items.map((item) => (
-                            <Select.Item key={item.value} item={item}>
-                              {item.label}
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Root>
                     </Field.Root>
                   </HStack>
                 </VStack>
@@ -424,42 +302,6 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                   </VStack>
                 </Box>
               )}
-
-              {/* Emergency Contact */}
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={4}>
-                  Emergency Contact
-                </Text>
-                <VStack gap={4}>
-                  <HStack gap={4} width="100%">
-                    <Field.Root>
-                      <Field.Label>Contact Name</Field.Label>
-                      <Input
-                        placeholder="Jane Smith"
-                        value={formData.emergencyContact?.name || ''}
-                        onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
-                      />
-                    </Field.Root>
-                    <Field.Root>
-                      <Field.Label>Relationship</Field.Label>
-                      <Input
-                        placeholder="Spouse"
-                        value={formData.emergencyContact?.relationship || ''}
-                        onChange={(e) => handleEmergencyContactChange('relationship', e.target.value)}
-                      />
-                    </Field.Root>
-                  </HStack>
-                  <Field.Root>
-                    <Field.Label>Contact Phone</Field.Label>
-                    <Input
-                      type="tel"
-                      placeholder="07700 900456"
-                      value={formData.emergencyContact?.phone || ''}
-                      onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
-                    />
-                  </Field.Root>
-                </VStack>
-              </Box>
             </VStack>
           </Dialog.Body>
 

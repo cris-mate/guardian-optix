@@ -15,7 +15,7 @@ import {
   Text,
   Spinner,
 } from '@chakra-ui/react';
-import { Shift, ViewMode } from '../types/scheduling.types';
+import { Shift, ViewMode } from '../../../types/scheduling.types';
 import ShiftCard from './ShiftCard';
 
 interface CalendarViewProps {

@@ -10,7 +10,6 @@ import {
   Box,
   Table,
   Badge,
-  Avatar,
   HStack,
   Text,
   IconButton,
@@ -33,7 +32,7 @@ import {
   GuardsFilters,
   GuardsStatus,
   LicenceStatus,
-} from '../types/guards.types';
+} from '../../../types/guards.types';
 
 interface GuardsTableProps {
   guards: Guards[];
@@ -229,10 +228,6 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
               {/* Officer Info */}
               <Table.Cell>
                 <HStack gap={3}>
-                  <Avatar.Root size="sm">
-                    <Avatar.Image src={officer.profileImage} />
-                    <Avatar.Fallback name={officer.fullName} />
-                  </Avatar.Root>
                   <Box>
                     <Text fontWeight="medium" fontSize="sm">
                       {officer.fullName}
@@ -271,17 +266,6 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                     <Text fontSize="xs" color="gray.500">{officer.managerType}</Text>
                   )}
                 </Box>
-              </Table.Cell>
-
-              {/* Shift */}
-              <Table.Cell>
-                {officer.shift ? (
-                  <Badge variant="outline" size="sm">
-                    {officer.shift}
-                  </Badge>
-                ) : (
-                  <Text fontSize="sm" color="gray.400">-</Text>
-                )}
               </Table.Cell>
 
               {/* Location (Postcode) */}

@@ -18,7 +18,7 @@ import {
   createListCollection,
 } from '@chakra-ui/react';
 import { LuSearch, LuX } from 'react-icons/lu';
-import { GuardsFilters as FiltersType, GuardsStats } from '../types/guards.types';
+import { GuardsFilters as FiltersType, GuardsStats } from '../../../types/guards.types';
 
 interface GuardsFiltersProps {
   filters: FiltersType;
@@ -56,15 +56,6 @@ const guardTypeOptions = createListCollection({
   ],
 });
 
-const shiftOptions = createListCollection({
-  items: [
-    { value: 'all', label: 'All Shifts' },
-    { value: 'Morning', label: 'Morning' },
-    { value: 'Afternoon', label: 'Afternoon' },
-    { value: 'Night', label: 'Night' },
-  ],
-});
-
 const licenceStatusOptions = createListCollection({
   items: [
     { value: 'all', label: 'All Licences' },
@@ -86,7 +77,6 @@ const GuardsFilters: React.FC<GuardsFiltersProps> = ({
     filters.status !== 'all' ||
     filters.role !== 'all' ||
     filters.guardType !== 'all' ||
-    filters.shift !== 'all' ||
     filters.availability !== 'all' ||
     filters.licenceStatus !== 'all';
 
@@ -210,28 +200,6 @@ const GuardsFilters: React.FC<GuardsFiltersProps> = ({
               </Select.Root>
             </Box>
           )}
-
-          {/* Shift Filter */}
-          <Box minW="120px">
-            <Text fontSize="xs" color="gray.500" mb={1}>Shift</Text>
-            <Select.Root
-              collection={shiftOptions}
-              value={[filters.shift || 'all']}
-              onValueChange={(e) => onFiltersChange({ shift: e.value[0] === 'all' ? 'all' : e.value[0] as FiltersType['shift'] })}
-              size="sm"
-            >
-              <Select.Trigger>
-                <Select.ValueText placeholder="Shift" />
-              </Select.Trigger>
-              <Select.Content>
-                {shiftOptions.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Root>
-          </Box>
 
           {/* Licence Status Filter */}
           <Box minW="140px">
