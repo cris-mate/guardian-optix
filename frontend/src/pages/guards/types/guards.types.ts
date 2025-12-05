@@ -18,10 +18,10 @@ export type UserRole = 'Admin' | 'Manager' | 'Guard';
 export type ShiftType = 'Morning' | 'Afternoon' | 'Night' | null;
 
 // Guards status for filtering
-export type GuardsStatus = 'active' | 'on-leave' | 'off-duty' | 'suspended';
+export type GuardsStatus = 'on-duty' | 'off-duty' | 'on-break' | 'late' | 'absent' | 'scheduled';
 
 // SIA Licence status
-export type LicenceStatus = 'valid' | 'expiring-soon' | 'expired' | 'pending';
+export type LicenceStatus = 'valid' | 'expiring-soon' | 'expired' ;
 
 // SIA Licence types
 export type SIALicenceType =
@@ -29,7 +29,6 @@ export type SIALicenceType =
   | 'Door Supervisor'
   | 'Close Protection'
   | 'CCTV Operator'
-  | 'Key Holder';
 
 /**
  * SIA Licence information
@@ -123,8 +122,7 @@ export interface Pagination {
  */
 export interface GuardsStats {
   total: number;
-  active: number;
-  onLeave: number;
+  onDuty: number;
   offDuty: number;
   expiringLicences: number;
 }

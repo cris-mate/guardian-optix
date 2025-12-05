@@ -19,7 +19,7 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 //export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'overdue';
 export type TaskFrequency = 'once' | 'hourly' | 'periodic';
 
-export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type IncidentStatus = 'open' | 'under-review' | 'resolved' | 'closed';
 
 export type ActivityType =

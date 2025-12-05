@@ -115,14 +115,19 @@ export interface ComplianceDocument {
 // ============================================
 
 export type AuditAction =
+  | 'document-uploaded'
+  | 'document-updated'
+  | 'document-viewed'
+  | 'document-signed'
+  | 'document-deleted'
   | 'cert-uploaded'
   | 'cert-updated'
   | 'cert-deleted'
+  | 'cert-verified'
   | 'incident-reported'
   | 'incident-updated'
-  | 'document-uploaded'
-  | 'document-updated'
-  | 'document-deleted';
+  | 'incident-verified'
+;
 
 export type AuditTargetType = 'Certification' | 'Incident' | 'Document';
 

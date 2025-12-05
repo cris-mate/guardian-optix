@@ -98,13 +98,7 @@ const GuardsFilters: React.FC<GuardsFiltersProps> = ({
           <Flex align="center" gap={2}>
             <Box w={2} h={2} borderRadius="full" bg="green.500" />
             <Text fontSize="sm" color="gray.600">
-              Active: <Text as="span" fontWeight="semibold">{stats.active}</Text>
-            </Text>
-          </Flex>
-          <Flex align="center" gap={2}>
-            <Box w={2} h={2} borderRadius="full" bg="yellow.500" />
-            <Text fontSize="sm" color="gray.600">
-              On Leave: <Text as="span" fontWeight="semibold">{stats.onLeave}</Text>
+              Active: <Text as="span" fontWeight="semibold">{stats.onDuty}</Text>
             </Text>
           </Flex>
           <Flex align="center" gap={2}>

@@ -47,10 +47,12 @@ interface GuardsDrawerProps {
 // Status colour mapping
 const getStatusColor = (status: GuardsStatus): string => {
   const colors: Record<GuardsStatus, string> = {
-    active: 'green',
-    'on-leave': 'yellow',
+    'on-duty': 'green',
     'off-duty': 'gray',
-    suspended: 'red',
+    'on-break': 'yellow',
+    'late': 'orange',
+    'absent': 'red',
+    'scheduled': 'blue',
   };
   return colors[status] || 'gray';
 };
@@ -62,7 +64,6 @@ const getLicenceColor = (status?: LicenceStatus): string => {
     valid: 'green',
     'expiring-soon': 'orange',
     expired: 'red',
-    pending: 'blue',
   };
   return colors[status] || 'gray';
 };
@@ -173,7 +174,7 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                         <Badge colorPalette={getStatusColor(officer.status)} variant="subtle">
                           {officer.status.replace('-', ' ')}
                         </Badge>
-                        {officer.availability && officer.status === 'active' && (
+                        {officer.availability && officer.status === 'on-duty' && (
                           <Badge colorPalette="green" variant="outline">
                             Available
                           </Badge>

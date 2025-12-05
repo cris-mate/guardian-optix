@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const complianceAuditSchema = new mongoose.Schema({
   action: {
     type: String,
-    enum: ['document-viewed', 'document-signed', 'cert-uploaded', 'cert-verified',
-      'incident-reported', 'checklist-completed', 'policy-acknowledged'],
+    enum: ['document-uploaded', 'document-viewed', 'document-signed', 'document-updated', 'document-deleted',
+      'cert-uploaded', 'cert-updated', 'cert-deleted', 'cert-verified',
+      'incident-reported', 'incident-updated', 'incident-verified'],
     required: true
   },
   performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

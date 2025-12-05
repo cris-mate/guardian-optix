@@ -252,7 +252,7 @@ export interface AttendanceMetrics {
 // Incident Response Performance
 // ============================================
 
-export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export interface IncidentResponseRecord {
   id: string;

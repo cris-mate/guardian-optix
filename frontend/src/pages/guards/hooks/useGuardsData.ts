@@ -33,7 +33,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'SW1A 1AA',
     role: 'Guard',
     guardType: 'Static',
-    status: 'active',
+    status: 'on-duty',
     badgeNumber: 'GO-2024-001',
     shift: 'Morning',
     availability: true,
@@ -65,7 +65,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'E14 5AB',
     role: 'Guard',
     guardType: 'Close Protection',
-    status: 'active',
+    status: 'on-duty',
     badgeNumber: 'GO-2024-002',
     shift: 'Night',
     availability: true,
@@ -96,7 +96,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'M1 2WD',
     role: 'Guard',
     guardType: 'Mobile Patrol',
-    status: 'active',
+    status: 'on-duty',
     badgeNumber: 'GO-2024-003',
     shift: 'Afternoon',
     availability: false,
@@ -122,7 +122,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'B2 4QA',
     role: 'Guard',
     guardType: 'Dog Handler',
-    status: 'on-leave',
+    status: 'off-duty',
     badgeNumber: 'GO-2024-004',
     shift: 'Night',
     availability: false,
@@ -147,7 +147,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'LS1 4DY',
     role: 'Guard',
     guardType: 'Static',
-    status: 'active',
+    status: 'on-duty',
     badgeNumber: 'GO-2024-005',
     shift: 'Morning',
     availability: true,
@@ -173,7 +173,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'CF10 1EP',
     role: 'Manager',
     managerType: 'Operations Manager',
-    status: 'active',
+    status: 'on-duty',
     shift: null,
     availability: true,
     startDate: '2020-05-01',
@@ -214,7 +214,7 @@ const MOCK_GUARDS: Guards[] = [
     postCode: 'EH1 1RE',
     role: 'Guard',
     guardType: 'Close Protection',
-    status: 'active',
+    status: 'on-duty',
     badgeNumber: 'GO-2024-008',
     shift: 'Morning',
     availability: true,
@@ -273,14 +273,13 @@ export const useGuardsData = (): UseGuardsDataReturn => {
 
   const stats = useMemo<GuardsStats>(() => {
     const total = guards.length;
-    const active = guards.filter(p => p.status === 'active').length;
-    const onLeave = guards.filter(p => p.status === 'on-leave').length;
+    const onDuty = guards.filter(p => p.status === 'on-duty').length;
     const offDuty = guards.filter(p => p.status === 'off-duty').length;
     const expiringLicences = guards.filter(
       p => p.siaLicence?.status === 'expiring-soon' || p.siaLicence?.status === 'expired'
     ).length;
 
-    return { total, active, onLeave, offDuty, expiringLicences };
+    return { total, onDuty, offDuty, expiringLicences };
   }, [guards]);
 
   // ============================================

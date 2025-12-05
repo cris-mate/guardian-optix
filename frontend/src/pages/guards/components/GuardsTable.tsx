@@ -48,10 +48,12 @@ interface GuardsTableProps {
 // Status badge colour mapping
 const getStatusColor = (status: GuardsStatus): string => {
   const colors: Record<GuardsStatus, string> = {
-    active: 'green',
-    'on-leave': 'yellow',
+    'on-duty': 'green',
     'off-duty': 'gray',
-    suspended: 'red',
+    'on-break': 'yellow',
+    'late': 'orange',
+    'absent': 'red',
+    'scheduled': 'blue',
   };
   return colors[status] || 'gray';
 };
@@ -63,7 +65,6 @@ const getLicenceColor = (status?: LicenceStatus): string => {
     valid: 'green',
     'expiring-soon': 'orange',
     expired: 'red',
-    pending: 'blue',
   };
   return colors[status] || 'gray';
 };
@@ -253,7 +254,7 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                   >
                     {officer.status.replace('-', ' ')}
                   </Badge>
-                  {officer.availability && officer.status === 'active' && (
+                  {officer.availability && officer.status === 'on-duty' && (
                     <Box w={2} h={2} borderRadius="full" bg="green.400" title="Available" />
                   )}
                 </HStack>
