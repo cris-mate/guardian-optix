@@ -126,7 +126,7 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
         <Drawer.Content>
           <Drawer.Header borderBottomWidth="1px" borderColor="gray.200">
             <Flex justify="space-between" align="center">
-              <Text fontSize="lg" fontWeight="semibold">Guard Details</Text>
+              <Text fontSize="lg" fontWeight="semibold"><Text>{guard?.role} Details</Text></Text>
               <HStack gap={2}>
                 {onEdit && guard && (
                   <IconButton

@@ -212,7 +212,7 @@ const MOCK_GUARDS: Guards[] = [
 
 interface UseGuardsDataReturn {
   guards: Guards[];
-  selectedGuards: Guards | null;
+  selectedGuard: Guards | null;
   isLoading: boolean;
   isLoadingDetails: boolean;
   isMutating: boolean;
@@ -248,11 +248,15 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     const total = guards.length;
     const onDuty = guards.filter(p => p.status === 'on-duty').length;
     const offDuty = guards.filter(p => p.status === 'off-duty').length;
+    const onBreak= guards.filter(p => p.status === 'on-break').length;
+    const late= guards.filter(p => p.status === 'late').length;
+    const absent= guards.filter(p => p.status === 'absent').length;
+    const scheduled= guards.filter(p => p.status === 'scheduled').length;
     const expiringLicences = guards.filter(
       p => p.siaLicence?.status === 'expiring-soon' || p.siaLicence?.status === 'expired'
     ).length;
 
-    return { total, onDuty, offDuty, expiringLicences };
+    return { total, onDuty, offDuty, onBreak, late, absent, scheduled, expiringLicences };
   }, [guards]);
 
   // ============================================

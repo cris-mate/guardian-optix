@@ -115,9 +115,12 @@ const getGuardsStats = asyncHandler(async (req, res) => {
       $group: {
         _id: null,
         total: { $sum: 1 },
-        active: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
-        onLeave: { $sum: { $cond: [{ $eq: ['$status', 'on-leave'] }, 1, 0] } },
+        onDuty: { $sum: { $cond: [{ $eq: ['$status', 'on-duty'] }, 1, 0] } },
         offDuty: { $sum: { $cond: [{ $eq: ['$status', 'off-duty'] }, 1, 0] } },
+        onBreak: { $sum: { $cond: [{ $eq: ['$status', 'on-break'] }, 1, 0] } },
+        late: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
+        absent: { $sum: { $cond: [{ $eq: ['$status', 'absent'] }, 1, 0] } },
+        scheduled: { $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] } },
         expiringLicences: {
           $sum: {
             $cond: [

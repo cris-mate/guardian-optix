@@ -243,11 +243,11 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
               <Table.Cell>
                 <HStack gap={2}>
                   <Badge
-                    colorPalette={getStatusColor(guard.status)}
+                    colorPalette={getStatusColor(guard.status || 'off-duty')}
                     variant="subtle"
                     size="sm"
                   >
-                    {guard.status.replace('-', ' ')}
+                    {(guard.status || 'off-duty').replace('-', ' ')}
                   </Badge>
                   {guard.availability && guard.status === 'on-duty' && (
                     <Box w={2} h={2} borderRadius="full" bg="green.400" title="Available" />

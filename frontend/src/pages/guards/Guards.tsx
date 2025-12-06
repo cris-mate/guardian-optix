@@ -22,7 +22,7 @@ import GuardsFilters from './components/GuardsFilters';
 import GuardsTable from './components/GuardsTable';
 import GuardsDrawer from './components/GuardsDrawer';
 import AddGuardsModal from './components/AddGuardsModal';
-import { Guards as GuardsType} from '../../types/guards.types';
+import {Guards as GuardsType, GuardsStatus} from '../../types/guards.types';
 
 const Guards: React.FC = () => {
   const { user } = useAuth();
@@ -60,6 +60,19 @@ const Guards: React.FC = () => {
     setIsDrawerOpen(false);
     // Delay clearing selection to allow drawer animation
     setTimeout(() => selectGuard(null), 300);
+  };
+
+  // Status badge colour mapping
+  const getStatusColor = (status: GuardsStatus = 'off-duty'): string => {
+    const colors: Record<GuardsStatus, string> = {
+      'on-duty': 'green',
+      'off-duty': 'gray',
+      'on-break': 'yellow',
+      'late': 'orange',
+      'absent': 'red',
+      'scheduled': 'blue',
+    };
+    return colors[status] || 'gray';
   };
 
   // Handle edit (placeholder)
