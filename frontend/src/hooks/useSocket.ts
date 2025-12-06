@@ -3,6 +3,8 @@
  *
  * Manages Socket.io connection with automatic reconnection,
  * authentication, and event subscription.
+ *
+ * Only connects when user is authenticated (has token).
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -33,7 +35,7 @@ export interface UseSocketReturn {
 // Constants
 // ============================================
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 
 // ============================================
 // Hook Implementation
@@ -53,17 +55,21 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
   }, []);
 
   // Logging helper
-  const log = useCallback((...args: unknown[]) => {
-    if (enableLogging) {
-      console.log('[Socket]', ...args);
-    }
-  }, [enableLogging]);
+  const log = useCallback(
+    (...args: unknown[]) => {
+      if (enableLogging) {
+        console.log('[Socket]', ...args);
+      }
+    },
+    [enableLogging]
+  );
 
   // Connect to socket server
   const connect = useCallback(() => {
     const token = getToken();
 
     if (!token) {
+      log('No token available, skipping socket connection');
       setError('No authentication token');
       return;
     }
@@ -71,6 +77,12 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
     if (socketRef.current?.connected) {
       log('Already connected');
       return;
+    }
+
+    // Clean up any existing socket before creating new one
+    if (socketRef.current) {
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
     }
 
     setIsConnecting(true);
@@ -83,6 +95,7 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      timeout: 10000,
     });
 
     // Connection events
@@ -96,6 +109,11 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
     socketRef.current.on('disconnect', (reason) => {
       log('Disconnected:', reason);
       setIsConnected(false);
+
+      // Don't show error for intentional disconnects
+      if (reason === 'io client disconnect') {
+        setError(null);
+      }
     });
 
     socketRef.current.on('connect_error', (err) => {
@@ -107,6 +125,7 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
     socketRef.current.on('reconnect', (attemptNumber) => {
       log('Reconnected after', attemptNumber, 'attempts');
       setIsConnected(true);
+      setError(null);
     });
 
     socketRef.current.on('reconnect_failed', () => {
@@ -118,56 +137,93 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
   // Disconnect from socket server
   const disconnect = useCallback(() => {
     if (socketRef.current) {
+      socketRef.current.removeAllListeners();
       socketRef.current.disconnect();
       socketRef.current = null;
       setIsConnected(false);
+      setIsConnecting(false);
       log('Manually disconnected');
     }
   }, [log]);
 
   // Emit event
-  const emit = useCallback((event: string, data?: unknown) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(event, data);
-      log('Emitted:', event, data);
-    } else {
-      log('Cannot emit - not connected');
-    }
-  }, [log]);
-
-  // Subscribe to event (returns cleanup function)
-  const on = useCallback(<T,>(event: string, callback: (data: T) => void) => {
-    if (socketRef.current) {
-      socketRef.current.on(event, callback);
-      log('Subscribed to:', event);
-    }
-
-    // Return cleanup function
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off(event, callback);
-        log('Unsubscribed from:', event);
+  const emit = useCallback(
+    (event: string, data?: unknown) => {
+      if (socketRef.current?.connected) {
+        socketRef.current.emit(event, data);
+        log('Emitted:', event, data);
+      } else {
+        log('Cannot emit, socket not connected');
       }
-    };
-  }, [log]);
+    },
+    [log]
+  );
+
+  // Subscribe to event
+  const on = useCallback(
+    <T>(event: string, callback: (data: T) => void): (() => void) => {
+      if (socketRef.current) {
+        socketRef.current.on(event, callback);
+        log('Subscribed to:', event);
+      }
+
+      // Return unsubscribe function
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.off(event, callback);
+          log('Unsubscribed from:', event);
+        }
+      };
+    },
+    [log]
+  );
 
   // Unsubscribe from event
-  const off = useCallback((event: string) => {
-    if (socketRef.current) {
-      socketRef.current.off(event);
-      log('Removed all listeners for:', event);
-    }
-  }, [log]);
+  const off = useCallback(
+    (event: string) => {
+      if (socketRef.current) {
+        socketRef.current.off(event);
+        log('Removed all listeners for:', event);
+      }
+    },
+    [log]
+  );
 
-  // Auto-connect on mount
+  // Auto-connect on mount (only if token exists)
   useEffect(() => {
-    if (autoConnect) {
+    const token = getToken();
+
+    // Only auto-connect if enabled AND user is authenticated
+    if (autoConnect && token) {
       connect();
     }
 
+    // Cleanup on unmount
     return () => {
-      disconnect();
+      if (socketRef.current) {
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
+  }, [autoConnect, connect, getToken]);
+
+  // Listen for token changes (login/logout)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        if (e.newValue && autoConnect) {
+          // Token added (login) - connect
+          connect();
+        } else if (!e.newValue) {
+          // Token removed (logout) - disconnect
+          disconnect();
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [autoConnect, connect, disconnect]);
 
   return {
@@ -267,7 +323,7 @@ export const useDashboardSocket = (events: DashboardSocketEvents) => {
     }
 
     return () => {
-      cleanups.forEach(cleanup => cleanup());
+      cleanups.forEach((cleanup) => cleanup());
     };
   }, [isConnected, on, events]);
 

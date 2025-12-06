@@ -52,7 +52,7 @@ const timeClockRoutes = require('./routes/timeClockRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
 const reportsRoutes = require('./routes/reportsRoutes');
 
-app.use('/api', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activityHub', activityHubRoutes);
 app.use('/api/clients', clientRoutes);

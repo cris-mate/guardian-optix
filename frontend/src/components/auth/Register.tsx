@@ -70,23 +70,18 @@ const Register: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const dataToSend = { ...formData };
-      if (dataToSend.role === 'Manager') {
-        delete (dataToSend as any).guardType;
-      } else if (dataToSend.role === 'Guard') {
-        delete (dataToSend as any).managerType;
-      }
-      await register(
-        dataToSend.fullName,
-        dataToSend.username,
-        dataToSend.email,
-        dataToSend.phoneNumber,
-        dataToSend.postCode,
-        dataToSend.password,
-        dataToSend.role,
-        dataToSend.managerType,
-        dataToSend.guardType
-      );
+      const payload = {
+        fullName: formData.fullName,
+        username: formData.username,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        postCode: formData.postCode,
+        password: formData.password,
+        role: formData.role,
+        ...(formData.role === 'Manager' && { managerType: formData.managerType }),
+        ...(formData.role === 'Guard' && { guardType: formData.guardType }),
+      };
+      await register(payload);
 
       setError('');
       setSuccessMessage('Registration successful! Redirecting to login...');
@@ -122,7 +117,7 @@ const Register: React.FC = () => {
 
           <VStack gap={4} align="flex-start">
             <Heading as="h1" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="bold">
-              Create Your Free Account
+              Create Your Account
             </Heading>
             <Text fontSize="lg" color="gray.300" lineHeight="1.7">
               Join Guardian Optix and streamline your security operations.

@@ -1,18 +1,30 @@
+/**
+ * AuthContext
+ *
+ * Provides authentication state and methods throughout the app.
+ */
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-// Define blueprint for User object
-interface User {
+// ============================================
+// Types
+// ============================================
+
+/**
+ * User type matching what the API returns (no password!)
+ */
+export interface User {
   _id: string;
   fullName: string;
   username: string;
   email: string;
-  phoneNumber: string;
-  postCode: string;
-  password: string;
+  phoneNumber?: string;
+  postCode?: string;
   role: 'Admin' | 'Manager' | 'Guard';
   managerType?: string;
   guardType?: string;
 }
+
 
 // Define the types for the AuthContext
 interface AuthContextType {
@@ -21,10 +33,23 @@ interface AuthContextType {
   logout: () => void;
 }
 
-// Create the context with the initial type or undefined
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (userData: User) => void;
+  logout: () => void;
+}
+
+// ============================================
+// Context
+// ============================================
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create a provider component
+// ============================================
+// Provider
+// ============================================
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('user');
@@ -38,23 +63,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData)); // Save user to local storage
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user'); // Remove user from local storage
-    localStorage.removeItem('token'); // Remove token from local storage
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
+  const isAuthenticated = !!user && !!localStorage.getItem('token');
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook to use the AuthContext
+// ============================================
+// Hook
+// ============================================
+
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
