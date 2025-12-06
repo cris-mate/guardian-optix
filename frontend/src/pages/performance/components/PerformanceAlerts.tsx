@@ -144,8 +144,8 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onDismiss, onMarkRead }) =
                 <Text textTransform="capitalize">{alert.type}</Text>
               </HStack>
 
-              {alert.officerName && (
-                <Text>• {alert.officerName}</Text>
+              {alert.guardName && (
+                <Text>• {alert.guardName}</Text>
               )}
 
               {alert.site && (

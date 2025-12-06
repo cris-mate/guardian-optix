@@ -52,7 +52,7 @@ export const MOCK_CONFIG = {
   notifications: USE_MOCK_DATA,
 
   // Specific components
-  recommendedOfficers: USE_MOCK_DATA,
+  recommendedGuards: USE_MOCK_DATA,
 } as const;
 
 // ============================================

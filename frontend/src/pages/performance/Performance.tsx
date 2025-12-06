@@ -1,12 +1,12 @@
 /**
  * Performance Page
  *
- * Central hub for security officer performance monitoring and analytics.
+ * Central hub for guard performance monitoring and analytics.
  * Tracks patrol completion, attendance, incident response, and compliance metrics.
  *
  * Features:
  * - Overview dashboard with key performance indicators
- * - Officer rankings and individual performance details
+ * - Guard rankings and individual performance details
  * - Patrol completion tracking with checkpoint metrics
  * - Attendance and punctuality analysis
  * - Performance alerts and exceptions
@@ -40,7 +40,7 @@ import { usePageTitle } from '../../context/PageContext';
 
 // Components
 import PerformanceOverview from './components/PerformanceOverview';
-import OfficerRankings from './components/OfficerRankings';
+import GuardRankings from './components/GuardRankings';
 import PatrolPerformance from './components/PatrolPerformance';
 import AttendancePerformance from './components/AttendancePerformance';
 import PerformanceAlerts from './components/PerformanceAlerts';
@@ -55,7 +55,7 @@ import type { TimeRange } from '../../types/performance.types';
 // Tab Configuration
 // ============================================
 
-type TabValue = 'overview' | 'patrols' | 'attendance' | 'officers';
+type TabValue = 'overview' | 'patrols' | 'attendance' | 'guards';
 
 interface TabConfig {
   value: TabValue;
@@ -67,7 +67,7 @@ const tabs: TabConfig[] = [
   { value: 'overview', label: 'Overview', icon: LuChartBar },
   { value: 'patrols', label: 'Patrols', icon: LuRoute },
   { value: 'attendance', label: 'Attendance', icon: LuClock },
-  { value: 'officers', label: 'Rankings', icon: LuTrophy },
+  { value: 'guards', label: 'Rankings', icon: LuTrophy },
 ];
 
 // Time Range Options
@@ -120,7 +120,7 @@ const Header: React.FC<HeaderProps> = ({
           </Text>
         </HStack>
         <Text fontSize="sm" color="gray.500">
-          Monitor security officer performance, patrol completion, and attendance metrics
+          Monitor security guard performance, patrol completion, and attendance metrics
         </Text>
       </VStack>
 
@@ -215,7 +215,7 @@ const Performance: React.FC = () => {
   // Fetch data
   const {
     overview,
-    officers,
+    guards,
     rankings,
     patrols,
     attendance,
@@ -224,8 +224,8 @@ const Performance: React.FC = () => {
     error,
     filters,
     setFilters,
-    selectedOfficerId,
-    setSelectedOfficerId,
+    selectedGuardId,
+    setSelectedGuardId,
     refetch,
     dismissAlert,
     markAlertRead,
@@ -328,12 +328,12 @@ const Performance: React.FC = () => {
                     isLoading={isLoading}
                   />
 
-                  {/* Officer Rankings (compact) */}
-                  <OfficerRankings
-                    officers={officers}
+                  {/* Guard Rankings (compact) */}
+                  <GuardRankings
+                    guards={guards}
                     rankings={rankings}
-                    onSelectOfficer={setSelectedOfficerId}
-                    selectedOfficerId={selectedOfficerId}
+                    onSelectGuard={setSelectedGuardId}
+                    selectedGuardId={selectedGuardId}
                     isLoading={isLoading}
                     compact
                   />
@@ -369,13 +369,13 @@ const Performance: React.FC = () => {
             />
           </Tabs.Content>
 
-          {/* Officers Rankings Tab */}
-          <Tabs.Content value="officers" pt={4}>
-            <OfficerRankings
-              officers={officers}
+          {/* Guard Rankings Tab */}
+          <Tabs.Content value="guards" pt={4}>
+            <GuardRankings
+              guards={guards}
               rankings={rankings}
-              onSelectOfficer={setSelectedOfficerId}
-              selectedOfficerId={selectedOfficerId}
+              onSelectGuard={setSelectedGuardId}
+              selectedGuardId={selectedGuardId}
               isLoading={isLoading}
             />
           </Tabs.Content>

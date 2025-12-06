@@ -47,7 +47,7 @@ export type ViewMode = 'day' | 'week' | 'month';
  * Maps to CreateShiftPayload with UI-friendly naming
  */
 export interface ShiftFormData {
-  officerId: string;
+  guardId: string;
   siteId: string;
   date: string;
   startTime: string;
@@ -73,7 +73,7 @@ export interface TaskFormData {
 export interface SchedulingFilters {
   viewMode: ViewMode;
   selectedDate: string;
-  officerId?: string;
+  guardId?: string;
   siteId?: string;
   shiftType?: ShiftType | 'all';
   status?: ShiftStatus | 'all';
@@ -108,9 +108,9 @@ export interface SchedulingStats {
 }
 
 /**
- * Available officer for dropdowns
+ * Available guard for dropdowns
  */
-export interface AvailableOfficer {
+export interface AvailableGuard {
   _id: string;
   fullName: string;
   badgeNumber?: string;
@@ -171,7 +171,7 @@ export interface AddShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: ShiftFormData) => Promise<void>;
-  availableOfficers: AvailableOfficer[];
+  availableGuards: AvailableGuard[];
   availableSites: AvailableSite[];
   selectedDate?: string;
   isSubmitting?: boolean;
@@ -189,7 +189,7 @@ export interface CalendarViewProps {
 export interface SchedulingFiltersProps {
   filters: SchedulingFilters;
   stats: SchedulingStats;
-  availableOfficers: AvailableOfficer[];
+  availableGuards: AvailableGuard[];
   availableSites: AvailableSite[];
   onFiltersChange: (filters: Partial<SchedulingFilters>) => void;
   onReset: () => void;

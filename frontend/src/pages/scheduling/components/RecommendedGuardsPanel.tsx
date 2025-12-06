@@ -1,7 +1,7 @@
 /**
- * RecommendedOfficersPanel Component
+ * RecommendedGuardsPanel Component
  *
- * Displays top 3 recommended officers for a shift based on:
+ * Displays top 3 recommended guards for a shift based on:
  * - Distance from site (via postcode)
  * - Guard type match
  * - Licence validity
@@ -23,7 +23,7 @@ import { LuSparkles, LuMapPin, LuShield, LuAward } from 'react-icons/lu';
 import { api } from '../../../utils/api';
 import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 
-const USE_MOCK_DATA = MOCK_CONFIG.recommendedOfficers;
+const USE_MOCK_DATA = MOCK_CONFIG.recommendedGuards;
 
 // ============================================
 // Types
@@ -37,7 +37,7 @@ interface ScoreBreakdown {
   certifications: number;
 }
 
-interface RecommendedOfficer {
+interface RecommendedGuard {
   _id: string;
   fullName: string;
   badgeNumber?: string;
@@ -51,17 +51,17 @@ interface RecommendedOfficer {
 }
 
 interface Recommendation {
-  officer: RecommendedOfficer;
+  guard: RecommendedGuard;
   score: number;
   breakdown: ScoreBreakdown;
   distanceKm?: number;
 }
 
-interface RecommendedOfficersPanelProps {
+interface RecommendedGuardsPanelProps {
   siteId: string | null;
   date: string;
-  onSelect: (officerId: string) => void;
-  selectedOfficerId?: string;
+  onSelect: (guardId: string) => void;
+  selectedGuardId?: string;
 }
 
 // ============================================
@@ -93,7 +93,7 @@ const getRankBadgeColor = (rank: number): string => {
 
 const generateMockRecommendations = (): Recommendation[] => [
   {
-    officer: {
+    guard: {
       _id: 'rec-1',
       fullName: 'James Wilson',
       badgeNumber: 'GO-2024-001',
@@ -113,7 +113,7 @@ const generateMockRecommendations = (): Recommendation[] => [
     distanceKm: 2.3,
   },
   {
-    officer: {
+    guard: {
       _id: 'rec-2',
       fullName: 'Sarah Thompson',
       badgeNumber: 'GO-2024-002',
@@ -133,7 +133,7 @@ const generateMockRecommendations = (): Recommendation[] => [
     distanceKm: 5.8,
   },
   {
-    officer: {
+    guard: {
       _id: 'rec-3',
       fullName: 'Michael Chen',
       badgeNumber: 'GO-2024-003',
@@ -171,7 +171,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
                                                                  isSelected,
                                                                  onSelect,
                                                                }) => {
-  const { officer, score, distanceKm } = recommendation;
+  const { guard, score, distanceKm } = recommendation;
 
   return (
     <Box
@@ -191,7 +191,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
       }}
     >
       <HStack justify="space-between" align="flex-start">
-        {/* Left: Rank and Officer Info */}
+        {/* Left: Rank and Guard Info */}
         <HStack gap={3} align="flex-start">
           <Badge
             colorPalette={getRankBadgeColor(rank)}
@@ -206,17 +206,17 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
           <VStack align="flex-start" gap={0.5}>
             <Text fontWeight="semibold" fontSize="sm" color="gray.800">
-              {officer.fullName}
+              {guard.fullName}
             </Text>
             <HStack gap={2} flexWrap="wrap">
-              {officer.badgeNumber && (
+              {guard.badgeNumber && (
                 <Text fontSize="xs" color="gray.500">
-                  {officer.badgeNumber}
+                  {guard.badgeNumber}
                 </Text>
               )}
-              {officer.guardType && (
+              {guard.guardType && (
                 <Badge size="sm" variant="outline" colorPalette="purple">
-                  {officer.guardType}
+                  {guard.guardType}
                 </Badge>
               )}
             </HStack>
@@ -231,26 +231,26 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
                   </Text>
                 </HStack>
               )}
-              {officer.siaLicence && (
+              {guard.siaLicence && (
                 <HStack gap={1}>
                   <Icon as={LuShield} boxSize={3} color="gray.400" />
                   <Text
                     fontSize="xs"
                     color={
-                      officer.siaLicence.status === 'valid'
+                      guard.siaLicence.status === 'valid'
                         ? 'green.600'
                         : 'orange.500'
                     }
                   >
-                    {officer.siaLicence.status === 'valid' ? 'Valid' : 'Expiring'}
+                    {guard.siaLicence.status === 'valid' ? 'Valid' : 'Expiring'}
                   </Text>
                 </HStack>
               )}
-              {officer.certifications && officer.certifications.length > 0 && (
+              {guard.certifications && guard.certifications.length > 0 && (
                 <HStack gap={1}>
                   <Icon as={LuAward} boxSize={3} color="gray.400" />
                   <Text fontSize="xs" color="gray.500">
-                    {officer.certifications.length} certs
+                    {guard.certifications.length} certs
                   </Text>
                 </HStack>
               )}
@@ -280,11 +280,11 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
 // Main Component
 // ============================================
 
-const RecommendedOfficersPanel: React.FC<RecommendedOfficersPanelProps> = ({
+const RecommendedGuardsPanel: React.FC<RecommendedGuardsPanelProps> = ({
                                                                              siteId,
                                                                              date,
                                                                              onSelect,
-                                                                             selectedOfficerId,
+                                                                             selectedGuardId,
                                                                            }) => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -308,7 +308,7 @@ const RecommendedOfficersPanel: React.FC<RecommendedOfficersPanelProps> = ({
           setRecommendations(generateMockRecommendations());
         } else {
           const response = await api.get(
-            `/scheduling/recommended-officers/${siteId}`,
+            `/scheduling/recommended-guards/${siteId}`,
             { params: { date } }
           );
           setRecommendations(response.data.data);
@@ -343,7 +343,7 @@ const RecommendedOfficersPanel: React.FC<RecommendedOfficersPanelProps> = ({
       <HStack gap={2} mb={3}>
         <Icon as={LuSparkles} color="blue.500" boxSize={4} />
         <Text fontSize="sm" fontWeight="semibold" color="blue.700">
-          Recommended Officers
+          Recommended Guards
         </Text>
         {isLoading && <Spinner size="xs" color="blue.500" />}
       </HStack>
@@ -368,11 +368,11 @@ const RecommendedOfficersPanel: React.FC<RecommendedOfficersPanelProps> = ({
         <VStack gap={2} align="stretch">
           {recommendations.map((rec, index) => (
             <RecommendationCard
-              key={rec.officer._id}
+              key={rec.guard._id}
               recommendation={rec}
               rank={index + 1}
-              isSelected={selectedOfficerId === rec.officer._id}
-              onSelect={() => onSelect(rec.officer._id)}
+              isSelected={selectedGuardId === rec.guard._id}
+              onSelect={() => onSelect(rec.guard._id)}
             />
           ))}
           <Text fontSize="xs" color="gray.500" textAlign="center" mt={1}>
@@ -384,4 +384,4 @@ const RecommendedOfficersPanel: React.FC<RecommendedOfficersPanelProps> = ({
   );
 };
 
-export default RecommendedOfficersPanel;
+export default RecommendedGuardsPanel;

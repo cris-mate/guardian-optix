@@ -1,7 +1,7 @@
 /**
  * AddGuardsModal Component
  *
- * Modal form for adding new security officers.
+ * Modal form for adding new guards.
  * Uses Chakra UI v3 Dialog components.
  */
 
@@ -146,7 +146,7 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
             <Flex justify="space-between" align="center">
               <HStack gap={2}>
                 <LuUserPlus size={20} />
-                <Text fontSize="lg" fontWeight="semibold">Add Security Officer</Text>
+                <Text fontSize="lg" fontWeight="semibold">Add Guard</Text>
               </HStack>
               <Dialog.CloseTrigger asChild>
                 <Button variant="ghost" size="sm">
@@ -315,7 +315,7 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                 onClick={handleSubmit}
                 loading={isSubmitting}
               >
-                Add Officer
+                Add Guard
               </Button>
             </HStack>
           </Dialog.Footer>

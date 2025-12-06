@@ -291,7 +291,7 @@ const ShiftsList: React.FC<ShiftsListProps> = ({ shifts, onShiftClick, isLoading
             <VStack align="start" gap={1}>
               <HStack gap={2}>
                 <Text fontWeight="medium" color="gray.800">
-                  {shift.officer.fullName}
+                  {shift.guard.fullName}
                 </Text>
                 <Badge
                   colorPalette={
@@ -405,7 +405,7 @@ const TasksOverview: React.FC<TasksOverviewProps> = ({ shifts, onShiftClick, isL
                     </Text>
                     <HStack gap={2} mt={1}>
                       <Text fontSize="xs" color="gray.500">
-                        {task.shift.officer.fullName}
+                        {task.shift.guard.fullName}
                       </Text>
                       <Text fontSize="xs" color="gray.400">•</Text>
                       <Text fontSize="xs" color="gray.500">
@@ -461,7 +461,7 @@ const TasksOverview: React.FC<TasksOverviewProps> = ({ shifts, onShiftClick, isL
                       </Text>
                     </HStack>
                     <Text fontSize="xs" color="gray.500" mt={1}>
-                      {task.shift.officer.fullName}
+                      {task.shift.guard.fullName}
                     </Text>
                   </Box>
                 ))}
@@ -497,7 +497,7 @@ const Scheduling: React.FC = () => {
     shifts,
     allShifts,
     selectedShift,
-    availableOfficers,
+    availableGuards,
     availableSites,
     stats,
     isLoading,
@@ -640,7 +640,7 @@ const Scheduling: React.FC = () => {
                 <SchedulingToolbar
                   filters={filters}
                   stats={stats}
-                  availableOfficers={availableOfficers}
+                  availableGuards={availableGuards}
                   availableSites={availableSites}
                   onFiltersChange={setFilters}
                   onNavigate={navigateDate}
@@ -756,8 +756,8 @@ const Scheduling: React.FC = () => {
                       Team Availability
                     </Text>
                     <Text fontSize="sm" color="gray.500">
-                      {availableOfficers.filter((o) => o.availability).length} of{' '}
-                      {availableOfficers.length} officers available for scheduling.
+                      {availableGuards.filter((o) => o.availability).length} of{' '}
+                      {availableGuards.length} guards available for scheduling.
                     </Text>
                   </Box>
                 </VStack>
@@ -791,7 +791,7 @@ const Scheduling: React.FC = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={createShift}
-        availableOfficers={availableOfficers}
+        availableGuards={availableGuards}
         availableSites={availableSites}
         selectedDate={filters.selectedDate}
         isSubmitting={isMutating}

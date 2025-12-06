@@ -327,8 +327,8 @@ const Dashboard: React.FC = () => {
   // ============================================
 
   const handleClockAction = useCallback((data: {
-    officerId: string;
-    officerName: string;
+    guardId: string;
+    guardName: string;
     action: string;
     siteName: string;
     timestamp: string;
@@ -336,11 +336,11 @@ const Dashboard: React.FC = () => {
     const activityItem: ActivityEvent = {
       _id: `realtime-${Date.now()}`,
       type: data.action as ActivityEvent['type'],
-      guardId: data.officerId,
-      guardName: data.officerName,
+      guardId: data.guardId,
+      guardName: data.guardName,
       siteName: data.siteName,
       timestamp: data.timestamp,
-      description: `${data.officerName} ${
+      description: `${data.guardName} ${
         data.action === 'clock-in' ? 'clocked in at' : 'clocked out from'
       } ${data.siteName}`,
     };
@@ -348,8 +348,8 @@ const Dashboard: React.FC = () => {
     setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));
 
     toaster.create({
-      title: data.action === 'clock-in' ? 'Officer Clocked In' : 'Officer Clocked Out',
-      description: `${data.officerName} - ${data.siteName}`,
+      title: data.action === 'clock-in' ? 'Guard Clocked In' : 'Guard Clocked Out',
+      description: `${data.guardName} - ${data.siteName}`,
       type: 'info',
       duration: 4000,
     });
@@ -357,25 +357,25 @@ const Dashboard: React.FC = () => {
 
   const handleGeofenceViolation = useCallback((data: {
     severity: string;
-    officerName: string;
+    guardName: string;
     siteName: string;
     timestamp: string;
   }) => {
     const activityItem: ActivityEvent = {
       _id: `geofence-${Date.now()}`,
       type: 'geofence-violation',
-      guardName: data.officerName,
+      guardName: data.guardName,
       siteName: data.siteName,
       timestamp: data.timestamp,
       severity: 'critical',
-      description: `${data.officerName} is outside ${data.siteName} geofence`,
+      description: `${data.guardName} is outside ${data.siteName} geofence`,
     };
 
     setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));
 
     toaster.create({
       title: '⚠️ Geofence Violation',
-      description: `${data.officerName} is outside ${data.siteName} boundary`,
+      description: `${data.guardName} is outside ${data.siteName} boundary`,
       type: 'error',
       duration: 8000,
     });
@@ -395,7 +395,7 @@ const Dashboard: React.FC = () => {
     };
 
     toaster.create({
-      title: `🚨 New ${data.severity.toUpperCase()} Incident`,
+      title: ` New ${data.severity.toUpperCase()} Incident`,
       description: `${data.type} reported`,
       type: severityToast[data.severity] || 'info',
       duration: 10000,
@@ -407,16 +407,16 @@ const Dashboard: React.FC = () => {
   const handleShiftUpdate = useCallback((data: {
     shiftId: string;
     status: string;
-    officerName: string;
+    guardName: string;
     timestamp: string;
   }) => {
     const activityItem: ActivityEvent = {
       _id: `shift-${Date.now()}`,
       type: 'clock-in',
-      guardName: data.officerName,
+      guardName: data.guardName,
       siteName: null,
       timestamp: data.timestamp,
-      description: `${data.officerName}'s shift status: ${data.status}`,
+      description: `${data.guardName}'s shift status: ${data.status}`,
     };
 
     setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));

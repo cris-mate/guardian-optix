@@ -113,11 +113,11 @@ const enrichLocationWithAddress = async (location) => {
  */
 const clockIn = asyncHandler(async (req, res) => {
   const { location, siteId, shiftId, notes } = req.body;
-  const officerId = req.user._id;
+  const guardId = req.user._id;
   const today = getTodayDate();
 
   // Check if already clocked in
-  let session = await ActiveSession.findOne({ officer: officerId });
+  let session = await ActiveSession.findOne({ guard: guardId });
   if (session && session.clockStatus !== 'clocked-out') {
     res.status(400);
     throw new Error('Already clocked in. Please clock out first.');
@@ -134,7 +134,7 @@ const clockIn = asyncHandler(async (req, res) => {
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
-    officer: officerId,
+    guard: guardId,
     shift: shiftId,
     site: siteId,
     date: today,
@@ -148,7 +148,7 @@ const clockIn = asyncHandler(async (req, res) => {
   // Update or create active session
   if (!session) {
     session = await ActiveSession.create({
-      officer: officerId,
+      guard: guardId,
       shift: shiftId,
       site: siteId,
       clockStatus: 'clocked-in',
@@ -168,7 +168,7 @@ const clockIn = asyncHandler(async (req, res) => {
   }
 
   // Update timesheet
-  const timesheet = await Timesheet.getOrCreateForDate(officerId, today);
+  const timesheet = await Timesheet.getOrCreateForDate(guardId, today);
   timesheet.entries.push(timeEntry._id);
   timesheet.clockInTime = new Date();
   await timesheet.save();
@@ -181,9 +181,9 @@ const clockIn = asyncHandler(async (req, res) => {
     });
   }
 
-  // Get officer and site names for broadcast
-  const [officer, site] = await Promise.all([
-    User.findById(officerId).select('fullName'),
+  // Get guard and site names for broadcast
+  const [guard, site] = await Promise.all([
+    User.findById(guardId).select('fullName'),
     siteId ? Site.findById(siteId).select('name') : null,
   ]);
 
@@ -203,8 +203,8 @@ const clockIn = asyncHandler(async (req, res) => {
 
   // Emit socket events
   emitClockAction({
-    officerId,
-    officerName: officer?.fullName || 'Unknown',
+    guardId,
+    guardName: guard?.fullName || 'Unknown',
     action: 'clock-in',
     siteId,
     siteName: site?.name || 'Unknown Site',
@@ -213,8 +213,8 @@ const clockIn = asyncHandler(async (req, res) => {
 
   if (geofenceStatus === 'outside') {
     emitGeofenceViolation({
-      officerId,
-      officerName: officer?.fullName || 'Unknown',
+      guardId,
+      guardName: guard?.fullName || 'Unknown',
       siteId,
       siteName: site?.name || 'Unknown Site',
       location: enrichedLocation,
@@ -230,11 +230,11 @@ const clockIn = asyncHandler(async (req, res) => {
  */
 const clockOut = asyncHandler(async (req, res) => {
   const { location, notes } = req.body;
-  const officerId = req.user._id;
+  const guardId = req.user._id;
   const today = getTodayDate();
 
   // Verify user is clocked in
-  const session = await ActiveSession.findOne({ officer: officerId });
+  const session = await ActiveSession.findOne({ guard: guardId });
   if (!session || session.clockStatus === 'clocked-out') {
     res.status(400);
     throw new Error('Not currently clocked in.');
@@ -256,7 +256,7 @@ const clockOut = asyncHandler(async (req, res) => {
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
-    officer: officerId,
+    guard: guardId,
     shift: session.shift,
     site: session.site,
     date: today,
@@ -271,7 +271,7 @@ const clockOut = asyncHandler(async (req, res) => {
   const totalMinutesWorked = calculateMinutesWorked(session.clockedInAt, new Date());
 
   // Update timesheet
-  const timesheet = await Timesheet.getOrCreateForDate(officerId, today);
+  const timesheet = await Timesheet.getOrCreateForDate(guardId, today);
   timesheet.entries.push(timeEntry._id);
   timesheet.clockOutTime = new Date();
   timesheet.totalMinutesWorked = totalMinutesWorked;
@@ -294,7 +294,7 @@ const clockOut = asyncHandler(async (req, res) => {
   await session.save();
 
   // Get names for broadcast
-  const officer = await User.findById(officerId).select('fullName');
+  const guard = await User.findById(guardId).select('fullName');
   const site = session.site ? await Site.findById(session.site).select('name') : null;
 
   res.status(201).json({
@@ -313,8 +313,8 @@ const clockOut = asyncHandler(async (req, res) => {
 
   // Emit socket events
   emitClockAction({
-    officerId,
-    officerName: officer?.fullName || 'Unknown',
+    guardId,
+    guardName: guard?.fullName || 'Unknown',
     action: 'clock-out',
     siteId: session.site,
     siteName: site?.name || 'Unknown Site',
@@ -323,8 +323,8 @@ const clockOut = asyncHandler(async (req, res) => {
 
   if (geofenceStatus === 'outside') {
     emitGeofenceViolation({
-      officerId,
-      officerName: officer?.fullName || 'Unknown',
+      guardId,
+      guardName: guard?.fullName || 'Unknown',
       siteId: session.site,
       siteName: site?.name || 'Unknown Site',
       location: enrichedLocation,
@@ -340,11 +340,11 @@ const clockOut = asyncHandler(async (req, res) => {
  */
 const startBreak = asyncHandler(async (req, res) => {
   const { location, breakType = 'paid' } = req.body;
-  const officerId = req.user._id;
+  const guardId = req.user._id;
   const today = getTodayDate();
 
   // Verify user is clocked in
-  const session = await ActiveSession.findOne({ officer: officerId });
+  const session = await ActiveSession.findOne({ guard: guardId });
   if (!session || session.clockStatus !== 'clocked-in') {
     res.status(400);
     throw new Error('Must be clocked in to start a break.');
@@ -360,7 +360,7 @@ const startBreak = asyncHandler(async (req, res) => {
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
-    officer: officerId,
+    guard: guardId,
     shift: session.shift,
     site: session.site,
     date: today,
@@ -378,7 +378,7 @@ const startBreak = asyncHandler(async (req, res) => {
   await session.save();
 
   // Update timesheet
-  const timesheet = await Timesheet.getOrCreateForDate(officerId, today);
+  const timesheet = await Timesheet.getOrCreateForDate(guardId, today);
   timesheet.entries.push(timeEntry._id);
   await timesheet.save();
 
@@ -396,8 +396,8 @@ const startBreak = asyncHandler(async (req, res) => {
   });
 
   emitClockAction({
-    officerId,
-    officerName: req.user.fullName,
+    guardId,
+    guardName: req.user.fullName,
     action: 'break-start',
     siteId: session.site,
     siteName: 'Unknown Site',
@@ -412,11 +412,11 @@ const startBreak = asyncHandler(async (req, res) => {
  */
 const endBreak = asyncHandler(async (req, res) => {
   const { location } = req.body;
-  const officerId = req.user._id;
+  const guardId = req.user._id;
   const today = getTodayDate();
 
   // Verify user is on break
-  const session = await ActiveSession.findOne({ officer: officerId });
+  const session = await ActiveSession.findOne({ guard: guardId });
   if (!session || session.clockStatus !== 'on-break') {
     res.status(400);
     throw new Error('Not currently on break.');
@@ -435,7 +435,7 @@ const endBreak = asyncHandler(async (req, res) => {
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
-    officer: officerId,
+    guard: guardId,
     shift: session.shift,
     site: session.site,
     date: today,
@@ -446,7 +446,7 @@ const endBreak = asyncHandler(async (req, res) => {
   });
 
   // Update timesheet with break record
-  const timesheet = await Timesheet.getOrCreateForDate(officerId, today);
+  const timesheet = await Timesheet.getOrCreateForDate(guardId, today);
   timesheet.entries.push(timeEntry._id);
   timesheet.breaks.push({
     startTime: session.currentBreakStartedAt,
@@ -479,8 +479,8 @@ const endBreak = asyncHandler(async (req, res) => {
   });
 
   emitClockAction({
-    officerId,
-    officerName: req.user.fullName,
+    guardId: guardId,
+    guardName: req.user.fullName,
     action: 'break-end',
     siteId: session.site,
     siteName: 'Unknown Site',
@@ -498,9 +498,9 @@ const endBreak = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getClockStatus = asyncHandler(async (req, res) => {
-  const officerId = req.user._id;
+  const guardId = req.user._id;
 
-  const session = await ActiveSession.findOne({ officer: officerId })
+  const session = await ActiveSession.findOne({ guard: guardId })
     .populate('site', 'name address postCode')
     .populate('shift', 'startTime endTime shiftType');
 
@@ -536,11 +536,11 @@ const getClockStatus = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getTodayEntries = asyncHandler(async (req, res) => {
-  const officerId = req.user._id;
+  const guardId = req.user._id;
   const today = getTodayDate();
 
   const entries = await TimeEntry.find({
-    officer: officerId,
+    guard: guardId,
     date: today,
   })
     .populate('site', 'name')
@@ -558,15 +558,15 @@ const getTodayEntries = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getTimeEntries = asyncHandler(async (req, res) => {
-  const { startDate, endDate, officerId, type, limit = 50 } = req.query;
+  const { startDate, endDate, guardId, type, limit = 50 } = req.query;
 
   const query = {};
 
   // If not admin/manager, only show own entries
   if (req.user.role === 'Guard') {
-    query.officer = req.user._id;
-  } else if (officerId) {
-    query.officer = officerId;
+    query.guard = req.user._id;
+  } else if (guardId) {
+    query.guard = guardId;
   }
 
   if (startDate || endDate) {
@@ -578,7 +578,7 @@ const getTimeEntries = asyncHandler(async (req, res) => {
   if (type) query.type = type;
 
   const entries = await TimeEntry.find(query)
-    .populate('officer', 'fullName badgeNumber')
+    .populate('guard', 'fullName badgeNumber')
     .populate('site', 'name')
     .sort({ timestamp: -1 })
     .limit(parseInt(limit));
@@ -595,10 +595,10 @@ const getTimeEntries = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getTodayTimesheet = asyncHandler(async (req, res) => {
-  const officerId = req.user._id;
+  const guardId = req.user._id;
   const today = getTodayDate();
 
-  let timesheet = await Timesheet.findOne({ officer: officerId, date: today })
+  let timesheet = await Timesheet.findOne({ guard: guardId, date: today })
     .populate('entries');
 
   if (!timesheet) {
@@ -626,7 +626,7 @@ const getTodayTimesheet = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getWeeklySummary = asyncHandler(async (req, res) => {
-  const officerId = req.user._id;
+  const guardId = req.user._id;
 
   // Get dates for current week (Monday to Sunday)
   const today = new Date();
@@ -642,7 +642,7 @@ const getWeeklySummary = asyncHandler(async (req, res) => {
   const endDate = sunday.toISOString().split('T')[0];
 
   const timesheets = await Timesheet.find({
-    officer: officerId,
+    guard: guardId,
     date: { $gte: startDate, $lte: endDate },
   }).sort({ date: 1 });
 
@@ -724,13 +724,13 @@ const getActiveGuards = asyncHandler(async (req, res) => {
   const sessions = await ActiveSession.find({
     clockStatus: { $ne: 'clocked-out' },
   })
-    .populate('officer', 'fullName badgeNumber profileImage')
+    .populate('guard', 'fullName badgeNumber profileImage')
     .populate('site', 'name');
 
   const guardsData = await Promise.all(
     sessions.map(async (session) => {
       const timesheet = await Timesheet.findOne({
-        officer: session.officer._id,
+        guard: session.guard._id,
         date: today,
       });
 
@@ -740,10 +740,10 @@ const getActiveGuards = asyncHandler(async (req, res) => {
 
       return {
         _id: session._id,
-        officerId: session.officer._id,
-        fullName: session.officer.fullName,
-        badgeNumber: session.officer.badgeNumber,
-        profileImage: session.officer.profileImage,
+        guardId: session.guard._id,
+        fullName: session.guard.fullName,
+        badgeNumber: session.guard.badgeNumber,
+        profileImage: session.guard.profileImage,
         clockStatus: session.clockStatus,
         clockedInAt: session.clockedInAt,
         currentSite: session.site?.name,

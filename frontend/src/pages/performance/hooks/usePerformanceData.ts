@@ -11,8 +11,8 @@ import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import type {
   PerformanceFilters,
   OverviewMetrics,
-  OfficerPerformance,
-  OfficerRanking,
+  GuardPerformance,
+  GuardRanking,
   PatrolMetrics,
   AttendanceMetrics,
   IncidentMetrics,
@@ -78,10 +78,10 @@ const getRating = (score: number): PerformanceRating => {
   return 'poor';
 };
 
-const generateMockOfficers = (): OfficerPerformance[] => [
+const generateMockGuards = (): GuardPerformance[] => [
   {
-    officerId: 'off-001',
-    officerName: 'James Wilson',
+    guardId: 'off-001',
+    guardName: 'James Wilson',
     badgeNumber: 'GO-1001',
     guardType: 'Static',
     site: 'Corporate HQ',
@@ -107,8 +107,8 @@ const generateMockOfficers = (): OfficerPerformance[] => [
     },
   },
   {
-    officerId: 'off-002',
-    officerName: 'Sarah Chen',
+    guardId: 'off-002',
+    guardName: 'Sarah Chen',
     badgeNumber: 'GO-1002',
     guardType: 'Mobile Patrol',
     site: 'Warehouse District',
@@ -134,8 +134,8 @@ const generateMockOfficers = (): OfficerPerformance[] => [
     },
   },
   {
-    officerId: 'off-003',
-    officerName: 'Michael Brown',
+    guardId: 'off-003',
+    guardName: 'Michael Brown',
     badgeNumber: 'GO-1003',
     guardType: 'Static',
     site: 'Tech Park',
@@ -161,8 +161,8 @@ const generateMockOfficers = (): OfficerPerformance[] => [
     },
   },
   {
-    officerId: 'off-004',
-    officerName: 'Emily Davis',
+    guardId: 'off-004',
+    guardName: 'Emily Davis',
     badgeNumber: 'GO-1004',
     guardType: 'Dog Handler',
     site: 'Mall Complex',
@@ -188,8 +188,8 @@ const generateMockOfficers = (): OfficerPerformance[] => [
     },
   },
   {
-    officerId: 'off-005',
-    officerName: 'Robert Taylor',
+    guardId: 'off-005',
+    guardName: 'Robert Taylor',
     badgeNumber: 'GO-1005',
     guardType: 'Static',
     site: 'Corporate HQ',
@@ -215,8 +215,8 @@ const generateMockOfficers = (): OfficerPerformance[] => [
     },
   },
   {
-    officerId: 'off-006',
-    officerName: 'Lisa Anderson',
+    guardId: 'off-006',
+    guardName: 'Lisa Anderson',
     badgeNumber: 'GO-1006',
     guardType: 'Close Protection',
     site: 'VIP Residence',
@@ -243,19 +243,19 @@ const generateMockOfficers = (): OfficerPerformance[] => [
   },
 ];
 
-const generateMockRankings = (officers: OfficerPerformance[]): OfficerRanking[] =>
-  officers
+const generateMockRankings = (guards: GuardPerformance[]): GuardRanking[] =>
+  guards
     .sort((a, b) => b.overallScore - a.overallScore)
-    .map((officer, index) => ({
-      officerId: officer.officerId,
-      officerName: officer.officerName,
-      profileImage: officer.profileImage,
+    .map((guard, index) => ({
+      guardId: guard.guardId,
+      guardName: guard.guardName,
+      profileImage: guard.profileImage,
       rank: index + 1,
       previousRank: index + 1 + Math.floor(Math.random() * 3) - 1,
-      overallScore: officer.overallScore,
+      overallScore: guard.overallScore,
       topMetric: {
         name: 'Patrol Completion',
-        value: officer.metrics.patrolCompletion,
+        value: guard.metrics.patrolCompletion,
       },
     }));
 
@@ -273,11 +273,11 @@ const generateMockPatrolMetrics = (): PatrolMetrics => ({
     avgScanTime: 45,
     scanAccuracy: 96.4,
   },
-  byOfficer: [
-    { officerId: 'off-001', officerName: 'James Wilson', tours: 12, completed: 12, rate: 100 },
-    { officerId: 'off-002', officerName: 'Sarah Chen', tours: 14, completed: 13, rate: 92.9 },
-    { officerId: 'off-003', officerName: 'Michael Brown', tours: 10, completed: 8, rate: 80 },
-    { officerId: 'off-004', officerName: 'Emily Davis', tours: 12, completed: 9, rate: 75 },
+  byGuard: [
+    { guardId: 'off-001', guardName: 'James Wilson', tours: 12, completed: 12, rate: 100 },
+    { guardId: 'off-002', guardName: 'Sarah Chen', tours: 14, completed: 13, rate: 92.9 },
+    { guardId: 'off-003', guardName: 'Michael Brown', tours: 10, completed: 8, rate: 80 },
+    { guardId: 'off-004', guardName: 'Emily Davis', tours: 12, completed: 9, rate: 75 },
   ],
   bySite: [
     { siteId: 'site-001', siteName: 'Corporate HQ', tours: 20, completed: 18, rate: 90 },
@@ -289,8 +289,8 @@ const generateMockPatrolMetrics = (): PatrolMetrics => ({
     {
       id: 'patrol-001',
       tourName: 'Perimeter Check',
-      officerId: 'off-001',
-      officerName: 'James Wilson',
+      guardId: 'off-001',
+      guardName: 'James Wilson',
       site: 'Corporate HQ',
       scheduledTime: new Date(Date.now() - 3600000).toISOString(),
       startTime: new Date(Date.now() - 3540000).toISOString(),
@@ -304,8 +304,8 @@ const generateMockPatrolMetrics = (): PatrolMetrics => ({
     {
       id: 'patrol-002',
       tourName: 'Interior Sweep',
-      officerId: 'off-002',
-      officerName: 'Sarah Chen',
+      guardId: 'off-002',
+      guardName: 'Sarah Chen',
       site: 'Warehouse District',
       scheduledTime: new Date(Date.now() - 7200000).toISOString(),
       startTime: new Date(Date.now() - 7140000).toISOString(),
@@ -319,8 +319,8 @@ const generateMockPatrolMetrics = (): PatrolMetrics => ({
     {
       id: 'patrol-003',
       tourName: 'Loading Bay Check',
-      officerId: 'off-003',
-      officerName: 'Michael Brown',
+      guardId: 'off-003',
+      guardName: 'Michael Brown',
       site: 'Tech Park',
       scheduledTime: new Date(Date.now() - 10800000).toISOString(),
       startTime: new Date(Date.now() - 10500000).toISOString(),
@@ -353,18 +353,18 @@ const generateMockAttendanceMetrics = (): AttendanceMetrics => ({
     count: 1,
     avgMinutesEarly: 12,
   },
-  byOfficer: [
-    { officerId: 'off-001', officerName: 'James Wilson', shifts: 12, onTime: 12, late: 0, noShow: 0, punctualityRate: 100 },
-    { officerId: 'off-002', officerName: 'Sarah Chen', shifts: 11, onTime: 10, late: 1, noShow: 0, punctualityRate: 90.9 },
-    { officerId: 'off-003', officerName: 'Michael Brown', shifts: 10, onTime: 8, late: 1, noShow: 1, punctualityRate: 80 },
-    { officerId: 'off-004', officerName: 'Emily Davis', shifts: 9, onTime: 8, late: 1, noShow: 0, punctualityRate: 88.9 },
-    { officerId: 'off-005', officerName: 'Robert Taylor', shifts: 8, onTime: 7, late: 0, noShow: 0, punctualityRate: 87.5 },
+  byGuard: [
+    { guardId: 'off-001', guardName: 'James Wilson', shifts: 12, onTime: 12, late: 0, noShow: 0, punctualityRate: 100 },
+    { guardId: 'off-002', guardName: 'Sarah Chen', shifts: 11, onTime: 10, late: 1, noShow: 0, punctualityRate: 90.9 },
+    { guardId: 'off-003', guardName: 'Michael Brown', shifts: 10, onTime: 8, late: 1, noShow: 1, punctualityRate: 80 },
+    { guardId: 'off-004', guardName: 'Emily Davis', shifts: 9, onTime: 8, late: 1, noShow: 0, punctualityRate: 88.9 },
+    { guardId: 'off-005', guardName: 'Robert Taylor', shifts: 8, onTime: 7, late: 0, noShow: 0, punctualityRate: 87.5 },
   ],
   recentRecords: [
     {
       id: 'att-001',
-      officerId: 'off-001',
-      officerName: 'James Wilson',
+      guardId: 'off-001',
+      guardName: 'James Wilson',
       site: 'Corporate HQ',
       date: new Date().toISOString().split('T')[0],
       scheduledStart: '08:00',
@@ -379,8 +379,8 @@ const generateMockAttendanceMetrics = (): AttendanceMetrics => ({
     },
     {
       id: 'att-002',
-      officerId: 'off-002',
-      officerName: 'Sarah Chen',
+      guardId: 'off-002',
+      guardName: 'Sarah Chen',
       site: 'Warehouse District',
       date: new Date().toISOString().split('T')[0],
       scheduledStart: '16:00',
@@ -392,8 +392,8 @@ const generateMockAttendanceMetrics = (): AttendanceMetrics => ({
     },
     {
       id: 'att-003',
-      officerId: 'off-003',
-      officerName: 'Michael Brown',
+      guardId: 'off-003',
+      guardName: 'Michael Brown',
       site: 'Tech Park',
       date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
       scheduledStart: '00:00',
@@ -423,19 +423,19 @@ const generateMockIncidentMetrics = (): IncidentMetrics => ({
     medium: { count: 8, avgResponseTime: 4.8, slaCompliance: 87.5 },
     low: { count: 7, avgResponseTime: 5.2, slaCompliance: 85.7 },
   },
-  byOfficer: [
-    { officerId: 'off-001', officerName: 'James Wilson', incidents: 3, avgResponseTime: 3.2, slaCompliance: 100 },
-    { officerId: 'off-002', officerName: 'Sarah Chen', incidents: 5, avgResponseTime: 3.8, slaCompliance: 100 },
-    { officerId: 'off-003', officerName: 'Michael Brown', incidents: 2, avgResponseTime: 4.5, slaCompliance: 100 },
-    { officerId: 'off-004', officerName: 'Emily Davis', incidents: 4, avgResponseTime: 5.1, slaCompliance: 75 },
-    { officerId: 'off-006', officerName: 'Lisa Anderson', incidents: 6, avgResponseTime: 2.8, slaCompliance: 100 },
+  byGuard: [
+    { guardId: 'off-001', guardName: 'James Wilson', incidents: 3, avgResponseTime: 3.2, slaCompliance: 100 },
+    { guardId: 'off-002', guardName: 'Sarah Chen', incidents: 5, avgResponseTime: 3.8, slaCompliance: 100 },
+    { guardId: 'off-003', guardName: 'Michael Brown', incidents: 2, avgResponseTime: 4.5, slaCompliance: 100 },
+    { guardId: 'off-004', guardName: 'Emily Davis', incidents: 4, avgResponseTime: 5.1, slaCompliance: 75 },
+    { guardId: 'off-006', guardName: 'Lisa Anderson', incidents: 6, avgResponseTime: 2.8, slaCompliance: 100 },
   ],
   recentIncidents: [
     {
       id: 'inc-resp-001',
       incidentId: 'INC-2024-001',
-      officerId: 'off-001',
-      officerName: 'James Wilson',
+      guardId: 'off-001',
+      guardName: 'James Wilson',
       site: 'Corporate HQ',
       severity: 'medium',
       reportedAt: new Date(Date.now() - 3600000).toISOString(),
@@ -449,8 +449,8 @@ const generateMockIncidentMetrics = (): IncidentMetrics => ({
     {
       id: 'inc-resp-002',
       incidentId: 'INC-2024-002',
-      officerId: 'off-002',
-      officerName: 'Sarah Chen',
+      guardId: 'off-002',
+      guardName: 'Sarah Chen',
       site: 'Warehouse District',
       severity: 'high',
       reportedAt: new Date(Date.now() - 7200000).toISOString(),
@@ -471,8 +471,8 @@ const generateMockAlerts = (): PerformanceAlert[] => [
     severity: 'warning',
     title: 'Late Arrival Pattern',
     message: 'Robert Taylor has been late 3 times this week',
-    officerId: 'off-005',
-    officerName: 'Robert Taylor',
+    guardId: 'off-005',
+    guardName: 'Robert Taylor',
     timestamp: new Date(Date.now() - 1800000).toISOString(),
     isRead: false,
     actionRequired: true,
@@ -494,7 +494,7 @@ const generateMockAlerts = (): PerformanceAlert[] => [
     type: 'training',
     severity: 'info',
     title: 'Training Due',
-    message: '3 officers have training certifications expiring within 30 days',
+    message: '3 guards have training certifications expiring within 30 days',
     timestamp: new Date(Date.now() - 86400000).toISOString(),
     isRead: true,
     actionRequired: false,
@@ -508,8 +508,8 @@ const generateMockAlerts = (): PerformanceAlert[] => [
 
 interface PerformanceState {
   overview: OverviewMetrics | null;
-  officers: OfficerPerformance[];
-  rankings: OfficerRanking[];
+  guards: GuardPerformance[];
+  rankings: GuardRanking[];
   patrols: PatrolMetrics | null;
   attendance: AttendanceMetrics | null;
   incidents: IncidentMetrics | null;
@@ -526,7 +526,7 @@ interface PerformanceState {
 export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRange: 'week' }) => {
   const [state, setState] = useState<PerformanceState>({
     overview: null,
-    officers: [],
+    guards: [],
     rankings: [],
     patrols: null,
     attendance: null,
@@ -538,7 +538,7 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
   });
 
   const [filters, setFilters] = useState<PerformanceFilters>(initialFilters);
-  const [selectedOfficerId, setSelectedOfficerId] = useState<string | null>(null);
+  const [selectedGuardId, setSelectedGuardId] = useState<string | null>(null);
 
   // Fetch all performance data
   const fetchData = useCallback(async () => {
@@ -549,12 +549,12 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
         // Simulate network delay
         await simulateDelay('long');
 
-        const officers = generateMockOfficers();
+        const guards = generateMockGuards();
 
         setState({
           overview: generateMockOverview(),
-          officers,
-          rankings: generateMockRankings(officers),
+          guards,
+          rankings: generateMockRankings(guards),
           patrols: generateMockPatrolMetrics(),
           attendance: generateMockAttendanceMetrics(),
           incidents: generateMockIncidentMetrics(),
@@ -565,9 +565,9 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
         });
       } else {
         // Real API calls would go here
-        const [overview, officers, patrols, attendance, incidents, alerts] = await Promise.all([
+        const [overview, guards, patrols, attendance, incidents, alerts] = await Promise.all([
           fetch('/api/performance/overview').then(r => r.json()),
-          fetch('/api/performance/officers').then(r => r.json()),
+          fetch('/api/performance/guards').then(r => r.json()),
           fetch('/api/performance/patrols').then(r => r.json()),
           fetch('/api/performance/attendance').then(r => r.json()),
           fetch('/api/performance/incidents').then(r => r.json()),
@@ -576,8 +576,8 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
 
         setState({
           overview: overview.data,
-          officers: officers.data,
-          rankings: generateMockRankings(officers.data),
+          guards: guards.data,
+          rankings: generateMockRankings(guards.data),
           patrols: patrols.data,
           attendance: attendance.data,
           incidents: incidents.data,
@@ -601,11 +601,11 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
     fetchData();
   }, [fetchData]);
 
-  // Get selected officer details
-  const selectedOfficer = useMemo(() => {
-    if (!selectedOfficerId) return null;
-    return state.officers.find(o => o.officerId === selectedOfficerId) || null;
-  }, [selectedOfficerId, state.officers]);
+  // Get selected guard details
+  const selectedGuard = useMemo(() => {
+    if (!selectedGuardId) return null;
+    return state.guards.find(o => o.guardId === selectedGuardId) || null;
+  }, [selectedGuardId, state.guards]);
 
   // Dismiss alert
   const dismissAlert = useCallback((alertId: string) => {
@@ -628,13 +628,13 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
   return {
     // Data
     overview: state.overview,
-    officers: state.officers,
+    guards: state.guards,
     rankings: state.rankings,
     patrols: state.patrols,
     attendance: state.attendance,
     incidents: state.incidents,
     alerts: state.alerts,
-    selectedOfficer,
+    selectedGuard,
 
     // State
     isLoading: state.isLoading,
@@ -644,8 +644,8 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
     // Filters
     filters,
     setFilters,
-    selectedOfficerId,
-    setSelectedOfficerId,
+    selectedGuardId: selectedGuardId,
+    setSelectedGuardId: setSelectedGuardId,
 
     // Actions
     refetch: fetchData,

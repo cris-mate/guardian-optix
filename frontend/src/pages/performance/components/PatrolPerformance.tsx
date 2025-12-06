@@ -149,7 +149,7 @@ const PatrolRow: React.FC<PatrolRowProps> = ({ patrol }) => {
         <HStack gap={2}>
           <Icon as={LuUser} boxSize={4} color="gray.400" />
           <Text fontSize="sm" color="gray.600">
-            {patrol.officerName}
+            {patrol.guardName}
           </Text>
         </HStack>
       </Table.Cell>
@@ -251,14 +251,14 @@ const LoadingSkeleton: React.FC = () => (
 );
 
 // ============================================
-// Officer Breakdown Component
+// Guard Breakdown Component
 // ============================================
 
-interface OfficerBreakdownProps {
-  data: PatrolMetrics['byOfficer'];
+interface GuardBreakdownProps {
+  data: PatrolMetrics['byGuard'];
 }
 
-const OfficerBreakdown: React.FC<OfficerBreakdownProps> = ({ data }) => (
+const GuardBreakdown: React.FC<GuardBreakdownProps> = ({ data }) => (
   <Box
     bg="white"
     borderRadius="xl"
@@ -268,25 +268,25 @@ const OfficerBreakdown: React.FC<OfficerBreakdownProps> = ({ data }) => (
   >
     <Box p={4} borderBottomWidth="1px" borderColor="gray.100">
       <Text fontWeight="semibold" color="gray.800">
-        By Officer
+        By Guard
       </Text>
     </Box>
     <VStack align="stretch" gap={0} divideY="1px" divideColor="gray.100">
-      {data.slice(0, 5).map((officer) => (
-        <HStack key={officer.officerId} p={3} justify="space-between">
+      {data.slice(0, 5).map((guard) => (
+        <HStack key={guard.guardId} p={3} justify="space-between">
           <VStack align="flex-start" gap={0}>
             <Text fontSize="sm" fontWeight="medium" color="gray.700">
-              {officer.officerName}
+              {guard.guardName}
             </Text>
             <Text fontSize="xs" color="gray.400">
-              {officer.completed}/{officer.tours} patrols
+              {guard.completed}/{guard.tours} patrols
             </Text>
           </VStack>
           <HStack gap={2}>
             <Progress.Root
-              value={officer.rate}
+              value={guard.rate}
               size="sm"
-              colorPalette={officer.rate >= 90 ? 'green' : officer.rate >= 75 ? 'yellow' : 'red'}
+              colorPalette={guard.rate >= 90 ? 'green' : guard.rate >= 75 ? 'yellow' : 'red'}
               w={16}
             >
               <Progress.Track bg="gray.100">
@@ -294,7 +294,7 @@ const OfficerBreakdown: React.FC<OfficerBreakdownProps> = ({ data }) => (
               </Progress.Track>
             </Progress.Root>
             <Text fontSize="sm" fontWeight="medium" color="gray.600" w={12} textAlign="right">
-              {officer.rate.toFixed(0)}%
+              {guard.rate.toFixed(0)}%
             </Text>
           </HStack>
         </HStack>
@@ -404,7 +404,7 @@ const PatrolPerformance: React.FC<PatrolPerformanceProps> = ({
 
       {/* Breakdown Sections */}
       <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4}>
-        <OfficerBreakdown data={metrics.byOfficer} />
+        <GuardBreakdown data={metrics.byGuard} />
         <SiteBreakdown data={metrics.bySite} />
       </SimpleGrid>
 
@@ -433,7 +433,7 @@ const PatrolPerformance: React.FC<PatrolPerformanceProps> = ({
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader>Tour</Table.ColumnHeader>
-                  <Table.ColumnHeader>Officer</Table.ColumnHeader>
+                  <Table.ColumnHeader>Guard</Table.ColumnHeader>
                   <Table.ColumnHeader>Scheduled</Table.ColumnHeader>
                   <Table.ColumnHeader>Checkpoints</Table.ColumnHeader>
                   <Table.ColumnHeader>Duration</Table.ColumnHeader>

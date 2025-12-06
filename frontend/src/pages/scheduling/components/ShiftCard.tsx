@@ -2,7 +2,7 @@
  * ShiftCard Component
  *
  * Displays a single shift in the calendar view.
- * Shows officer, time, site, and task count.
+ * Shows guard, time, site, and task count.
  */
 
 import React from 'react';
@@ -56,7 +56,7 @@ const ShiftCard: React.FC<ShiftCardProps> = ({
         overflow="hidden"
       >
         <Text fontSize="xs" fontWeight="medium" color="gray.700" lineClamp={1}>
-          {shift.officer.fullName}
+          {shift.guard.fullName}
         </Text>
         <Text fontSize="xs" color="gray.500">
           {shift.startTime} - {shift.endTime}
@@ -84,19 +84,19 @@ const ShiftCard: React.FC<ShiftCardProps> = ({
       onClick={() => onClick?.(shift)}
     >
       <VStack align="stretch" gap={2}>
-        {/* Header: Officer & Status */}
+        {/* Header: Guard & Status */}
         <Flex justify="space-between" align="flex-start">
           <HStack gap={2}>
             <Avatar.Root size="sm">
-              <Avatar.Fallback name={shift.officer.fullName} />
+              <Avatar.Fallback name={shift.guard.fullName} />
             </Avatar.Root>
             <Box>
               <Text fontSize="sm" fontWeight="semibold" color="gray.800">
-                {shift.officer.fullName}
+                {shift.guard.fullName}
               </Text>
-              {shift.officer.badgeNumber && (
+              {shift.guard.badgeNumber && (
                 <Text fontSize="xs" color="gray.500">
-                  {shift.officer.badgeNumber}
+                  {shift.guard.badgeNumber}
                 </Text>
               )}
             </Box>

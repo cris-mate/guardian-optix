@@ -71,10 +71,10 @@ BreakRecordSchema.pre('save', function(next) {
 
 const TimeEntrySchema = new mongoose.Schema(
   {
-    officer: {
+    guard: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Officer is required'],
+      required: [true, 'Guard is required'],
       index: true,
     },
     shift: {
@@ -146,7 +146,7 @@ const TimeEntrySchema = new mongoose.Schema(
 
 const TimesheetSchema = new mongoose.Schema(
   {
-    officer: {
+    guard: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -209,7 +209,7 @@ const TimesheetSchema = new mongoose.Schema(
 );
 
 // Compound index for efficient querying
-TimesheetSchema.index({ officer: 1, date: 1 }, { unique: true });
+TimesheetSchema.index({ guard: 1, date: 1 }, { unique: true });
 TimesheetSchema.index({ date: 1, status: 1 });
 
 // ============================================
@@ -218,7 +218,7 @@ TimesheetSchema.index({ date: 1, status: 1 });
 
 const ActiveSessionSchema = new mongoose.Schema(
   {
-    officer: {
+    guard: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -267,8 +267,8 @@ const ActiveSessionSchema = new mongoose.Schema(
 // Indexes
 // ============================================
 
-TimeEntrySchema.index({ officer: 1, date: 1 });
-TimeEntrySchema.index({ officer: 1, timestamp: -1 });
+TimeEntrySchema.index({ guard: 1, date: 1 });
+TimeEntrySchema.index({ guard: 1, timestamp: -1 });
 TimeEntrySchema.index({ site: 1, date: 1 });
 TimeEntrySchema.index({ type: 1, timestamp: -1 });
 
@@ -293,14 +293,14 @@ TimesheetSchema.set('toObject', { virtuals: true });
 // ============================================
 
 /**
- * Get or create timesheet for officer on a given date
+ * Get or create timesheet for guard on a given date
  */
-TimesheetSchema.statics.getOrCreateForDate = async function(officerId, date) {
-  let timesheet = await this.findOne({ officer: officerId, date });
+TimesheetSchema.statics.getOrCreateForDate = async function(guardId, date) {
+  let timesheet = await this.findOne({ guard: guardId, date });
 
   if (!timesheet) {
     timesheet = await this.create({
-      officer: officerId,
+      guard: guardId,
       date,
       entries: [],
       breaks: [],

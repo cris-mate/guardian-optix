@@ -2,7 +2,7 @@
  * ShiftDrawer Component
  *
  * Side panel showing detailed shift information.
- * Includes officer info, site, time, tasks, and notes.
+ * Includes guard info, site, time, tasks, and notes.
  */
 
 import React from 'react';
@@ -137,23 +137,23 @@ const ShiftDrawer: React.FC<ShiftDrawerProps> = ({
               </Flex>
             ) : (
               <VStack align="stretch" gap={0}>
-                {/* Officer Section */}
+                {/* Guard Section */}
                 <Box p={4} bg="gray.50">
                   <HStack gap={3}>
                     <Avatar.Root size="lg">
-                      <Avatar.Fallback name={shift.officer.fullName} />
+                      <Avatar.Fallback name={shift.guard.fullName} />
                     </Avatar.Root>
                     <Box flex="1">
                       <Text fontSize="md" fontWeight="semibold" color="gray.800">
-                        {shift.officer.fullName}
+                        {shift.guard.fullName}
                       </Text>
-                      {shift.officer.badgeNumber && (
+                      {shift.guard.badgeNumber && (
                         <Text fontSize="sm" color="gray.500">
-                          Badge: {shift.officer.badgeNumber}
+                          Badge: {shift.guard.badgeNumber}
                         </Text>
                       )}
                     </Box>
-                    {shift.officer.phoneNumber && (
+                    {shift.guard.phoneNumber && (
                       <Button size="sm" variant="outline" colorPalette="blue">
                         <LuPhone size={14} />
                         Call

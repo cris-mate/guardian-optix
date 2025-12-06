@@ -50,11 +50,11 @@ export interface ShiftTaskInput {
 
 /**
  * Shift entity as stored in database
- * officer and site are ObjectId references
+ * guard and site are ObjectId references
  */
 export interface ShiftBase {
   _id: string;
-  officer: string;
+  guard: string;
   site: string;
   date: string; // YYYY-MM-DD format
   startTime: string; // HH:mm format
@@ -74,7 +74,7 @@ export interface ShiftBase {
  */
 export interface Shift {
   _id: string;
-  officer: UserRef & {
+  guard: UserRef & {
     badgeNumber?: string;
     phoneNumber?: string;
     profileImage?: string;
@@ -108,7 +108,7 @@ export interface Shift {
  * Payload for creating a new shift
  */
 export interface CreateShiftPayload {
-  officer: string; // ObjectId
+  guard: string; // ObjectId
   site: string; // ObjectId
   date: string;
   startTime: string;
@@ -143,8 +143,8 @@ export interface CompleteTaskPayload {
  */
 export interface ShiftSummary {
   _id: string;
-  officerName: string;
-  officerId: string | null;
+  guardName: string;
+  guardId: string | null;
   siteName: string;
   siteId: string | null;
   date: string;

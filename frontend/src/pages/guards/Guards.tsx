@@ -1,8 +1,8 @@
 /**
  * Guards Page
  *
- * Main page for managing security officers and staff.
- * Provides search, filtering, and detailed officer views.
+ * Main page for managing security guards and staff.
+ * Provides search, filtering, and detailed guard views.
  */
 
 import React, { useState } from 'react';
@@ -28,7 +28,7 @@ const Guards: React.FC = () => {
   const { user } = useAuth();
   const {
     guards,
-    selectedOfficer,
+    selectedGuard,
     isLoading,
     isLoadingDetails,
     isMutating,
@@ -38,8 +38,8 @@ const Guards: React.FC = () => {
     stats,
     setFilters,
     resetFilters,
-    selectOfficer,
-    createOfficer,
+    selectGuard,
+    createGuard,
     refetch,
   } = useGuardsData();
 
@@ -49,9 +49,9 @@ const Guards: React.FC = () => {
   // Check if user has manager/admin permissions
   const isManager = user?.role === 'Admin' || user?.role === 'Manager';
 
-  // Handle officer selection
-  const handleOfficerSelect = (id: string) => {
-    selectOfficer(id);
+  // Handle guard selection
+  const handleGuardSelect = (id: string) => {
+    selectGuard(id);
     setIsDrawerOpen(true);
   };
 
@@ -59,12 +59,12 @@ const Guards: React.FC = () => {
   const handleDrawerClose = () => {
     setIsDrawerOpen(false);
     // Delay clearing selection to allow drawer animation
-    setTimeout(() => selectOfficer(null), 300);
+    setTimeout(() => selectGuard(null), 300);
   };
 
   // Handle edit (placeholder)
-  const handleEdit = (officer: GuardsType) => {
-    console.log('Edit officer:', officer._id);
+  const handleEdit = (guard: GuardsType) => {
+    console.log('Edit guard:', guard._id);
     // TODO: Implement edit modal
   };
 
@@ -86,7 +86,7 @@ const Guards: React.FC = () => {
               Guards
             </Text>
             <Text fontSize="sm" color="gray.500">
-              Manage security officers and staff
+              Manage security guards and staff
             </Text>
           </Box>
         </HStack>
@@ -108,7 +108,7 @@ const Guards: React.FC = () => {
               onClick={() => setIsAddModalOpen(true)}
             >
               <LuUserPlus size={14} />
-              Add Officer
+              Add Guard
             </Button>
           )}
         </HStack>
@@ -157,7 +157,7 @@ const Guards: React.FC = () => {
           borderColor="gray.200"
         >
           <Text fontSize="sm" color="gray.600">
-            Showing {guards.length} of {pagination.total} officers
+            Showing {guards.length} of {pagination.total} guards
           </Text>
         </Flex>
 
@@ -169,12 +169,12 @@ const Guards: React.FC = () => {
                 <LuUsers size={48} />
               </Box>
               <Text color="gray.500" fontSize="lg">
-                No officers found
+                No guards found
               </Text>
               <Text color="gray.400" fontSize="sm">
                 {filters.search || filters.status !== 'all' || filters.role !== 'all'
                   ? 'Try adjusting your filters'
-                  : 'Add your first security officer to get started'
+                  : 'Add your first guard to get started'
                 }
               </Text>
               {isManager && !filters.search && filters.status === 'all' && (
@@ -184,7 +184,7 @@ const Guards: React.FC = () => {
                   onClick={() => setIsAddModalOpen(true)}
                 >
                   <LuUserPlus size={16} />
-                  Add Officer
+                  Add Guard
                 </Button>
               )}
             </VStack>
@@ -193,10 +193,10 @@ const Guards: React.FC = () => {
           <GuardsTable
             guards={guards}
             isLoading={isLoading}
-            selectedId={selectedOfficer?._id}
+            selectedId={selectedGuard?._id}
             filters={filters}
             onFiltersChange={setFilters}
-            onSelect={handleOfficerSelect}
+            onSelect={handleGuardSelect}
             onEdit={isManager ? handleEdit : undefined}
           />
         )}
@@ -237,20 +237,20 @@ const Guards: React.FC = () => {
         )}
       </Box>
 
-      {/* Officer Details Drawer */}
+      {/* Guard Details Drawer */}
       <GuardsDrawer
-        officer={selectedOfficer}
+        guard={selectedGuard}
         isOpen={isDrawerOpen}
         onClose={handleDrawerClose}
         onEdit={isManager ? handleEdit : undefined}
         isLoading={isLoadingDetails}
       />
 
-      {/* Add Officer Modal */}
+      {/* Add Guard Modal */}
       <AddGuardsModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSubmit={createOfficer}
+        onSubmit={createGuard}
         isSubmitting={isMutating}
       />
     </Container>

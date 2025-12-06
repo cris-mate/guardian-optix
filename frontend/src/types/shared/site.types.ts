@@ -3,7 +3,7 @@
  *
  * Mirrors: backend/models/Site.js
  *
- * Sites are locations where security officers work,
+ * Sites are locations where security guards work,
  * linked to Clients.
  */
 

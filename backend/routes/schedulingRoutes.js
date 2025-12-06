@@ -18,9 +18,9 @@ const {
   deleteShift,
   updateShiftStatus,
   updateTaskStatus,
-  getAvailableOfficers,
+  getAvailableGuards,
   getAvailableSites,
-  getRecommendedOfficers,
+  getRecommendedGuards,
 } = require('../controllers/schedulingController');
 
 // All routes require authentication
@@ -45,11 +45,11 @@ router.get('/shifts', getShifts);
 router.get('/shifts/stats', getShiftStats);
 
 /**
- * @route   GET /api/scheduling/available-officers
- * @desc    Get available officers for scheduling
+ * @route   GET /api/scheduling/available-guards
+ * @desc    Get available guards for scheduling
  * @access  Private
  */
-router.get('/available-officers', getAvailableOfficers);
+router.get('/available-guards', getAvailableGuards);
 
 /**
  * @route   GET /api/scheduling/available-sites
@@ -104,6 +104,6 @@ router.patch('/shifts/:shiftId/tasks/:taskId', updateTaskStatus);
  */
 router.delete('/shifts/:id', authorize('Admin', 'Manager'), deleteShift);
 
-router.get('/recommended-officers/:siteId', getRecommendedOfficers);
+router.get('/recommended-guards/:siteId', getRecommendedGuards);
 
 module.exports = router;

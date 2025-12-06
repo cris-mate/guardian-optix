@@ -34,7 +34,7 @@ import type { TimeEntry, EntryType, GeofenceStatus } from '../../../types/timeCl
 interface TimeEntriesTableProps {
   entries: TimeEntry[];
   isLoading: boolean;
-  showOfficerName?: boolean;
+  showGuardName?: boolean;
 }
 
 // ============================================
@@ -61,7 +61,7 @@ const geofenceConfig: Record<GeofenceStatus, { color: string; icon: typeof LuCir
 const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                                                              entries,
                                                              isLoading,
-                                                             showOfficerName = false,
+                                                             showGuardName = false,
                                                            }) => {
   // Format time
   const formatTime = (timestamp: string): string => {
@@ -122,9 +122,9 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
             <Table.ColumnHeader py={3} px={4}>
               Type
             </Table.ColumnHeader>
-            {showOfficerName && (
+            {showGuardName && (
               <Table.ColumnHeader py={3} px={4}>
-                Officer
+                Guard
               </Table.ColumnHeader>
             )}
             <Table.ColumnHeader py={3} px={4}>
@@ -167,10 +167,10 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
                     </Badge>
                   </HStack>
                 </Table.Cell>
-                {showOfficerName && (
+                {showGuardName && (
                   <Table.Cell py={3} px={4}>
                     <Text fontSize="sm" color="gray.700">
-                      {entry.officerName}
+                      {entry.guardName}
                     </Text>
                   </Table.Cell>
                 )}

@@ -3,7 +3,7 @@
  *
  * Centralised socket management for real-time features:
  * - Dashboard live updates
- * - Officer location tracking
+ * - Guard location tracking
  * - Alert notifications
  *
  * Uses event emitter pattern to decouple from controllers.
@@ -68,21 +68,21 @@ const initializeSocket = (httpServer) => {
     }
 
     // Handle client subscribing to specific updates
-    socket.on('subscribe:officer-tracking', () => {
+    socket.on('subscribe:guard-tracking', () => {
       if (['Manager', 'Admin'].includes(userRole)) {
-        socket.join('officer-tracking');
+        socket.join('guard-tracking');
       }
     });
 
-    socket.on('unsubscribe:officer-tracking', () => {
-      socket.leave('officer-tracking');
+    socket.on('unsubscribe:guard-tracking', () => {
+      socket.leave('guard-tracking');
     });
 
-    // Handle location updates from officers
+    // Handle location updates from guards
     socket.on('location:update', (data) => {
       // Broadcast to tracking subscribers
-      io.to('officer-tracking').emit('officer:location-updated', {
-        officerId: userId,
+      io.to('guard-tracking').emit('guard:location-updated', {
+        guardId: userId,
         location: data.location,
         geofenceStatus: data.geofenceStatus,
         timestamp: new Date().toISOString(),
@@ -137,12 +137,12 @@ const emitMetricsUpdate = (metrics) => {
 const emitClockAction = (data) => {
   if (!io) return;
 
-  const { officerId, officerName, action, siteId, siteName, geofenceStatus } = data;
+  const { guardId, guardName, action, siteId, siteName, geofenceStatus } = data;
 
   // Broadcast to dashboard subscribers
   io.to('dashboard').emit('timeclock:action', {
-    officerId,
-    officerName,
+    guardId,
+    guardName,
     action, // 'clock-in' | 'clock-out' | 'break-start' | 'break-end'
     siteId,
     siteName,
@@ -154,8 +154,8 @@ const emitClockAction = (data) => {
   emitActivity({
     type: 'clock-action',
     action,
-    officerId,
-    officerName,
+    guardId,
+    guardName,
     siteName,
   });
 };
@@ -166,13 +166,13 @@ const emitClockAction = (data) => {
 const emitGeofenceViolation = (data) => {
   if (!io) return;
 
-  const { officerId, officerName, siteId, siteName, location, action } = data;
+  const { guardId: guardId, guardName: guardName, siteId, siteName, location, action } = data;
 
   // Critical alert to dashboard
   io.to('dashboard').emit('alert:geofence-violation', {
     severity: 'critical',
-    officerId,
-    officerName,
+    guardId: guardId,
+    guardName: guardName,
     siteId,
     siteName,
     location,
@@ -180,8 +180,8 @@ const emitGeofenceViolation = (data) => {
     timestamp: new Date().toISOString(),
   });
 
-  // Notify the officer directly
-  io.to(`user:${officerId}`).emit('alert:personal', {
+  // Notify the guard directly
+  io.to(`user:${guardId}`).emit('alert:personal', {
     type: 'geofence-warning',
     message: `You are outside the geofence for ${siteName}`,
   });
@@ -222,20 +222,20 @@ const emitIncidentReport = (data) => {
 const emitShiftUpdate = (data) => {
   if (!io) return;
 
-  const { shiftId, status, officerId, officerName, siteName } = data;
+  const { shiftId, status, guardId, guardName, siteName } = data;
 
   io.to('dashboard').emit('shift:status-changed', {
     shiftId,
     status,
-    officerId,
-    officerName,
+    guardId,
+    guardName,
     siteName,
     timestamp: new Date().toISOString(),
   });
 
-  // Notify assigned officer
-  if (officerId) {
-    io.to(`user:${officerId}`).emit('shift:updated', {
+  // Notify assigned guard
+  if (guardId) {
+    io.to(`user:${guardId}`).emit('shift:updated', {
       shiftId,
       status,
       message: `Your shift status changed to: ${status}`,

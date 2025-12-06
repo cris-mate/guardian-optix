@@ -1,7 +1,7 @@
 /**
- * OfficerRankings Component
+ * GuardRankings Component
  *
- * Displays a leaderboard of security officers ranked by performance.
+ * Displays a leaderboard of security guards ranked by performance.
  * Shows rank changes, scores, and top metrics.
  */
 
@@ -27,19 +27,19 @@ import {
   LuChevronRight,
 } from 'react-icons/lu';
 import type {
-  OfficerPerformance,
-  OfficerRanking,
+  GuardPerformance,
+  GuardRanking,
 } from '../../../types/performance.types';
 
 // ============================================
 // Props Interface
 // ============================================
 
-interface OfficerRankingsProps {
-  officers: OfficerPerformance[];
-  rankings: OfficerRanking[];
-  onSelectOfficer?: (officerId: string) => void;
-  selectedOfficerId?: string | null;
+interface GuardRankingsProps {
+  guards: GuardPerformance[];
+  rankings: GuardRanking[];
+  onSelectGuard?: (guardId: string) => void;
+  selectedGuardId?: string | null;
   isLoading?: boolean;
   compact?: boolean;
 }
@@ -140,25 +140,25 @@ const RankBadge: React.FC<RankBadgeProps> = ({ rank, previousRank }) => {
 };
 
 // ============================================
-// Officer Row Component
+// Guard Row Component
 // ============================================
 
-interface OfficerRowProps {
-  officer: OfficerPerformance;
+interface GuardRowProps {
+  guard: GuardPerformance;
   rank: number;
   previousRank?: number;
   isSelected?: boolean;
   onClick?: () => void;
 }
 
-const OfficerRow: React.FC<OfficerRowProps> = ({
-                                                 officer,
+const GuardRow: React.FC<GuardRowProps> = ({
+                                                 guard,
                                                  rank,
                                                  previousRank,
                                                  isSelected,
                                                  onClick,
                                                }) => {
-  const ratingConfig = getRatingConfig(officer.rating);
+  const ratingConfig = getRatingConfig(guard.rating);
 
   return (
     <Table.Row
@@ -176,16 +176,16 @@ const OfficerRow: React.FC<OfficerRowProps> = ({
         <HStack gap={3}>
           <Avatar.Root size="sm">
             <Avatar.Fallback>
-              {officer.officerName.split(' ').map(n => n[0]).join('')}
+              {guard.guardName.split(' ').map(n => n[0]).join('')}
             </Avatar.Fallback>
-            {officer.profileImage && <Avatar.Image src={officer.profileImage} />}
+            {guard.profileImage && <Avatar.Image src={guard.profileImage} />}
           </Avatar.Root>
           <VStack align="flex-start" gap={0}>
             <Text fontWeight="medium" color="gray.800">
-              {officer.officerName}
+              {guard.guardName}
             </Text>
             <Text fontSize="xs" color="gray.500">
-              {officer.badgeNumber} • {officer.guardType}
+              {guard.badgeNumber} • {guard.guardType}
             </Text>
           </VStack>
         </HStack>
@@ -193,22 +193,22 @@ const OfficerRow: React.FC<OfficerRowProps> = ({
 
       <Table.Cell>
         <Text fontSize="sm" color="gray.600">
-          {officer.site}
+          {guard.site}
         </Text>
       </Table.Cell>
 
       <Table.Cell>
         <VStack align="flex-start" gap={1}>
           <HStack gap={2}>
-            <Text fontWeight="bold" color={`${getScoreColor(officer.overallScore)}.600`}>
-              {officer.overallScore}
+            <Text fontWeight="bold" color={`${getScoreColor(guard.overallScore)}.600`}>
+              {guard.overallScore}
             </Text>
             <Text fontSize="xs" color="gray.400">/100</Text>
           </HStack>
           <Progress.Root
-            value={officer.overallScore}
+            value={guard.overallScore}
             size="xs"
-            colorPalette={getScoreColor(officer.overallScore)}
+            colorPalette={getScoreColor(guard.overallScore)}
             w={20}
           >
             <Progress.Track bg="gray.100">
@@ -228,17 +228,17 @@ const OfficerRow: React.FC<OfficerRowProps> = ({
         <HStack gap={1}>
           <Icon
             as={
-              officer.trends.overall === 'up'
+              guard.trends.overall === 'up'
                 ? LuTrendingUp
-                : officer.trends.overall === 'down'
+                : guard.trends.overall === 'down'
                   ? LuTrendingDown
                   : LuMinus
             }
             boxSize={4}
             color={
-              officer.trends.overall === 'up'
+              guard.trends.overall === 'up'
                 ? 'green.500'
-                : officer.trends.overall === 'down'
+                : guard.trends.overall === 'down'
                   ? 'red.500'
                   : 'gray.400'
             }
@@ -246,14 +246,14 @@ const OfficerRow: React.FC<OfficerRowProps> = ({
           <Text
             fontSize="sm"
             color={
-              officer.trends.overall === 'up'
+              guard.trends.overall === 'up'
                 ? 'green.500'
-                : officer.trends.overall === 'down'
+                : guard.trends.overall === 'down'
                   ? 'red.500'
                   : 'gray.400'
             }
           >
-            {officer.trends.value}%
+            {guard.trends.value}%
           </Text>
         </HStack>
       </Table.Cell>
@@ -294,20 +294,20 @@ const RowSkeleton: React.FC = () => (
 // Main Component
 // ============================================
 
-const OfficerRankings: React.FC<OfficerRankingsProps> = ({
-                                                           officers,
+const GuardRankings: React.FC<GuardRankingsProps> = ({
+                                                       guards,
                                                            rankings,
-                                                           onSelectOfficer,
-                                                           selectedOfficerId,
+                                                           onSelectGuard,
+                                                           selectedGuardId,
                                                            isLoading = false,
                                                            compact = false,
                                                          }) => {
   // Create a map for quick lookup of rankings
-  const rankingMap = new Map(rankings.map(r => [r.officerId, r]));
+  const rankingMap = new Map(rankings.map(r => [r.guardId, r]));
 
-  // Sort officers by score
-  const sortedOfficers = [...officers].sort((a, b) => b.overallScore - a.overallScore);
-  const displayedOfficers = compact ? sortedOfficers.slice(0, 5) : sortedOfficers;
+  // Sort guards by score
+  const sortedGuards = [...guards].sort((a, b) => b.overallScore - a.overallScore);
+  const displayedGuards = compact ? sortedGuards.slice(0, 5) : sortedGuards;
 
   if (isLoading) {
     return (
@@ -320,14 +320,14 @@ const OfficerRankings: React.FC<OfficerRankingsProps> = ({
       >
         <Box p={4} borderBottomWidth="1px" borderColor="gray.100">
           <Text fontWeight="semibold" color="gray.800">
-            Officer Rankings
+            Guard Rankings
           </Text>
         </Box>
         <Table.Root variant="line">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader w={20}>Rank</Table.ColumnHeader>
-              <Table.ColumnHeader>Officer</Table.ColumnHeader>
+              <Table.ColumnHeader>Guard</Table.ColumnHeader>
               <Table.ColumnHeader>Site</Table.ColumnHeader>
               <Table.ColumnHeader w={24}>Score</Table.ColumnHeader>
               <Table.ColumnHeader w={32}>Rating</Table.ColumnHeader>
@@ -344,7 +344,7 @@ const OfficerRankings: React.FC<OfficerRankingsProps> = ({
     );
   }
 
-  if (officers.length === 0) {
+  if (guards.length === 0) {
     return (
       <Box
         bg="white"
@@ -372,12 +372,12 @@ const OfficerRankings: React.FC<OfficerRankingsProps> = ({
         <HStack gap={2}>
           <Icon as={LuTrophy} boxSize={5} color="yellow.500" />
           <Text fontWeight="semibold" color="gray.800">
-            Officer Rankings
+            Guard Rankings
           </Text>
         </HStack>
-        {compact && officers.length > 5 && (
+        {compact && guards.length > 5 && (
           <Badge colorPalette="gray" variant="subtle">
-            Top 5 of {officers.length}
+            Top 5 of {guards.length}
           </Badge>
         )}
       </HStack>
@@ -387,25 +387,25 @@ const OfficerRankings: React.FC<OfficerRankingsProps> = ({
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader w={20}>Rank</Table.ColumnHeader>
-              <Table.ColumnHeader>Officer</Table.ColumnHeader>
+              <Table.ColumnHeader>Guard</Table.ColumnHeader>
               <Table.ColumnHeader>Site</Table.ColumnHeader>
               <Table.ColumnHeader w={24}>Score</Table.ColumnHeader>
               <Table.ColumnHeader w={32}>Rating</Table.ColumnHeader>
               <Table.ColumnHeader w={20}>Trend</Table.ColumnHeader>
-              {onSelectOfficer && <Table.ColumnHeader w={10} />}
+              {onSelectGuard && <Table.ColumnHeader w={10} />}
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {displayedOfficers.map((officer, index) => {
-              const ranking = rankingMap.get(officer.officerId);
+            {displayedGuards.map((guard, index) => {
+              const ranking = rankingMap.get(guard.guardId);
               return (
-                <OfficerRow
-                  key={officer.officerId}
-                  officer={officer}
+                <GuardRow
+                  key={guard.guardId}
+                  guard={guard}
                   rank={index + 1}
                   previousRank={ranking?.previousRank}
-                  isSelected={selectedOfficerId === officer.officerId}
-                  onClick={onSelectOfficer ? () => onSelectOfficer(officer.officerId) : undefined}
+                  isSelected={selectedGuardId === guard.guardId}
+                  onClick={onSelectGuard ? () => onSelectGuard(guard.guardId) : undefined}
                 />
               );
             })}
@@ -416,4 +416,4 @@ const OfficerRankings: React.FC<OfficerRankingsProps> = ({
   );
 };
 
-export default OfficerRankings;
+export default GuardRankings;

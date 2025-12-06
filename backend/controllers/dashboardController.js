@@ -83,7 +83,7 @@ const generateAlerts = (metrics, shifts, expiringCerts = []) => {
       type: 'attendance',
       severity: 'critical',
       title: 'No-Show Alert',
-      message: `${metrics.noShows} officer(s) have not clocked in for scheduled shifts`,
+      message: `${metrics.noShows} guard(s) have not clocked in for scheduled shifts`,
       timestamp: new Date().toISOString(),
       actionRequired: true,
       actionUrl: '/scheduling',
@@ -99,7 +99,7 @@ const generateAlerts = (metrics, shifts, expiringCerts = []) => {
       type: 'attendance',
       severity: 'warning',
       title: 'Late Arrivals',
-      message: `${metrics.lateArrivals} officer(s) arrived late to shifts today`,
+      message: `${metrics.lateArrivals} guard(s) arrived late to shifts today`,
       timestamp: new Date().toISOString(),
       actionRequired: false,
       isRead: false,
@@ -125,7 +125,7 @@ const generateAlerts = (metrics, shifts, expiringCerts = []) => {
 
   // Understaffed shifts
   const understaffed = shifts.filter(
-    (s) => s.status === 'scheduled' && !s.officer
+    (s) => s.status === 'scheduled' && !s.guard
   ).length;
   if (understaffed > 0) {
     alerts.push({
@@ -133,7 +133,7 @@ const generateAlerts = (metrics, shifts, expiringCerts = []) => {
       type: 'attendance',
       severity: 'warning',
       title: 'Unassigned Shifts',
-      message: `${understaffed} shift(s) today have no officer assigned`,
+      message: `${understaffed} shift(s) today have no guard assigned`,
       timestamp: new Date().toISOString(),
       actionRequired: true,
       actionUrl: '/scheduling',
@@ -228,7 +228,7 @@ const getScheduleOverview = asyncHandler(async (req, res) => {
   const todayDate = getTodayDateString();
 
   const shifts = await Shift.find({ date: todayDate })
-    .populate('officer', 'fullName phoneNumber role guardType')
+    .populate('guard', 'fullName phoneNumber role guardType')
     .populate('site', 'name address')
     .sort({ startTime: 1 })
     .lean();
@@ -237,11 +237,11 @@ const getScheduleOverview = asyncHandler(async (req, res) => {
 
   const formattedShifts = shifts.map((s) => ({
     id: s._id,
-    guardId: s.officer?._id || null,
-    guardName: s.officer?.fullName || 'Unassigned',
+    guardId: s.guard?._id || null,
+    guardName: s.guard?.fullName || 'Unassigned',
     siteName: s.site?.name || 'Unknown Site',
     siteId: s.site?._id || null,
-    role: s.officer?.guardType || 'Security Officer',
+    role: s.guard?.guardType || 'Security Officer',
     startTime: `${s.date}T${s.startTime}:00`,
     endTime: `${s.date}T${s.endTime}:00`,
     status: s.status,
@@ -282,13 +282,13 @@ const getGuardStatuses = asyncHandler(async (req, res) => {
     // Find if guard has an active shift today
     const activeShift = todayShifts.find(
       (s) =>
-        s.officer?.toString() === g._id.toString() &&
+        s.guard?.toString() === g._id.toString() &&
         s.status === 'in-progress'
     );
 
     const scheduledShift = todayShifts.find(
       (s) =>
-        s.officer?.toString() === g._id.toString() && s.status === 'scheduled'
+        s.guard?.toString() === g._id.toString() && s.status === 'scheduled'
     );
 
     let status = 'off-duty';
@@ -332,7 +332,7 @@ const getActivityFeed = asyncHandler(async (req, res) => {
   const recentEntries = await TimeEntry.find({
     date: todayDate,
   })
-    .populate('officer', 'fullName')
+    .populate('guard', 'fullName')
     .populate('site', 'name')
     .sort({ timestamp: -1 })
     .limit(parseInt(limit))
@@ -361,8 +361,8 @@ const getActivityFeed = asyncHandler(async (req, res) => {
     return {
       id: entry._id,
       type: entry.type, // 'clock-in', 'clock-out', 'break-start', 'break-end'
-      guardId: entry.officer?._id,
-      guardName: entry.officer?.fullName || 'Unknown',
+      guardId: entry.guard?._id,
+      guardName: entry.guard?.fullName || 'Unknown',
       siteName: entry.site?.name || null,
       timestamp: entry.timestamp,
       location: entry.location,
@@ -390,7 +390,7 @@ const getPendingTasks = asyncHandler(async (req, res) => {
     date: todayDate,
     'tasks.completed': false,
   })
-    .populate('officer', 'fullName')
+    .populate('guard', 'fullName')
     .populate('site', 'name')
     .lean();
 
@@ -410,10 +410,10 @@ const getPendingTasks = asyncHandler(async (req, res) => {
           priority: task.frequency === 'once' ? 'high' : 'medium',
           status: 'pending',
           dueDate: `${shift.date}T${shift.endTime}:00`,
-          assignedTo: shift.officer
+          assignedTo: shift.guard
             ? {
-              id: shift.officer._id,
-              name: shift.officer.fullName,
+              id: shift.guard._id,
+              name: shift.guard.fullName,
             }
             : null,
           site: shift.site

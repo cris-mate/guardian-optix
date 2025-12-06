@@ -253,7 +253,7 @@ const generateMockUpdates = (): Update[] => {
       _id: 'upd-002',
       type: 'announcement',
       title: 'New Client Onboarding: Tech Corp Ltd',
-      content: 'We are pleased to announce a new contract with Tech Corp Ltd starting next Monday. Initial deployment will include 4 static guards and 2 mobile patrol officers. Site induction training will be conducted on Friday at 2pm. All assigned personnel must attend.',
+      content: 'We are pleased to announce a new contract with Tech Corp Ltd starting next Monday. Initial deployment will include 4 static guards and 2 mobile patrol guards. Site induction training will be conducted on Friday at 2pm. All assigned personnel must attend.',
       priority: 'medium',
       createdAt: new Date(now.getTime() - 2 * 3600000).toISOString(),
       authorId: 'mgr-002',

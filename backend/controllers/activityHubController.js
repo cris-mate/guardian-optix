@@ -77,7 +77,7 @@ const getActivities = asyncHandler(async (req, res) => {
     TimeEntry.find({
       date: { $gte: queryStartDate, $lte: queryEndDate },
     })
-      .populate('officer', 'fullName role')
+      .populate('guard', 'fullName role')
       .populate('site', 'name')
       .sort({ timestamp: -1 })
       .limit(parseInt(limit)),
@@ -103,7 +103,7 @@ const getActivities = asyncHandler(async (req, res) => {
       date: { $gte: queryStartDate, $lte: queryEndDate },
       status: { $in: ['in-progress', 'completed', 'cancelled'] },
     })
-      .populate('officer', 'fullName role')
+      .populate('guard', 'fullName role')
       .populate('site', 'name')
       .sort({ updatedAt: -1 })
       .limit(parseInt(limit)),
@@ -118,12 +118,12 @@ const getActivities = asyncHandler(async (req, res) => {
       _id: `te-${entry._id}`,
       category: 'shift',
       action: mapTimeEntryAction(entry.type),
-      description: `${entry.officer?.fullName || 'Unknown'} ${entry.type.replace('-', ' ')} at ${entry.site?.name || 'Unknown Site'}`,
+      description: `${entry.guard?.fullName || 'Unknown'} ${entry.type.replace('-', ' ')} at ${entry.site?.name || 'Unknown Site'}`,
       timestamp: entry.timestamp,
       severity: entry.geofenceStatus === 'outside' ? 'warning' : 'info',
-      actorId: entry.officer?._id,
-      actorName: entry.officer?.fullName || 'Unknown',
-      actorRole: entry.officer?.role || 'Guard',
+      actorId: entry.guard?._id,
+      actorName: entry.guard?.fullName || 'Unknown',
+      actorRole: entry.guard?.role || 'Guard',
       location: entry.site ? {
         siteName: entry.site.name,
         siteId: entry.site._id,
@@ -185,11 +185,11 @@ const getActivities = asyncHandler(async (req, res) => {
         _id: `shift-${shift._id}`,
         category: 'shift',
         action: `Shift ${shift.status.charAt(0).toUpperCase() + shift.status.slice(1)}`,
-        description: `${shift.officer?.fullName || 'Unknown'}'s shift at ${shift.site?.name || 'Unknown'} is ${shift.status}`,
+        description: `${shift.guard?.fullName || 'Unknown'}'s shift at ${shift.site?.name || 'Unknown'} is ${shift.status}`,
         timestamp: shift.updatedAt,
         severity: shift.status === 'cancelled' ? 'warning' : 'info',
-        actorId: shift.officer?._id,
-        actorName: shift.officer?.fullName || 'Unknown',
+        actorId: shift.guard?._id,
+        actorName: shift.guard?.fullName || 'Unknown',
         actorRole: 'Guard',
         location: shift.site ? {
           siteName: shift.site.name,
@@ -265,7 +265,7 @@ const getUpdates = asyncHandler(async (req, res) => {
       _id: 'update-002',
       type: 'policy',
       title: 'Updated Clock-In Procedures',
-      content: 'All officers must ensure GPS is enabled before clocking in. Geofence verification is now mandatory.',
+      content: 'All guards must ensure GPS is enabled before clocking in. Geofence verification is now mandatory.',
       priority: 'high',
       author: {
         _id: 'admin-001',

@@ -2,7 +2,7 @@
  * AttendancePerformance Component
  *
  * Displays attendance metrics, punctuality rates,
- * and recent attendance records for security officers.
+ * and recent attendance records for security guards.
  */
 
 import React from 'react';
@@ -167,7 +167,7 @@ const AttendanceRow: React.FC<AttendanceRowProps> = ({ record }) => {
       <Table.Cell>
         <VStack align="flex-start" gap={0}>
           <Text fontWeight="medium" color="gray.800">
-            {record.officerName}
+            {record.guardName}
           </Text>
           <HStack gap={1} color="gray.500" fontSize="xs">
             <Icon as={LuMapPin} boxSize={3} />
@@ -268,14 +268,14 @@ const LoadingSkeleton: React.FC = () => (
 );
 
 // ============================================
-// Officer Punctuality Breakdown
+// Guard Punctuality Breakdown
 // ============================================
 
-interface OfficerPunctualityProps {
-  data: AttendanceMetrics['byOfficer'];
+interface GuardPunctualityProps {
+  data: AttendanceMetrics['byGuard'];
 }
 
-const OfficerPunctuality: React.FC<OfficerPunctualityProps> = ({ data }) => {
+const GuardPunctuality: React.FC<GuardPunctualityProps> = ({ data }) => {
   // Sort by punctuality rate descending
   const sortedData = [...data].sort((a, b) => b.punctualityRate - a.punctualityRate);
 
@@ -289,36 +289,36 @@ const OfficerPunctuality: React.FC<OfficerPunctualityProps> = ({ data }) => {
     >
       <Box p={4} borderBottomWidth="1px" borderColor="gray.100">
         <Text fontWeight="semibold" color="gray.800">
-          Punctuality by Officer
+          Punctuality by Guard
         </Text>
       </Box>
       <VStack align="stretch" gap={0} divideY="1px" divideColor="gray.100">
-        {sortedData.map((officer) => (
-          <HStack key={officer.officerId} p={3} justify="space-between">
+        {sortedData.map((guard) => (
+          <HStack key={guard.guardId} p={3} justify="space-between">
             <VStack align="flex-start" gap={0}>
               <Text fontSize="sm" fontWeight="medium" color="gray.700">
-                {officer.officerName}
+                {guard.guardName}
               </Text>
               <HStack gap={3} fontSize="xs" color="gray.400">
-                <Text>{officer.shifts} shifts</Text>
+                <Text>{guard.shifts} shifts</Text>
                 <Text>•</Text>
-                <Text color={officer.late > 0 ? 'orange.500' : 'gray.400'}>
-                  {officer.late} late
+                <Text color={guard.late > 0 ? 'orange.500' : 'gray.400'}>
+                  {guard.late} late
                 </Text>
                 <Text>•</Text>
-                <Text color={officer.noShow > 0 ? 'red.500' : 'gray.400'}>
-                  {officer.noShow} no-show
+                <Text color={guard.noShow > 0 ? 'red.500' : 'gray.400'}>
+                  {guard.noShow} no-show
                 </Text>
               </HStack>
             </VStack>
             <HStack gap={2}>
               <Progress.Root
-                value={officer.punctualityRate}
+                value={guard.punctualityRate}
                 size="sm"
                 colorPalette={
-                  officer.punctualityRate >= 95
+                  guard.punctualityRate >= 95
                     ? 'green'
-                    : officer.punctualityRate >= 80
+                    : guard.punctualityRate >= 80
                       ? 'yellow'
                       : 'red'
                 }
@@ -332,16 +332,16 @@ const OfficerPunctuality: React.FC<OfficerPunctualityProps> = ({ data }) => {
                 fontSize="sm"
                 fontWeight="medium"
                 color={
-                  officer.punctualityRate >= 95
+                  guard.punctualityRate >= 95
                     ? 'green.600'
-                    : officer.punctualityRate >= 80
+                    : guard.punctualityRate >= 80
                       ? 'yellow.600'
                       : 'red.600'
                 }
                 w={12}
                 textAlign="right"
               >
-                {officer.punctualityRate.toFixed(0)}%
+                {guard.punctualityRate.toFixed(0)}%
               </Text>
             </HStack>
           </HStack>
@@ -473,7 +473,7 @@ const AttendancePerformance: React.FC<AttendancePerformanceProps> = ({
 
       {/* Breakdown Sections */}
       <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4}>
-        <OfficerPunctuality data={metrics.byOfficer} />
+        <GuardPunctuality data={metrics.byGuard} />
         <AttendanceDistribution summary={metrics.summary} />
       </SimpleGrid>
 
@@ -501,7 +501,7 @@ const AttendancePerformance: React.FC<AttendancePerformanceProps> = ({
             <Table.Root variant="line">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeader>Officer</Table.ColumnHeader>
+                  <Table.ColumnHeader>Guard</Table.ColumnHeader>
                   <Table.ColumnHeader>Date</Table.ColumnHeader>
                   <Table.ColumnHeader>Shift</Table.ColumnHeader>
                   <Table.ColumnHeader>Variance</Table.ColumnHeader>

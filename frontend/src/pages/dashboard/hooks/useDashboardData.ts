@@ -330,7 +330,7 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
         type: 'compliance',
         severity: 'warning',
         title: 'Certification Expiring',
-        message: '2 officer certifications expiring within 30 days',
+        message: '2 guard certifications expiring within 30 days',
         timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
         actionRequired: true,
         actionUrl: '/compliance',

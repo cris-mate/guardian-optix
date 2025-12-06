@@ -26,10 +26,10 @@ export type {
   // Overview Metrics
   OverviewMetrics,
 
-  // Officer Performance
+  // Guard Performance
   PerformanceRating,
-  OfficerPerformance,
-  OfficerRanking,
+  GuardPerformance,
+  GuardRanking,
 
   // Patrol Performance
   PatrolStatus,

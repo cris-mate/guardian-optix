@@ -1,7 +1,7 @@
 /**
  * TimeClock Page
  *
- * Digital time tracking for security officers in Guardian Optix.
+ * Digital time tracking for security guards in Guardian Optix.
  * Features GPS-verified clock in/out, break management, and timesheet generation.
  *
  * Features:
@@ -167,7 +167,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ stats, isLoading, isManager }) 
       {
         label: 'Total Hours Today',
         value: `${formatHours(stats.todayHours)}h`,
-        subtext: 'All officers combined',
+        subtext: 'All guards combined',
         icon: LuClock,
         color: 'blue',
       },

@@ -1,7 +1,7 @@
 /**
  * GuardsDrawer Component
  *
- * Side panel displaying detailed officer information.
+ * Side panel displaying detailed guard information.
  * Uses Chakra UI v3 Drawer components.
  */
 
@@ -35,10 +35,10 @@ import {
 import { Guards, LicenceStatus, GuardsStatus } from '../../../types/guards.types';
 
 interface GuardsDrawerProps {
-  officer: Guards | null;
+  guard: Guards | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: (officer: Guards) => void;
+  onEdit?: (guard: Guards) => void;
   isLoading?: boolean;
 }
 
@@ -109,14 +109,14 @@ const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value }) => (
 );
 
 const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
-                                                           officer,
+                                                           guard,
                                                            isOpen,
                                                            onClose,
                                                            onEdit,
                                                            isLoading = false,
                                                          }) => {
-  const daysUntilExpiry = officer?.siaLicence?.expiryDate
-    ? getDaysUntilExpiry(officer.siaLicence.expiryDate)
+  const daysUntilExpiry = guard?.siaLicence?.expiryDate
+    ? getDaysUntilExpiry(guard.siaLicence.expiryDate)
     : null;
 
   return (
@@ -126,14 +126,14 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
         <Drawer.Content>
           <Drawer.Header borderBottomWidth="1px" borderColor="gray.200">
             <Flex justify="space-between" align="center">
-              <Text fontSize="lg" fontWeight="semibold">Officer Details</Text>
+              <Text fontSize="lg" fontWeight="semibold">Guard Details</Text>
               <HStack gap={2}>
-                {onEdit && officer && (
+                {onEdit && guard && (
                   <IconButton
                     variant="ghost"
                     size="sm"
                     aria-label="Edit"
-                    onClick={() => onEdit(officer)}
+                    onClick={() => onEdit(guard)}
                   >
                     <LuPencil size={16} />
                   </IconButton>
@@ -152,23 +152,23 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
               <Flex justify="center" align="center" py={16}>
                 <Spinner size="lg" color="blue.500" />
               </Flex>
-            ) : officer ? (
+            ) : guard ? (
               <VStack gap={0} align="stretch">
                 {/* Profile Header */}
                 <Box bg="gray.50" p={6}>
                   <VStack gap={4}>
                     <VStack gap={1}>
-                      <Text fontSize="xl" fontWeight="semibold">{officer.fullName}</Text>
-                      {officer.badgeNumber && (
+                      <Text fontSize="xl" fontWeight="semibold">{guard.fullName}</Text>
+                      {guard.badgeNumber && (
                         <Text fontSize="sm" color="gray.500" fontFamily="mono">
-                          {officer.badgeNumber}
+                          {guard.badgeNumber}
                         </Text>
                       )}
                       <HStack gap={2} mt={1}>
-                        <Badge colorPalette={getStatusColor(officer.status)} variant="subtle">
-                          {officer.status.replace('-', ' ')}
+                        <Badge colorPalette={getStatusColor(guard.status)} variant="subtle">
+                          {guard.status.replace('-', ' ')}
                         </Badge>
-                        {officer.availability && officer.status === 'on-duty' && (
+                        {guard.availability && guard.status === 'on-duty' && (
                           <Badge colorPalette="green" variant="outline">
                             Available
                           </Badge>
@@ -185,7 +185,7 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                       flex={1}
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(`tel:${officer.phoneNumber}`)}
+                      onClick={() => window.open(`tel:${guard.phoneNumber}`)}
                     >
                       <LuPhone size={14} />
                       Call
@@ -194,7 +194,7 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                       flex={1}
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(`mailto:${officer.email}`)}
+                      onClick={() => window.open(`mailto:${guard.email}`)}
                     >
                       <LuMail size={14} />
                       Email
@@ -211,17 +211,17 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                     <InfoRow
                       icon={<LuMail size={14} />}
                       label="Email"
-                      value={officer.email}
+                      value={guard.email}
                     />
                     <InfoRow
                       icon={<LuPhone size={14} />}
                       label="Phone"
-                      value={officer.phoneNumber}
+                      value={guard.phoneNumber}
                     />
                     <InfoRow
                       icon={<LuMapPin size={14} />}
                       label="Postcode"
-                      value={officer.postCode}
+                      value={guard.postCode}
                     />
                   </VStack>
                 </Box>
@@ -240,21 +240,21 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                       value={
                         <VStack gap={0} align="flex-end">
                           <Text fontSize="sm" fontWeight="medium">
-                            {officer.role === 'Guard' ? 'Security Officer' : officer.role}
+                            {guard.role === 'Guard' ? 'Security Officer' : guard.role}
                           </Text>
-                          {(officer.guardType || officer.managerType) && (
+                          {(guard.guardType || guard.managerType) && (
                             <Text fontSize="xs" color="gray.500">
-                              {officer.guardType || officer.managerType}
+                              {guard.guardType || guard.managerType}
                             </Text>
                           )}
                         </VStack>
                       }
                     />
-                    {officer.assignedSite && (
+                    {guard.assignedSite && (
                       <InfoRow
                         icon={<LuMapPin size={14} />}
                         label="Assigned Site"
-                        value={officer.assignedSite}
+                        value={guard.assignedSite}
                       />
                     )}
                   </VStack>
@@ -263,35 +263,35 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                 <Separator />
 
                 {/* SIA Licence */}
-                {officer.siaLicence && (
+                {guard.siaLicence && (
                   <>
                     <Box px={6} py={4}>
                       <Flex justify="space-between" align="center" mb={3}>
                         <Text fontSize="sm" fontWeight="semibold" color="gray.700">
                           SIA Licence
                         </Text>
-                        <Badge colorPalette={getLicenceColor(officer.siaLicence.status)} variant="subtle">
-                          {officer.siaLicence.status === 'expiring-soon' ? 'Expiring Soon' : officer.siaLicence.status}
+                        <Badge colorPalette={getLicenceColor(guard.siaLicence.status)} variant="subtle">
+                          {guard.siaLicence.status === 'expiring-soon' ? 'Expiring Soon' : guard.siaLicence.status}
                         </Badge>
                       </Flex>
 
                       {/* Expiry Warning */}
-                      {(officer.siaLicence.status === 'expired' || officer.siaLicence.status === 'expiring-soon') && (
+                      {(guard.siaLicence.status === 'expired' || guard.siaLicence.status === 'expiring-soon') && (
                         <Box
-                          bg={officer.siaLicence.status === 'expired' ? 'red.50' : 'orange.50'}
+                          bg={guard.siaLicence.status === 'expired' ? 'red.50' : 'orange.50'}
                           borderWidth="1px"
-                          borderColor={officer.siaLicence.status === 'expired' ? 'red.200' : 'orange.200'}
+                          borderColor={guard.siaLicence.status === 'expired' ? 'red.200' : 'orange.200'}
                           borderRadius="md"
                           p={3}
                           mb={4}
                         >
                           <HStack gap={2}>
-                            <Box color={officer.siaLicence.status === 'expired' ? 'red.500' : 'orange.500'}>
+                            <Box color={guard.siaLicence.status === 'expired' ? 'red.500' : 'orange.500'}>
                               <LuTriangleAlert size={16} />
                             </Box>
-                            <Text fontSize="sm" color={officer.siaLicence.status === 'expired' ? 'red.700' : 'orange.700'}>
-                              {officer.siaLicence.status === 'expired'
-                                ? 'Licence has expired. Officer cannot work until renewed.'
+                            <Text fontSize="sm" color={guard.siaLicence.status === 'expired' ? 'red.700' : 'orange.700'}>
+                              {guard.siaLicence.status === 'expired'
+                                ? 'Licence has expired. Guard cannot work until renewed.'
                                 : `Licence expires in ${daysUntilExpiry} days. Renewal required.`
                               }
                             </Text>
@@ -303,21 +303,21 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                         <InfoRow
                           icon={<LuShield size={14} />}
                           label="Licence Type"
-                          value={officer.siaLicence.licenceType}
+                          value={guard.siaLicence.licenceType}
                         />
                         <InfoRow
                           icon={<LuFileText size={14} />}
                           label="Licence Number"
                           value={
                             <Text fontSize="sm" fontWeight="medium" fontFamily="mono">
-                              {officer.siaLicence.licenceNumber}
+                              {guard.siaLicence.licenceNumber}
                             </Text>
                           }
                         />
                         <InfoRow
                           icon={<LuCalendar size={14} />}
                           label="Issue Date"
-                          value={formatDate(officer.siaLicence.issueDate)}
+                          value={formatDate(guard.siaLicence.issueDate)}
                         />
                         <InfoRow
                           icon={<LuCalendar size={14} />}
@@ -327,12 +327,12 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                               fontSize="sm"
                               fontWeight="medium"
                               color={
-                                officer.siaLicence.status === 'expired' ? 'red.600' :
-                                  officer.siaLicence.status === 'expiring-soon' ? 'orange.600' :
+                                guard.siaLicence.status === 'expired' ? 'red.600' :
+                                  guard.siaLicence.status === 'expiring-soon' ? 'orange.600' :
                                     'inherit'
                               }
                             >
-                              {formatDate(officer.siaLicence.expiryDate)}
+                              {formatDate(guard.siaLicence.expiryDate)}
                             </Text>
                           }
                         />
@@ -343,14 +343,14 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                 )}
 
                 {/* Certifications */}
-                {officer.certifications && officer.certifications.length > 0 && (
+                {guard.certifications && guard.certifications.length > 0 && (
                   <>
                     <Box px={6} py={4}>
                       <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={3}>
                         Certifications
                       </Text>
                       <Flex gap={2} flexWrap="wrap">
-                        {officer.certifications.map((cert, index) => (
+                        {guard.certifications.map((cert, index) => (
                           <Badge key={index} variant="outline" colorPalette="blue">
                             <LuBadgeCheck size={12} />
                             {cert}
@@ -364,7 +364,7 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
               </VStack>
             ) : (
               <Flex justify="center" align="center" py={16}>
-                <Text color="gray.500">No officer selected</Text>
+                <Text color="gray.500">No guard selected</Text>
               </Flex>
             )}
           </Drawer.Body>

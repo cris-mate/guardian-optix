@@ -27,16 +27,16 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const scoreOfficer = async (officer, site, siteCoords, shiftDate) => {
+const scoreGuard = async (guard, site, siteCoords, shiftDate) => {
   let score = 0;
   const breakdown = {};
 
   // Distance score (max 50km = 0, 0km = 100)
   try {
-    const officerCoords = await getPostcodeCoords(officer.postCode);
+    const guardCoords = await getPostcodeCoords(guard.postCode);
     const dist = haversineDistance(
       siteCoords.latitude, siteCoords.longitude,
-      officerCoords.latitude, officerCoords.longitude
+      guardCoords.latitude, guardCoords.longitude
     );
     breakdown.distance = Math.max(0, 100 - (dist * 2));
   } catch {
@@ -45,19 +45,19 @@ const scoreOfficer = async (officer, site, siteCoords, shiftDate) => {
 
   // Guard type match
   breakdown.guardType =
-    site.requiredGuardType === officer.guardType ? 100 :
+    site.requiredGuardType === guard.guardType ? 100 :
       !site.requiredGuardType ? 80 : 30;
 
   // Licence status
   const licenceMap = { valid: 100, 'expiring-soon': 50, expired: 0, pending: 25 };
-  breakdown.licence = licenceMap[officer.siaLicence?.status] ?? 0;
+  breakdown.licence = licenceMap[guard.siaLicence?.status] ?? 0;
 
   // Availability (simplified)
-  breakdown.availability = officer.availability ? 100 : 0;
+  breakdown.availability = guard.availability ? 100 : 0;
 
   // Certifications
   const required = site.requiredCertifications || [];
-  const held = officer.certifications || [];
+  const held = guard.certifications || [];
   breakdown.certifications = required.length === 0 ? 100 :
     (required.filter(c => held.includes(c)).length / required.length) * 100;
 
@@ -69,4 +69,4 @@ const scoreOfficer = async (officer, site, siteCoords, shiftDate) => {
   return { score: Math.round(score), breakdown, distanceKm: breakdown.distance };
 };
 
-module.exports = { scoreOfficer, getPostcodeCoords };
+module.exports = { scoreGuard: scoreGuard, getPostcodeCoords };

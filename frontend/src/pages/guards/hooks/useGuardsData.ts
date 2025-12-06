@@ -212,7 +212,7 @@ const MOCK_GUARDS: Guards[] = [
 
 interface UseGuardsDataReturn {
   guards: Guards[];
-  selectedOfficer: Guards | null;
+  selectedGuards: Guards | null;
   isLoading: boolean;
   isLoadingDetails: boolean;
   isMutating: boolean;
@@ -224,16 +224,16 @@ interface UseGuardsDataReturn {
   // Actions
   setFilters: (filters: Partial<GuardsFilters>) => void;
   resetFilters: () => void;
-  selectOfficer: (id: string | null) => void;
-  createOfficer: (data: GuardsFormData) => Promise<void>;
-  updateOfficer: (id: string, data: Partial<GuardsFormData>) => Promise<void>;
-  deleteOfficer: (id: string) => Promise<void>;
+  selectGuard: (id: string | null) => void;
+  createGuard: (data: GuardsFormData) => Promise<void>;
+  updateGuard: (id: string, data: Partial<GuardsFormData>) => Promise<void>;
+  deleteGuard: (id: string) => Promise<void>;
   refetch: () => void;
 }
 
 export const useGuardsData = (): UseGuardsDataReturn => {
   const [guards, setGuards] = useState<Guards[]>([]);
-  const [selectedOfficer, setSelectedOfficer] = useState<Guards | null>(null);
+  const [selectedGuard, setSelectedGuard] = useState<Guards | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -361,7 +361,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
         await simulateDelay('medium');
         setGuards(MOCK_GUARDS);
       } else {
-        const response = await api.get('/api/guards');
+        const response = await api.get('/guards');
         setGuards(response.data.data || response.data);
       }
     } catch (err) {
@@ -372,21 +372,21 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     }
   }, []);
 
-  const fetchOfficerDetails = useCallback(async (id: string) => {
+  const fetchGuardDetails = useCallback(async (id: string) => {
     setIsLoadingDetails(true);
 
     try {
       if (USE_MOCK_DATA) {
         await simulateDelay('short');
-        const officer = MOCK_GUARDS.find(p => p._id === id);
-        setSelectedOfficer(officer || null);
+        const guard = MOCK_GUARDS.find(p => p._id === id);
+        setSelectedGuard(guard || null);
       } else {
-        const response = await api.get(`/api/guards/${id}`);
-        setSelectedOfficer(response.data.data || response.data);
+        const response = await api.get(`/guards/${id}`);
+        setSelectedGuard(response.data.data || response.data);
       }
     } catch (err) {
-      console.error('Error fetching officer details:', err);
-      setSelectedOfficer(null);
+      console.error('Error fetching guard details:', err);
+      setSelectedGuard(null);
     } finally {
       setIsLoadingDetails(false);
     }
@@ -409,15 +409,15 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     setFiltersState(DEFAULT_FILTERS);
   }, []);
 
-  const selectOfficer = useCallback((id: string | null) => {
+  const selectGuard = useCallback((id: string | null) => {
     if (id) {
-      fetchOfficerDetails(id);
+      fetchGuardDetails(id);
     } else {
-      setSelectedOfficer(null);
+      setSelectedGuard(null);
     }
-  }, [fetchOfficerDetails]);
+  }, [fetchGuardDetails]);
 
-  const createOfficer = useCallback(async (data: GuardsFormData) => {
+  const createGuard = useCallback(async (data: GuardsFormData) => {
     setIsMutating(true);
 
     try {
@@ -425,58 +425,58 @@ export const useGuardsData = (): UseGuardsDataReturn => {
         await simulateDelay('medium');
         // In mock mode, just refetch
       } else {
-        await api.post('/api/guards', data);
+        await api.post('/guards', data);
       }
       await fetchGuards();
     } catch (err) {
-      console.error('Error creating officer:', err);
+      console.error('Error creating guard:', err);
       throw err;
     } finally {
       setIsMutating(false);
     }
   }, [fetchGuards]);
 
-  const updateOfficer = useCallback(async (id: string, data: Partial<GuardsFormData>) => {
+  const updateGuard = useCallback(async (id: string, data: Partial<GuardsFormData>) => {
     setIsMutating(true);
 
     try {
       if (USE_MOCK_DATA) {
         await simulateDelay('medium');
       } else {
-        await api.put(`/api/guards/${id}`, data);
+        await api.put(`/guards/${id}`, data);
       }
       await fetchGuards();
-      if (selectedOfficer?._id === id) {
-        await fetchOfficerDetails(id);
+      if (selectedGuard?._id === id) {
+        await fetchGuardDetails(id);
       }
     } catch (err) {
-      console.error('Error updating officer:', err);
+      console.error('Error updating guard:', err);
       throw err;
     } finally {
       setIsMutating(false);
     }
-  }, [fetchGuards, fetchOfficerDetails, selectedOfficer]);
+  }, [fetchGuards, fetchGuardDetails, selectedGuard]);
 
-  const deleteOfficer = useCallback(async (id: string) => {
+  const deleteGuard = useCallback(async (id: string) => {
     setIsMutating(true);
 
     try {
       if (USE_MOCK_DATA) {
         await simulateDelay('medium');
       } else {
-        await api.delete(`/api/guards/${id}`);
+        await api.delete(`/guards/${id}`);
       }
       await fetchGuards();
-      if (selectedOfficer?._id === id) {
-        setSelectedOfficer(null);
+      if (selectedGuard?._id === id) {
+        setSelectedGuard(null);
       }
     } catch (err) {
-      console.error('Error deleting officer:', err);
+      console.error('Error deleting guard:', err);
       throw err;
     } finally {
       setIsMutating(false);
     }
-  }, [fetchGuards, selectedOfficer]);
+  }, [fetchGuards, selectedGuard]);
 
   // ============================================
   // Effects
@@ -488,7 +488,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
 
   return {
     guards: paginatedGuards,
-    selectedOfficer,
+    selectedGuard,
     isLoading,
     isLoadingDetails,
     isMutating,
@@ -498,10 +498,10 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     stats,
     setFilters,
     resetFilters,
-    selectOfficer,
-    createOfficer,
-    updateOfficer,
-    deleteOfficer,
+    selectGuard,
+    createGuard: createGuard,
+    updateGuard: updateGuard,
+    deleteGuard: deleteGuard,
     refetch: fetchGuards,
   };
 };

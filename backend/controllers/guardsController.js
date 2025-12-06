@@ -1,7 +1,7 @@
 /**
  * Guards Controller
  *
- * Handles API requests for guards/officer management.
+ * Handles API requests for guards management.
  * Uses the unified User model with role-based filtering.
  */
 
@@ -145,29 +145,29 @@ const getGuardsStats = asyncHandler(async (req, res) => {
 
 /**
  * @route   GET /api/guards/:id
- * @desc    Get single officer by ID
+ * @desc    Get single guard by ID
  * @access  Private
  */
-const getOfficerById = asyncHandler(async (req, res) => {
-  const officer = await User.findById(req.params.id).select('-password');
+const getGuardById = asyncHandler(async (req, res) => {
+  const guard = await User.findById(req.params.id).select('-password');
 
-  if (!officer) {
+  if (!guard) {
     res.status(404);
-    throw new Error('Officer not found');
+    throw new Error('Guard not found');
   }
 
   res.status(200).json({
     success: true,
-    data: officer,
+    data: guard,
   });
 });
 
 /**
  * @route   POST /api/guards
- * @desc    Create new officer
+ * @desc    Create new guard
  * @access  Private (Admin/Manager)
  */
-const createOfficer = asyncHandler(async (req, res) => {
+const createGuard = asyncHandler(async (req, res) => {
   const {
     fullName,
     email,
@@ -223,10 +223,10 @@ const createOfficer = asyncHandler(async (req, res) => {
     };
   }
 
-  const officer = await User.create(userData);
+  const guard = await User.create(userData);
 
   // Remove password from response
-  const response = officer.toObject();
+  const response = guard.toObject();
   delete response.password;
 
   res.status(201).json({
@@ -237,21 +237,21 @@ const createOfficer = asyncHandler(async (req, res) => {
 
 /**
  * @route   PUT /api/guards/:id
- * @desc    Update officer
+ * @desc    Update guard
  * @access  Private (Admin/Manager)
  */
-const updateOfficer = asyncHandler(async (req, res) => {
-  const officer = await User.findById(req.params.id);
+const updateGuard = asyncHandler(async (req, res) => {
+  const guard = await User.findById(req.params.id);
 
-  if (!officer) {
+  if (!guard) {
     res.status(404);
-    throw new Error('Officer not found');
+    throw new Error('Guard not found');
   }
 
   // Prevent password update through this endpoint
   delete req.body.password;
 
-  const updatedOfficer = await User.findByIdAndUpdate(
+  const updatedGuard = await User.findByIdAndUpdate(
     req.params.id,
     req.body,
     { new: true, runValidators: true }
@@ -259,40 +259,40 @@ const updateOfficer = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: updatedOfficer,
+    data: updatedGuard,
   });
 });
 
 /**
  * @route   DELETE /api/guards/:id
- * @desc    Delete officer (soft delete by setting status to 'suspended')
+ * @desc    Delete guard (soft delete by setting status to 'suspended')
  * @access  Private (Admin only)
  */
-const deleteOfficer = asyncHandler(async (req, res) => {
-  const officer = await User.findById(req.params.id);
+const deleteGuard = asyncHandler(async (req, res) => {
+  const guard = await User.findById(req.params.id);
 
-  if (!officer) {
+  if (!guard) {
     res.status(404);
-    throw new Error('Officer not found');
+    throw new Error('Guard not found');
   }
 
   // Soft delete - set status to suspended
-  officer.status = 'suspended';
-  officer.availability = false;
-  await officer.save();
+  guard.status = 'suspended';
+  guard.availability = false;
+  await guard.save();
 
   res.status(200).json({
     success: true,
-    message: 'Officer suspended successfully',
+    message: 'Guard suspended successfully',
   });
 });
 
 /**
  * @route   PATCH /api/guards/:id/status
- * @desc    Update officer status
+ * @desc    Update guard status
  * @access  Private (Admin/Manager)
  */
-const updateOfficerStatus = asyncHandler(async (req, res) => {
+const updateGuardStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
   const validStatuses = ['active', 'on-leave', 'off-duty', 'suspended'];
 
@@ -301,7 +301,7 @@ const updateOfficerStatus = asyncHandler(async (req, res) => {
     throw new Error('Invalid status');
   }
 
-  const officer = await User.findByIdAndUpdate(
+  const guard = await User.findByIdAndUpdate(
     req.params.id,
     {
       status,
@@ -310,23 +310,23 @@ const updateOfficerStatus = asyncHandler(async (req, res) => {
     { new: true }
   ).select('-password');
 
-  if (!officer) {
+  if (!guard) {
     res.status(404);
-    throw new Error('Officer not found');
+    throw new Error('Guard not found');
   }
 
   res.status(200).json({
     success: true,
-    data: officer,
+    data: guard,
   });
 });
 
 /**
  * @route   GET /api/guards/available
- * @desc    Get available officers for assignment
+ * @desc    Get available guards for assignment
  * @access  Private
  */
-const getAvailableOfficers = asyncHandler(async (req, res) => {
+const getAvailableGuards = asyncHandler(async (req, res) => {
   const { shift, guardType, postCode } = req.query;
 
   const query = {
@@ -339,23 +339,23 @@ const getAvailableOfficers = asyncHandler(async (req, res) => {
   if (shift) query.shift = shift;
   if (guardType) query.guardType = guardType;
 
-  const officers = await User.find(query)
+  const guards = await User.find(query)
     .select('fullName badgeNumber guardType shift postCode phoneNumber')
     .sort('fullName');
 
   res.status(200).json({
     success: true,
-    data: officers,
+    data: s,
   });
 });
 
 module.exports = {
   getGuards: getGuards,
   getGuardsStats,
-  getOfficerById,
-  createOfficer,
-  updateOfficer,
-  deleteOfficer,
-  updateOfficerStatus,
-  getAvailableOfficers,
+  getGuardById: getGuardById,
+  createGuard: createGuard,
+  updateGuard: updateGuard,
+  deleteGuard: deleteGuard,
+  updateGuardStatus: updateGuardStatus,
+  getAvailableGuards: getAvailableGuards,
 };

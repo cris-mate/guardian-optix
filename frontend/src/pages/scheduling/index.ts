@@ -36,7 +36,7 @@ export type {
   SchedulingStats,
 
   // Reference Types
-  AvailableOfficer,
+  AvailableGuard,
   AvailableSite,
 
   // Calendar Types

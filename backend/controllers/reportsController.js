@@ -101,7 +101,7 @@ const REPORT_TEMPLATES = [
   {
     id: 'tpl-002',
     name: 'Attendance & Punctuality Report',
-    description: 'Detailed breakdown of officer attendance, late arrivals, and hours worked',
+    description: 'Detailed breakdown of guard attendance, late arrivals, and hours worked',
     category: 'attendance',
     icon: 'LuClock',
     color: 'green',
@@ -161,7 +161,7 @@ const REPORT_TEMPLATES = [
   {
     id: 'tpl-008',
     name: 'Timesheet Export',
-    description: 'Export officer hours for payroll processing',
+    description: 'Export guard hours for payroll processing',
     category: 'attendance',
     icon: 'LuFileSpreadsheet',
     color: 'green',
@@ -552,7 +552,7 @@ const getReportData = async (report) => {
       $lte: endDate.toISOString().split('T')[0],
     },
   })
-    .populate('officer', 'fullName badgeNumber')
+    .populate('guard', 'fullName badgeNumber')
     .populate('site', 'name')
     .lean();
 
@@ -580,7 +580,7 @@ const getReportData = async (report) => {
     },
     shifts: shifts.map((s) => ({
       date: s.date,
-      officer: s.officer?.fullName || 'Unassigned',
+      guard: s.guard?.fullName || 'Unassigned',
       site: s.site?.name || 'Unknown',
       startTime: s.startTime,
       endTime: s.endTime,
@@ -657,7 +657,7 @@ const generatePDF = async (res, report, data, filename) => {
     doc.fontSize(9).font('Helvetica-Bold');
     const tableTop = doc.y;
     doc.text('Date', 50, tableTop);
-    doc.text('Officer', 120, tableTop);
+    doc.text('Guard', 120, tableTop);
     doc.text('Site', 250, tableTop);
     doc.text('Time', 380, tableTop);
     doc.text('Status', 480, tableTop);
@@ -672,7 +672,7 @@ const generatePDF = async (res, report, data, filename) => {
         doc.addPage();
       }
       doc.text(shift.date, 50, doc.y);
-      doc.text(shift.officer.substring(0, 20), 120, doc.y - 10);
+      doc.text(shift.guard.substring(0, 20), 120, doc.y - 10);
       doc.text(shift.site.substring(0, 20), 250, doc.y - 10);
       doc.text(`${shift.startTime}-${shift.endTime}`, 380, doc.y - 10);
       doc.text(shift.status, 480, doc.y - 10);
@@ -715,11 +715,11 @@ const generateCSV = async (res, data, filename) => {
     `Total Incidents,${data.summary.totalIncidents}`,
     '',
     'SHIFT DETAILS',
-    'Date,Officer,Site,Start Time,End Time,Status',
+    'Date,Guard,Site,Start Time,End Time,Status',
   ];
 
   data.shifts.forEach((s) => {
-    lines.push(`${s.date},"${s.officer}","${s.site}",${s.startTime},${s.endTime},${s.status}`);
+    lines.push(`${s.date},"${s.guard}","${s.site}",${s.startTime},${s.endTime},${s.status}`);
   });
 
   if (data.incidents.length > 0) {
@@ -777,7 +777,7 @@ const generateXLSX = async (res, data, filename) => {
   const shiftsSheet = workbook.addWorksheet('Shifts');
   shiftsSheet.columns = [
     { header: 'Date', key: 'date', width: 12 },
-    { header: 'Officer', key: 'officer', width: 25 },
+    { header: 'Guard', key: 'guard', width: 25 },
     { header: 'Site', key: 'site', width: 25 },
     { header: 'Start Time', key: 'startTime', width: 12 },
     { header: 'End Time', key: 'endTime', width: 12 },

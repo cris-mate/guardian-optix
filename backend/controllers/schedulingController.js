@@ -8,7 +8,7 @@ const Shift = require('../models/Shift');
 const User = require('../models/User');
 const Site = require('../models/Site');
 const { emitShiftUpdate, emitTaskComplete } = require('../socket/socketManager');
-const { scoreOfficer, getPostcodeCoords } = require('../services/officerMatchingService');
+const { scoreGuard: scoreGuard, getPostcodeCoords } = require('../services/guardMatchingService');
 const asyncHandler = require('../utils/asyncHandler');
 
 /**
@@ -20,7 +20,7 @@ const getShifts = asyncHandler(async (req, res) => {
   const {
     startDate,
     endDate,
-    officerId,
+    guardId: guardId,
     siteId,
     shiftType,
     status,
@@ -40,9 +40,9 @@ const getShifts = asyncHandler(async (req, res) => {
     if (endDate) query.date.$lte = endDate;
   }
 
-  // Officer filter
-  if (officerId) {
-    query.officer = officerId;
+  // Guard filter
+  if (guardId) {
+    query.guard = guardId;
   }
 
   // Site filter
@@ -69,7 +69,7 @@ const getShifts = asyncHandler(async (req, res) => {
 
   const [shifts, total] = await Promise.all([
     Shift.find(query)
-      .populate('officer', 'fullName badgeNumber phoneNumber profileImage')
+      .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
       .populate('site', 'name address postCode')
       .sort(sortObj)
       .skip(skip)
@@ -145,7 +145,7 @@ const getShiftStats = asyncHandler(async (req, res) => {
  */
 const getShiftById = asyncHandler(async (req, res) => {
   const shift = await Shift.findById(req.params.id)
-    .populate('officer', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
     .populate('site', 'name address postCode');
 
   if (!shift) {
@@ -166,7 +166,7 @@ const getShiftById = asyncHandler(async (req, res) => {
  */
 const createShift = asyncHandler(async (req, res) => {
   const {
-    officerId,
+    guardId: guardId,
     siteId,
     date,
     startTime,
@@ -176,11 +176,11 @@ const createShift = asyncHandler(async (req, res) => {
     notes,
   } = req.body;
 
-  // Validate officer exists and is available
-  const officer = await User.findById(officerId);
-  if (!officer) {
+  // Validate guard exists and is available
+  const guard = await User.findById(guardId);
+  if (!guard) {
     res.status(400);
-    throw new Error('Officer not found');
+    throw new Error('Guard not found');
   }
 
   // Validate site exists
@@ -192,7 +192,7 @@ const createShift = asyncHandler(async (req, res) => {
 
   // Check for conflicting shifts
   const conflictingShift = await Shift.findOne({
-    officer: officerId,
+    guard: guardId,
     date,
     status: { $ne: 'cancelled' },
     $or: [
@@ -202,12 +202,12 @@ const createShift = asyncHandler(async (req, res) => {
 
   if (conflictingShift) {
     res.status(400);
-    throw new Error('Officer already has a shift during this time');
+    throw new Error('Guard already has a shift during this time');
   }
 
   // Create shift
   const shift = await Shift.create({
-    officer: officerId,
+    guard: guardId,
     site: siteId,
     date,
     startTime,
@@ -221,7 +221,7 @@ const createShift = asyncHandler(async (req, res) => {
 
   // Populate and return
   const populatedShift = await Shift.findById(shift._id)
-    .populate('officer', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
     .populate('site', 'name address postCode');
 
   res.status(201).json({
@@ -249,7 +249,7 @@ const updateShift = asyncHandler(async (req, res) => {
     { ...req.body, updatedAt: new Date() },
     { new: true, runValidators: true }
   )
-    .populate('officer', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
     .populate('site', 'name address postCode');
 
   res.status(200).json({
@@ -298,7 +298,7 @@ const updateShiftStatus = asyncHandler(async (req, res) => {
     { status, updatedAt: new Date() },
     { new: true }
   )
-    .populate('officer', 'fullName')
+    .populate('guard', 'fullName')
     .populate('site', 'name');
 
   if (!shift) {
@@ -314,8 +314,8 @@ const updateShiftStatus = asyncHandler(async (req, res) => {
   emitShiftUpdate({
     shiftId,
     status: newStatus,
-    officerId: shift.officer?._id,
-    officerName: shift.officer?.fullName || 'Unassigned',
+    guardId: shift.guard?._id,
+    guardName: shift.guard?.fullName || 'Unassigned',
     siteName: shift.site?.name || 'Unknown Site',
   });
 });
@@ -350,7 +350,7 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
   await shift.save();
 
   const updatedShift = await Shift.findById(shiftId)
-    .populate('officer', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
     .populate('site', 'name address postCode');
 
   res.status(200).json({
@@ -368,12 +368,12 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/scheduling/available-officers
- * @desc    Get available officers for scheduling
+ * @route   GET /api/scheduling/available-guards
+ * @desc    Get available guards for scheduling
  * @access  Private
  */
-const getAvailableOfficers = asyncHandler(async (req, res) => {
-  const officers = await User.find({
+const getAvailableGuards = asyncHandler(async (req, res) => {
+  const guards = await User.find({
     role: 'Guard',
     status: 'active',
   })
@@ -382,7 +382,7 @@ const getAvailableOfficers = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: officers,
+    data: guards,
   });
 });
 
@@ -409,7 +409,7 @@ const getAvailableSites = asyncHandler(async (req, res) => {
   });
 });
 
-const getRecommendedOfficers = asyncHandler(async (req, res) => {
+const getRecommendedGuards = asyncHandler(async (req, res) => {
   const { siteId } = req.params;
   const { date, shiftType } = req.query;
 
@@ -418,26 +418,26 @@ const getRecommendedOfficers = asyncHandler(async (req, res) => {
 
   const siteCoords = await getPostcodeCoords(site.address.postCode);
 
-  // Get eligible officers (active, valid licence, available)
-  const officers = await User.find({
+  // Get eligible guards (active, valid licence, available)
+  const guards = await User.find({
     role: 'Guard',
     status: 'active',
     'siaLicence.status': { $in: ['valid', 'expiring-soon'] },
   });
 
-  // Score each officer
+  // Score each guard
   const scored = await Promise.all(
-    officers.map(async (officer) => ({
-      officer: {
-        _id: officer._id,
-        fullName: officer.fullName,
-        badgeNumber: officer.badgeNumber,
-        guardType: officer.guardType,
-        postCode: officer.postCode,
-        siaLicence: officer.siaLicence,
-        certifications: officer.certifications,
+    guards.map(async (guard) => ({
+      guard: {
+        _id: guard._id,
+        fullName: guard.fullName,
+        badgeNumber: guard.badgeNumber,
+        guardType: guard.guardType,
+        postCode: guard.postCode,
+        siaLicence: guard.siaLicence,
+        certifications: guard.certifications,
       },
-      ...(await scoreOfficer(officer, site, siteCoords, date)),
+      ...(await scoreGuard(guard, site, siteCoords, date)),
     }))
   );
 
@@ -458,7 +458,7 @@ module.exports = {
   deleteShift,
   updateShiftStatus,
   updateTaskStatus,
-  getAvailableOfficers,
+  getAvailableGuards: getAvailableGuards,
   getAvailableSites,
-  getRecommendedOfficers,
+  getRecommendedGuards,
 };

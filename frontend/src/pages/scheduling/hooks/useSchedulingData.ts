@@ -13,7 +13,7 @@ import {
   ShiftFormData,
   SchedulingFilters,
   SchedulingStats,
-  AvailableOfficer,
+  AvailableGuard,
   AvailableSite,
   CalendarDay,
 } from '../../../types/scheduling.types';
@@ -24,7 +24,7 @@ const USE_MOCK_DATA = MOCK_CONFIG.scheduling;
 // Mock Data
 // ============================================
 
-const mockOfficers: AvailableOfficer[] = [
+const mockGuards: AvailableGuard[] = [
   { _id: 'off1', fullName: 'James Wilson', badgeNumber: 'GO-2024-001', guardType: 'Static', availability: true },
   { _id: 'off2', fullName: 'Sarah Mitchell', badgeNumber: 'GO-2024-002', guardType: 'Mobile Patrol', availability: true },
   { _id: 'off3', fullName: 'David Chen', badgeNumber: 'GO-2024-003', guardType: 'Static', availability: true },
@@ -53,14 +53,14 @@ const generateMockShifts = (): Shift[] => {
 
     // Morning shift
     if (dayOffset !== 0 || Math.random() > 0.3) {
-      const officer = mockOfficers[Math.floor(Math.random() * mockOfficers.length)];
+      const guard = mockGuards[Math.floor(Math.random() * mockGuards.length)];
       const site = mockSites[Math.floor(Math.random() * mockSites.length)];
       shifts.push({
         _id: `shift-${dateStr}-morning`,
-        officer: {
-          _id: officer._id,
-          fullName: officer.fullName,
-          badgeNumber: officer.badgeNumber,
+        guard: {
+          _id: guard._id,
+          fullName: guard.fullName,
+          badgeNumber: guard.badgeNumber,
         },
         site: {
           _id: site._id,
@@ -105,14 +105,14 @@ const generateMockShifts = (): Shift[] => {
 
     // Afternoon shift
     if (Math.random() > 0.4) {
-      const officer = mockOfficers[Math.floor(Math.random() * mockOfficers.length)];
+      const guard = mockGuards[Math.floor(Math.random() * mockGuards.length)];
       const site = mockSites[Math.floor(Math.random() * mockSites.length)];
       shifts.push({
         _id: `shift-${dateStr}-afternoon`,
-        officer: {
-          _id: officer._id,
-          fullName: officer.fullName,
-          badgeNumber: officer.badgeNumber,
+        guard: {
+          _id: guard._id,
+          fullName: guard.fullName,
+          badgeNumber: guard.badgeNumber,
         },
         site: {
           _id: site._id,
@@ -134,14 +134,14 @@ const generateMockShifts = (): Shift[] => {
 
     // Night shift
     if (Math.random() > 0.5) {
-      const officer = mockOfficers[Math.floor(Math.random() * mockOfficers.length)];
+      const guard = mockGuards[Math.floor(Math.random() * mockGuards.length)];
       const site = mockSites[Math.floor(Math.random() * mockSites.length)];
       shifts.push({
         _id: `shift-${dateStr}-night`,
-        officer: {
-          _id: officer._id,
-          fullName: officer.fullName,
-          badgeNumber: officer.badgeNumber,
+        guard: {
+          _id: guard._id,
+          fullName: guard.fullName,
+          badgeNumber: guard.badgeNumber,
         },
         site: {
           _id: site._id,
@@ -237,7 +237,7 @@ const defaultFilters: SchedulingFilters = {
 export const useSchedulingData = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
-  const [availableOfficers, setAvailableOfficers] = useState<AvailableOfficer[]>([]);
+  const [availableGuards, setAvailableGuards] = useState<AvailableGuard[]>([]);
   const [availableSites, setAvailableSites] = useState<AvailableSite[]>([]);
   const [filters, setFiltersState] = useState<SchedulingFilters>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
@@ -254,7 +254,7 @@ export const useSchedulingData = () => {
       if (USE_MOCK_DATA) {
         await simulateDelay('medium');
         setShifts(generateMockShifts());
-        setAvailableOfficers(mockOfficers);
+        setAvailableGuards(mockGuards);
         setAvailableSites(mockSites);
       } else {
         // API call would go here
@@ -278,8 +278,8 @@ export const useSchedulingData = () => {
   // Filter shifts based on current filters
   const filteredShifts = useMemo(() => {
     return shifts.filter((shift) => {
-      // Filter by officer
-      if (filters.officerId && shift.officer._id !== filters.officerId) {
+      // Filter by guard
+      if (filters.guardId && shift.guard._id !== filters.guardId) {
         return false;
       }
 
@@ -388,19 +388,19 @@ export const useSchedulingData = () => {
       if (USE_MOCK_DATA) {
         await simulateDelay('medium');
 
-        const officer = mockOfficers.find((o) => o._id === data.officerId);
+        const guard = mockGuards.find((o) => o._id === data.guardId);
         const site = mockSites.find((s) => s._id === data.siteId);
 
-        if (!officer || !site) {
-          throw new Error('Invalid officer or site');
+        if (!guard || !site) {
+          throw new Error('Invalid guard or site');
         }
 
         const newShift: Shift = {
           _id: `shift-${Date.now()}`,
-          officer: {
-            _id: officer._id,
-            fullName: officer.fullName,
-            badgeNumber: officer.badgeNumber,
+          guard: {
+            _id: guard._id,
+            fullName: guard.fullName,
+            badgeNumber: guard.badgeNumber,
           },
           site: {
             _id: site._id,
@@ -469,7 +469,7 @@ export const useSchedulingData = () => {
 
             return {
               ...shift,
-              ...(data.officerId && { officer: shift.officer }), // Keep existing officer for now
+              ...(data.guardId && { guard: shift.guard }), // Keep existing guard for now
               ...(data.siteId && { site: shift.site }), // Keep existing site for now
               ...(data.date && { date: data.date }),
               ...(data.startTime && { startTime: data.startTime }),
@@ -591,7 +591,7 @@ export const useSchedulingData = () => {
     shifts: calendarData,
     allShifts: shifts,
     selectedShift,
-    availableOfficers,
+    availableGuards,
     availableSites,
     stats,
 

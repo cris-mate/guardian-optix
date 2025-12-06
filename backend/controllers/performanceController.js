@@ -1,7 +1,7 @@
 /**
  * Performance Controller
  *
- * Provides aggregated performance metrics for security officers.
+ * Provides aggregated performance metrics for security guards.
  * Tracks patrol completion, attendance, incident response, and compliance.
  *
  * Updated to use Shift model (tasks are embedded subdocuments).
@@ -184,11 +184,11 @@ const getOverview = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Get individual officer performance data
- * @route   GET /api/performance/officers
+ * @desc    Get individual guard performance data
+ * @route   GET /api/performance/guards
  * @access  Private
  */
-const getOfficerPerformance = asyncHandler(async (req, res) => {
+const getGuardPerformance = asyncHandler(async (req, res) => {
   const { timeRange = 'week', sortBy = 'overallScore', limit = 20 } = req.query;
   const { start, end } = getDateRange(timeRange);
 
@@ -203,21 +203,21 @@ const getOfficerPerformance = asyncHandler(async (req, res) => {
     status: { $ne: 'cancelled' },
   }).lean();
 
-  // Calculate performance per officer
-  const officerPerformance = guards.map((guard) => {
-    const officerShifts = shifts.filter(
-      (s) => s.officer?.toString() === guard._id.toString()
+  // Calculate performance per guard
+  const guardPerformance = guards.map((guard) => {
+    const guardShifts = shifts.filter(
+      (s) => s.guard?.toString() === guard._id.toString()
     );
 
-    const totalShifts = officerShifts.length;
-    const completedShifts = officerShifts.filter(
+    const totalShifts = guardShifts.length;
+    const completedShifts = guardShifts.filter(
       (s) => s.status === 'completed'
     ).length;
 
-    // Task completion for this officer
+    // Task completion for this guard
     let totalTasks = 0;
     let completedTasks = 0;
-    officerShifts.forEach((shift) => {
+    guardShifts.forEach((shift) => {
       if (shift.tasks) {
         totalTasks += shift.tasks.length;
         completedTasks += shift.tasks.filter((t) => t.completed).length;
@@ -235,8 +235,8 @@ const getOfficerPerformance = asyncHandler(async (req, res) => {
     );
 
     return {
-      officerId: guard._id,
-      officerName: guard.fullName,
+      guardId: guard._id,
+      guardName: guard.fullName,
       guardType: guard.guardType,
       availability: guard.availability,
       shiftsCompleted: completedShifts,
@@ -252,7 +252,7 @@ const getOfficerPerformance = asyncHandler(async (req, res) => {
   });
 
   // Sort by specified field
-  officerPerformance.sort((a, b) => {
+  guardPerformance.sort((a, b) => {
     if (sortBy === 'overallScore') return b.overallScore - a.overallScore;
     if (sortBy === 'patrolCompletionRate')
       return b.patrolCompletionRate - a.patrolCompletionRate;
@@ -262,7 +262,7 @@ const getOfficerPerformance = asyncHandler(async (req, res) => {
   });
 
   res.json({
-    data: officerPerformance.slice(0, parseInt(limit)),
+    data: guardPerformance.slice(0, parseInt(limit)),
   });
 });
 
@@ -335,7 +335,7 @@ const getAttendanceMetrics = asyncHandler(async (req, res) => {
   const shifts = await Shift.find({
     date: { $gte: start, $lte: end },
   })
-    .populate('officer', 'fullName')
+    .populate('guard', 'fullName')
     .lean();
 
   const totalShifts = shifts.length;
@@ -347,31 +347,31 @@ const getAttendanceMetrics = asyncHandler(async (req, res) => {
   const attendanceRate =
     scheduledShifts > 0 ? (completedShifts / scheduledShifts) * 100 : 100;
 
-  // Group by officer
-  const byOfficer = {};
+  // Group by guard
+  const byGuard = {};
   shifts.forEach((shift) => {
-    const officerName = shift.officer?.fullName || 'Unassigned';
-    const officerId = shift.officer?._id?.toString() || 'unassigned';
+    const guardName = shift.guard?.fullName || 'Unassigned';
+    const guardId = shift.guard?._id?.toString() || 'unassigned';
 
-    if (!byOfficer[officerId]) {
-      byOfficer[officerId] = {
-        name: officerName,
+    if (!byGuard[guardId]) {
+      byGuard[guardId] = {
+        name: guardName,
         totalShifts: 0,
         completedShifts: 0,
         cancelledShifts: 0,
       };
     }
 
-    byOfficer[officerId].totalShifts++;
-    if (shift.status === 'completed') byOfficer[officerId].completedShifts++;
-    if (shift.status === 'cancelled') byOfficer[officerId].cancelledShifts++;
+    byGuard[guardId].totalShifts++;
+    if (shift.status === 'completed') byGuard[guardId].completedShifts++;
+    if (shift.status === 'cancelled') byGuard[guardId].cancelledShifts++;
   });
 
-  const officerBreakdown = Object.entries(byOfficer).map(([id, data]) => {
+  const guardBreakdown = Object.entries(byGuard).map(([id, data]) => {
     const scheduled = data.totalShifts - data.cancelledShifts;
     return {
-      officerId: id,
-      officerName: data.name,
+      guardId: id,
+      guardName: data.name,
       totalShifts: data.totalShifts,
       completedShifts: data.completedShifts,
       attendanceRate:
@@ -393,7 +393,7 @@ const getAttendanceMetrics = asyncHandler(async (req, res) => {
         lateArrivals: 0, // Would need TimeEntry analysis
         noShows: 0, // Would need TimeEntry analysis
       },
-      byOfficer: officerBreakdown,
+      byGuard: guardBreakdown,
       recentRecords: [], // Would be populated with actual attendance records
     },
   });
@@ -491,30 +491,30 @@ const getAlerts = asyncHandler(async (req, res) => {
   const shifts = await Shift.find({
     date: { $gte: start, $lte: end },
   })
-    .populate('officer', 'fullName')
+    .populate('guard', 'fullName')
     .lean();
 
-  // Check for officers with low task completion
-  const officerTaskCompletion = {};
+  // Check for guards with low task completion
+  const guardTaskCompletion = {};
   shifts.forEach((shift) => {
-    if (shift.officer && shift.tasks && shift.tasks.length > 0) {
-      const officerId = shift.officer._id.toString();
-      if (!officerTaskCompletion[officerId]) {
-        officerTaskCompletion[officerId] = {
-          name: shift.officer.fullName,
+    if (shift.guard && shift.tasks && shift.tasks.length > 0) {
+      const guardId = shift.guard._id.toString();
+      if (!guardTaskCompletion[guardId]) {
+        guardTaskCompletion[guardId] = {
+          name: shift.guard.fullName,
           totalTasks: 0,
           completedTasks: 0,
         };
       }
-      officerTaskCompletion[officerId].totalTasks += shift.tasks.length;
-      officerTaskCompletion[officerId].completedTasks += shift.tasks.filter(
+      guardTaskCompletion[guardId].totalTasks += shift.tasks.length;
+      guardTaskCompletion[guardId].completedTasks += shift.tasks.filter(
         (t) => t.completed
       ).length;
     }
   });
 
-  // Alert for officers with <70% task completion
-  Object.entries(officerTaskCompletion).forEach(([id, data]) => {
+  // Alert for guards with <70% task completion
+  Object.entries(guardTaskCompletion).forEach(([id, data]) => {
     const completionRate =
       data.totalTasks > 0 ? (data.completedTasks / data.totalTasks) * 100 : 100;
     if (completionRate < 70 && data.totalTasks >= 5) {
@@ -524,8 +524,8 @@ const getAlerts = asyncHandler(async (req, res) => {
         severity: 'warning',
         title: 'Low Task Completion',
         message: `${data.name} has ${Math.round(completionRate)}% task completion this week`,
-        officerId: id,
-        officerName: data.name,
+        guardId: id,
+        guardName: data.name,
         timestamp: new Date().toISOString(),
         isRead: false,
         actionRequired: true,
@@ -539,7 +539,7 @@ const getAlerts = asyncHandler(async (req, res) => {
 
 module.exports = {
   getOverview,
-  getOfficerPerformance,
+  getGuardPerformance,
   getPatrolMetrics,
   getAttendanceMetrics,
   getIncidentMetrics,

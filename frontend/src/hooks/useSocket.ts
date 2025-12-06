@@ -244,8 +244,8 @@ export const useSocket = (config: SocketConfig = {}): UseSocketReturn => {
 // ============================================
 
 export interface ClockActionData {
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   action: string;
   siteName: string;
   timestamp: string;
@@ -253,7 +253,7 @@ export interface ClockActionData {
 
 export interface GeofenceViolationData {
   severity: string;
-  officerName: string;
+  guardName: string;
   siteName: string;
   timestamp: string;
 }
@@ -268,7 +268,7 @@ export interface IncidentReportedData {
 export interface ShiftUpdateData {
   shiftId: string;
   status: string;
-  officerName: string;
+  guardName: string;
   timestamp: string;
 }
 
@@ -331,11 +331,11 @@ export const useDashboardSocket = (events: DashboardSocketEvents) => {
 };
 
 // ============================================
-// Officer Tracking Hook (Manager/Admin only)
+// Guard Tracking Hook (Manager/Admin only)
 // ============================================
 
-export interface OfficerLocation {
-  officerId: string;
+export interface GuardLocation {
+  guardId: string;
   location: {
     latitude: number;
     longitude: number;
@@ -345,8 +345,8 @@ export interface OfficerLocation {
   timestamp: string;
 }
 
-export const useOfficerTracking = (
-  onLocationUpdate: (data: OfficerLocation) => void
+export const useGuardTracking = (
+  onLocationUpdate: (data: GuardLocation) => void
 ) => {
   const { socket, isConnected, emit, on } = useSocket();
 
@@ -354,12 +354,12 @@ export const useOfficerTracking = (
     if (!isConnected) return;
 
     // Subscribe to tracking updates
-    emit('subscribe:officer-tracking');
+    emit('subscribe:guard-tracking');
 
-    const cleanup = on<OfficerLocation>('officer:location-updated', onLocationUpdate);
+    const cleanup = on<GuardLocation>('guard:location-updated', onLocationUpdate);
 
     return () => {
-      emit('unsubscribe:officer-tracking');
+      emit('unsubscribe:guard-tracking');
       cleanup();
     };
   }, [isConnected, emit, on, onLocationUpdate]);

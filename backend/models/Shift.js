@@ -50,10 +50,10 @@ const TaskSchema = new mongoose.Schema({
 // ============================================
 const ShiftSchema = new mongoose.Schema(
   {
-    officer: {
+    guard: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Officer is required'],
+      required: [true, 'Guard is required'],
     },
     site: {
       type: mongoose.Schema.Types.ObjectId,
@@ -120,10 +120,10 @@ const ShiftSchema = new mongoose.Schema(
 // Indexes
 // ============================================
 
-ShiftSchema.index({ date: 1, officer: 1 });
+ShiftSchema.index({ date: 1, guard: 1 });
 ShiftSchema.index({ date: 1, site: 1 });
 ShiftSchema.index({ date: 1, status: 1 });
-ShiftSchema.index({ officer: 1, status: 1 });
+ShiftSchema.index({ guard: 1, status: 1 });
 
 // ============================================
 // Virtuals

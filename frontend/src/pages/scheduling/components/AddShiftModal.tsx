@@ -2,7 +2,7 @@
  * AddShiftModal Component
  *
  * Modal form for creating new shifts with tasks.
- * Includes intelligent officer recommendations based on site requirements.
+ * Includes intelligent guard recommendations based on site requirements.
  * Uses Chakra UI v3 Dialog components.
  */
 
@@ -27,13 +27,13 @@ import { LuX, LuPlus, LuCalendarPlus, LuTrash2 } from 'react-icons/lu';
 import {
   ShiftFormData,
   TaskFormData,
-  AvailableOfficer,
+  AvailableGuard,
   AvailableSite,
   ShiftType,
   TaskFrequency,
   TaskPriority,
 } from '../../../types/scheduling.types';
-import RecommendedOfficersPanel from './RecommendedOfficersPanel';
+import RecommendedGuardsPanel from './RecommendedGuardsPanel';
 
 // ============================================
 // Props Interface
@@ -43,7 +43,7 @@ interface AddShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: ShiftFormData) => Promise<void>;
-  availableOfficers: AvailableOfficer[];
+  availableGuards: AvailableGuard[];
   availableSites: AvailableSite[];
   selectedDate?: string;
   isSubmitting?: boolean;
@@ -80,7 +80,7 @@ const shiftTimes: Record<ShiftType, { start: string; end: string }> = {
 
 // Initial form state
 const getInitialFormData = (selectedDate?: string): ShiftFormData => ({
-  officerId: '',
+  guardId: '',
   siteId: '',
   date: selectedDate || new Date().toISOString().split('T')[0],
   startTime: '06:00',
@@ -98,7 +98,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                                                        isOpen,
                                                        onClose,
                                                        onSubmit,
-                                                       availableOfficers,
+                                                       availableGuards,
                                                        availableSites,
                                                        selectedDate,
                                                        isSubmitting = false,
@@ -114,9 +114,9 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ShiftFormData, string>>>({});
 
-  // Create officer options for dropdown
-  const officerOptions = createListCollection({
-    items: availableOfficers
+  // Create guard options for dropdown
+  const guardOptions = createListCollection({
+    items: availableGuards
       .filter((o) => o.availability)
       .map((o) => ({
         value: o._id,
@@ -151,12 +151,12 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
     }));
   };
 
-  // Handle recommended officer selection
-  const handleRecommendedOfficerSelect = (officerId: string) => {
-    setFormData((prev) => ({ ...prev, officerId }));
-    // Clear officer error if it was set
-    if (errors.officerId) {
-      setErrors((prev) => ({ ...prev, officerId: undefined }));
+  // Handle recommended guard selection
+  const handleRecommendedGuardSelect = (guardId: string) => {
+    setFormData((prev) => ({ ...prev, guardId: guardId }));
+    // Clear guard error if it was set
+    if (errors.guardId) {
+      setErrors((prev) => ({ ...prev, guardId: undefined }));
     }
   };
 
@@ -200,8 +200,8 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof ShiftFormData, string>> = {};
 
-    if (!formData.officerId) {
-      newErrors.officerId = 'Please select an officer';
+    if (!formData.guardId) {
+      newErrors.guardId = 'Please select a guard';
     }
     if (!formData.siteId) {
       newErrors.siteId = 'Please select a site';
@@ -350,37 +350,37 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                   </HStack>
 
                   {/* ============================================ */}
-                  {/* RECOMMENDED OFFICERS PANEL                   */}
+                  {/* RECOMMENDED GUARDS PANEL                   */}
                   {/* Appears after site selection                 */}
                   {/* ============================================ */}
-                  <RecommendedOfficersPanel
+                  <RecommendedGuardsPanel
                     siteId={formData.siteId || null}
                     date={formData.date}
-                    onSelect={handleRecommendedOfficerSelect}
-                    selectedOfficerId={formData.officerId}
+                    onSelect={handleRecommendedGuardSelect}
+                    selectedGuardId={formData.guardId}
                   />
 
-                  {/* Officer Selection */}
-                  <Field.Root required invalid={!!errors.officerId}>
-                    <Field.Label>Officer</Field.Label>
+                  {/* Guard Selection */}
+                  <Field.Root required invalid={!!errors.guardId}>
+                    <Field.Label>Guard</Field.Label>
                     <Select.Root
-                      collection={officerOptions}
-                      value={formData.officerId ? [formData.officerId] : []}
+                      collection={guardOptions}
+                      value={formData.guardId ? [formData.guardId] : []}
                       onValueChange={(e) =>
-                        setFormData((prev) => ({ ...prev, officerId: e.value[0] }))
+                        setFormData((prev) => ({ ...prev, guardId: e.value[0] }))
                       }
                     >
                       <Select.Trigger
-                        borderColor={errors.officerId ? 'red.300' : 'gray.300'}
+                        borderColor={errors.guardId ? 'red.300' : 'gray.300'}
                       >
-                        <Select.ValueText placeholder="Select an officer" />
+                        <Select.ValueText placeholder="Select a guard" />
                       </Select.Trigger>
                       <Select.Content
                         bg="white"
                         borderColor="gray.200"
                         boxShadow="lg"
                       >
-                        {officerOptions.items.map((item) => (
+                        {guardOptions.items.map((item) => (
                           <Select.Item
                             key={item.value}
                             item={item}
@@ -393,8 +393,8 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         ))}
                       </Select.Content>
                     </Select.Root>
-                    {errors.officerId && (
-                      <Field.ErrorText>{errors.officerId}</Field.ErrorText>
+                    {errors.guardId && (
+                      <Field.ErrorText>{errors.guardId}</Field.ErrorText>
                     )}
                   </Field.Root>
 

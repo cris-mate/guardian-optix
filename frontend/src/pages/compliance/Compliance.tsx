@@ -489,7 +489,7 @@ const Compliance: React.FC = () => {
                     </Text>
                     <Text fontSize="sm" color="gray.500">
                       Regular compliance checks help avoid penalties and ensure
-                      all officers meet SIA requirements.
+                      all guards meet SIA requirements.
                     </Text>
                   </Box>
                 </VStack>

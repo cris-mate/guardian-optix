@@ -4,7 +4,7 @@
  * Mirrors: backend/models/User.js
  *
  * The User model is the single source for all personnel:
- * Admins, Managers, and Guards (Security Officers).
+ * Admins, Managers, and Guards.
  */
 
 import type {

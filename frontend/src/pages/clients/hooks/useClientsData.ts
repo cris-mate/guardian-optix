@@ -97,7 +97,7 @@ const mockClients: Client[] = [
     activeSites: 2,
     totalGuardsAssigned: 14,
     incidentsThisMonth: 3,
-    notes: 'Premium client. Requires senior officers only.',
+    notes: 'Premium client.',
     createdAt: '2024-01-15T09:00:00Z',
     updatedAt: '2025-11-28T14:30:00Z',
     lastActivityAt: '2025-11-28T14:30:00Z',

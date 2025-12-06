@@ -40,8 +40,8 @@ const generateMockLocation = (isInside: boolean = true): GPSLocation => ({
 const MOCK_ACTIVE_SHIFT: ActiveShift = {
   _id: 'as-001',
   shiftId: 'shift-001',
-  officerId: 'off-001',
-  officerName: 'Current User',
+  guardId: 'off-001',
+  guardName: 'Current User',
   badgeNumber: 'GO-2024-001',
   site: {
     _id: 'site-001',
@@ -67,8 +67,8 @@ const generateMockTimeEntries = (): TimeEntry[] => {
   clockInTime.setHours(7, 58, 32, 0);
   entries.push({
     _id: 'te-001',
-    officerId: 'off-001',
-    officerName: 'James Wilson',
+    guardId: 'off-001',
+    guardName: 'James Wilson',
     type: 'clock-in',
     timestamp: clockInTime.toISOString(),
     location: generateMockLocation(true),
@@ -82,8 +82,8 @@ const generateMockTimeEntries = (): TimeEntry[] => {
   breakStartTime.setHours(10, 30, 15, 0);
   entries.push({
     _id: 'te-002',
-    officerId: 'off-001',
-    officerName: 'James Wilson',
+    guardId: 'off-001',
+    guardName: 'James Wilson',
     type: 'break-start',
     timestamp: breakStartTime.toISOString(),
     location: generateMockLocation(true),
@@ -97,8 +97,8 @@ const generateMockTimeEntries = (): TimeEntry[] => {
   breakEndTime.setHours(10, 45, 22, 0);
   entries.push({
     _id: 'te-003',
-    officerId: 'off-001',
-    officerName: 'James Wilson',
+    guardId: 'off-001',
+    guardName: 'James Wilson',
     type: 'break-end',
     timestamp: breakEndTime.toISOString(),
     location: generateMockLocation(true),
@@ -112,8 +112,8 @@ const generateMockTimeEntries = (): TimeEntry[] => {
   lunchStartTime.setHours(12, 30, 0, 0);
   entries.push({
     _id: 'te-004',
-    officerId: 'off-001',
-    officerName: 'James Wilson',
+    guardId: 'off-001',
+    guardName: 'James Wilson',
     type: 'break-start',
     timestamp: lunchStartTime.toISOString(),
     location: generateMockLocation(true),
@@ -127,8 +127,8 @@ const generateMockTimeEntries = (): TimeEntry[] => {
   lunchEndTime.setHours(13, 0, 45, 0);
   entries.push({
     _id: 'te-005',
-    officerId: 'off-001',
-    officerName: 'James Wilson',
+    guardId: 'off-001',
+    guardName: 'James Wilson',
     type: 'break-end',
     timestamp: lunchEndTime.toISOString(),
     location: generateMockLocation(true),
@@ -145,7 +145,7 @@ const generateMockTimeEntries = (): TimeEntry[] => {
 const MOCK_ACTIVE_GUARDS: ActiveGuard[] = [
   {
     _id: 'ag-001',
-    officerId: 'off-001',
+    guardId: 'off-001',
     fullName: 'James Wilson',
     badgeNumber: 'GO-2024-001',
     clockStatus: 'clocked-in',
@@ -156,7 +156,7 @@ const MOCK_ACTIVE_GUARDS: ActiveGuard[] = [
   },
   {
     _id: 'ag-002',
-    officerId: 'off-002',
+    guardId: 'off-002',
     fullName: 'Sarah Mitchell',
     badgeNumber: 'GO-2024-002',
     clockStatus: 'on-break',
@@ -167,7 +167,7 @@ const MOCK_ACTIVE_GUARDS: ActiveGuard[] = [
   },
   {
     _id: 'ag-003',
-    officerId: 'off-003',
+    guardId: 'off-003',
     fullName: 'David Chen',
     badgeNumber: 'GO-2024-003',
     clockStatus: 'clocked-in',
@@ -178,7 +178,7 @@ const MOCK_ACTIVE_GUARDS: ActiveGuard[] = [
   },
   {
     _id: 'ag-004',
-    officerId: 'off-004',
+    guardId: 'off-004',
     fullName: 'Emma Thompson',
     badgeNumber: 'GO-2024-004',
     clockStatus: 'clocked-in',
@@ -189,7 +189,7 @@ const MOCK_ACTIVE_GUARDS: ActiveGuard[] = [
   },
   {
     _id: 'ag-005',
-    officerId: 'off-005',
+    guardId: 'off-005',
     fullName: 'Michael Brown',
     badgeNumber: 'GO-2024-005',
     clockStatus: 'clocked-out',
@@ -353,8 +353,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
         // Set mock timesheet
         const mockTimesheet: TodayTimesheet = {
           date: new Date().toISOString().split('T')[0],
-          officerId: 'off-001',
-          officerName: 'James Wilson',
+          guardId: 'off-001',
+          guardName: 'James Wilson',
           entries: generateMockTimeEntries(),
           totalHours: 6.5,
           regularHours: 6.5,
@@ -407,8 +407,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
-          officerId: 'off-001',
-          officerName: 'Current User',
+          guardId: 'off-001',
+          guardName: 'Current User',
           type: 'clock-in',
           timestamp: new Date().toISOString(),
           location: currentLocation || generateMockLocation(true),
@@ -459,8 +459,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
-          officerId: 'off-001',
-          officerName: 'Current User',
+          guardId: 'off-001',
+          guardName: 'Current User',
           type: 'clock-out',
           timestamp: new Date().toISOString(),
           location: currentLocation || generateMockLocation(true),
@@ -508,8 +508,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
-          officerId: 'off-001',
-          officerName: 'Current User',
+          guardId: 'off-001',
+          guardName: 'Current User',
           type: 'break-start',
           timestamp: new Date().toISOString(),
           location: currentLocation || generateMockLocation(true),
@@ -555,8 +555,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
         const newEntry: TimeEntry = {
           _id: `te-${Date.now()}`,
-          officerId: 'off-001',
-          officerName: 'Current User',
+          guardId: 'off-001',
+          guardName: 'Current User',
           type: 'break-end',
           timestamp: new Date().toISOString(),
           location: currentLocation || generateMockLocation(true),

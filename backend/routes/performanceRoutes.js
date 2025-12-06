@@ -1,7 +1,7 @@
 /**
  * Performance Routes
  *
- * API endpoints for security officer performance metrics.
+ * API endpoints for security guard performance metrics.
  * All routes require authentication.
  */
 
@@ -10,7 +10,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const {
   getOverview,
-  getOfficerPerformance,
+  getGuardPerformance,
   getPatrolMetrics,
   getAttendanceMetrics,
   getIncidentMetrics,
@@ -32,11 +32,11 @@ router.use(authMiddleware);
 router.get('/overview', getOverview);
 
 /**
- * @route   GET /api/performance/officers
- * @desc    Get individual officer performance data
+ * @route   GET /api/performance/guards
+ * @desc    Get individual guard performance data
  * @access  Private
  */
-router.get('/officers', getOfficerPerformance);
+router.get('/guards', getGuardPerformance);
 
 /**
  * @route   GET /api/performance/patrols

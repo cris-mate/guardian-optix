@@ -166,7 +166,7 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
           <Table.Row bg="gray.50">
             <Table.ColumnHeader>
               <SortHeader
-                label="Officer"
+                label="Guard"
                 sortKey="name"
                 currentSort={filters.sortBy}
                 currentOrder={filters.sortOrder}
@@ -216,24 +216,24 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
         </Table.Header>
 
         <Table.Body>
-          {guards.map((officer) => (
+          {guards.map((guard) => (
             <Table.Row
-              key={officer._id}
+              key={guard._id}
               cursor="pointer"
-              onClick={() => onSelect(officer._id)}
-              bg={selectedId === officer._id ? 'blue.50' : 'white'}
-              _hover={{ bg: selectedId === officer._id ? 'blue.50' : 'gray.50' }}
+              onClick={() => onSelect(guard._id)}
+              bg={selectedId === guard._id ? 'blue.50' : 'white'}
+              _hover={{ bg: selectedId === guard._id ? 'blue.50' : 'gray.50' }}
               transition="background 0.15s"
             >
-              {/* Officer Info */}
+              {/* Guard Info */}
               <Table.Cell>
                 <HStack gap={3}>
                   <Box>
                     <Text fontWeight="medium" fontSize="sm">
-                      {officer.fullName}
+                      {guard.fullName}
                     </Text>
                     <Text fontSize="xs" color="gray.500">
-                      {officer.badgeNumber || officer.email}
+                      {guard.badgeNumber || guard.email}
                     </Text>
                   </Box>
                 </HStack>
@@ -243,13 +243,13 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
               <Table.Cell>
                 <HStack gap={2}>
                   <Badge
-                    colorPalette={getStatusColor(officer.status)}
+                    colorPalette={getStatusColor(guard.status)}
                     variant="subtle"
                     size="sm"
                   >
-                    {officer.status.replace('-', ' ')}
+                    {guard.status.replace('-', ' ')}
                   </Badge>
-                  {officer.availability && officer.status === 'on-duty' && (
+                  {guard.availability && guard.status === 'on-duty' && (
                     <Box w={2} h={2} borderRadius="full" bg="green.400" title="Available" />
                   )}
                 </HStack>
@@ -258,12 +258,12 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
               {/* Role */}
               <Table.Cell>
                 <Box>
-                  <Text fontSize="sm">{officer.role === 'Guard' ? 'Security Officer' : officer.role}</Text>
-                  {officer.guardType && (
-                    <Text fontSize="xs" color="gray.500">{officer.guardType}</Text>
+                  <Text fontSize="sm">{guard.role === 'Guard' ? 'Security Officer' : guard.role}</Text>
+                  {guard.guardType && (
+                    <Text fontSize="xs" color="gray.500">{guard.guardType}</Text>
                   )}
-                  {officer.managerType && (
-                    <Text fontSize="xs" color="gray.500">{officer.managerType}</Text>
+                  {guard.managerType && (
+                    <Text fontSize="xs" color="gray.500">{guard.managerType}</Text>
                   )}
                 </Box>
               </Table.Cell>
@@ -272,11 +272,11 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
               <Table.Cell>
                 <Box>
                   <Text fontSize="sm" fontFamily="mono">
-                    {officer.postCode}
+                    {guard.postCode}
                   </Text>
-                  {officer.assignedSite && (
+                  {guard.assignedSite && (
                     <Text fontSize="xs" color="gray.500" truncate maxW="150px">
-                      {officer.assignedSite}
+                      {guard.assignedSite}
                     </Text>
                   )}
                 </Box>
@@ -284,22 +284,22 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
 
               {/* SIA Licence */}
               <Table.Cell>
-                {officer.siaLicence ? (
+                {guard.siaLicence ? (
                   <HStack gap={2}>
                     <Badge
-                      colorPalette={getLicenceColor(officer.siaLicence.status)}
+                      colorPalette={getLicenceColor(guard.siaLicence.status)}
                       variant="subtle"
                       size="sm"
                     >
-                      {officer.siaLicence.status === 'expiring-soon' ? 'Expiring' : officer.siaLicence.status}
+                      {guard.siaLicence.status === 'expiring-soon' ? 'Expiring' : guard.siaLicence.status}
                     </Badge>
-                    {(officer.siaLicence.status === 'expired' || officer.siaLicence.status === 'expiring-soon') && (
-                      <Box color={officer.siaLicence.status === 'expired' ? 'red.500' : 'orange.500'}>
+                    {(guard.siaLicence.status === 'expired' || guard.siaLicence.status === 'expiring-soon') && (
+                      <Box color={guard.siaLicence.status === 'expired' ? 'red.500' : 'orange.500'}>
                         <LuTriangleAlert size={14} />
                       </Box>
                     )}
                     <Text fontSize="xs" color="gray.500">
-                      {formatDate(officer.siaLicence.expiryDate)}
+                      {formatDate(guard.siaLicence.expiryDate)}
                     </Text>
                   </HStack>
                 ) : (
@@ -310,7 +310,7 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
               {/* Last Active */}
               <Table.Cell>
                 <Text fontSize="sm" color="gray.600">
-                  {getRelativeTime(officer.lastActiveAt)}
+                  {getRelativeTime(guard.lastActiveAt)}
                 </Text>
               </Table.Cell>
 
@@ -327,21 +327,21 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                     </IconButton>
                   </Menu.Trigger>
                   <Menu.Content>
-                    <Menu.Item value="view" onClick={() => onSelect(officer._id)}>
+                    <Menu.Item value="view" onClick={() => onSelect(guard._id)}>
                       <LuEye size={14} />
                       <Text ml={2}>View Details</Text>
                     </Menu.Item>
                     {onEdit && (
-                      <Menu.Item value="edit" onClick={() => onEdit(officer)}>
+                      <Menu.Item value="edit" onClick={() => onEdit(guard)}>
                         <LuPencil size={14} />
                         <Text ml={2}>Edit</Text>
                       </Menu.Item>
                     )}
-                    <Menu.Item value="call" onClick={() => window.open(`tel:${officer.phoneNumber}`)}>
+                    <Menu.Item value="call" onClick={() => window.open(`tel:${guard.phoneNumber}`)}>
                       <LuPhone size={14} />
                       <Text ml={2}>Call</Text>
                     </Menu.Item>
-                    <Menu.Item value="email" onClick={() => window.open(`mailto:${officer.email}`)}>
+                    <Menu.Item value="email" onClick={() => window.open(`mailto:${guard.email}`)}>
                       <LuMail size={14} />
                       <Text ml={2}>Email</Text>
                     </Menu.Item>

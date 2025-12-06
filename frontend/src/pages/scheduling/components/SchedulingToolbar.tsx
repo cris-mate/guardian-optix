@@ -29,7 +29,7 @@ import {
 import {
   SchedulingFilters,
   SchedulingStats,
-  AvailableOfficer,
+  AvailableGuard,
   AvailableSite,
   ViewMode,
 } from '../../../types/scheduling.types';
@@ -37,7 +37,7 @@ import {
 interface SchedulingToolbarProps {
   filters: SchedulingFilters;
   stats: SchedulingStats;
-  availableOfficers: AvailableOfficer[];
+  availableGuards: AvailableGuard[];
   availableSites: AvailableSite[];
   onFiltersChange: (filters: Partial<SchedulingFilters>) => void;
   onNavigate: (direction: 'prev' | 'next') => void;
@@ -69,7 +69,7 @@ const statusOptions = createListCollection({
 const SchedulingToolbar: React.FC<SchedulingToolbarProps> = ({
                                                                filters,
                                                                stats,
-                                                               availableOfficers,
+                                                               availableGuards,
                                                                availableSites,
                                                                onFiltersChange,
                                                                onNavigate,
@@ -110,16 +110,16 @@ const SchedulingToolbar: React.FC<SchedulingToolbarProps> = ({
 
   // Check if any filters are active
   const hasActiveFilters =
-    filters.officerId ||
+    filters.guardId ||
     filters.siteId ||
     (filters.shiftType && filters.shiftType !== 'all') ||
     (filters.status && filters.status !== 'all');
 
-  // Create officer options
-  const officerOptions = createListCollection({
+  // Create guard options
+  const guardOptions = createListCollection({
     items: [
-      { value: 'all', label: 'All Officers' },
-      ...availableOfficers.map((o) => ({ value: o._id, label: o.fullName })),
+      { value: 'all', label: 'All Guards' },
+      ...availableGuards.map((o) => ({ value: o._id, label: o.fullName })),
     ],
   });
 
@@ -250,21 +250,21 @@ const SchedulingToolbar: React.FC<SchedulingToolbarProps> = ({
           bg="white"
         />
 
-        {/* Officer Filter */}
+        {/* Guard Filter */}
         <Select.Root
-          collection={officerOptions}
+          collection={guardOptions}
           size="sm"
-          value={[filters.officerId || 'all']}
+          value={[filters.guardId || 'all']}
           onValueChange={(e) =>
-            onFiltersChange({ officerId: e.value[0] === 'all' ? undefined : e.value[0] })
+            onFiltersChange({ guardId: e.value[0] === 'all' ? undefined : e.value[0] })
           }
           w="180px"
         >
           <Select.Trigger bg="white">
-            <Select.ValueText placeholder="All Officers" />
+            <Select.ValueText placeholder="All Guards" />
           </Select.Trigger>
           <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
-            {officerOptions.items.map((item) => (
+            {guardOptions.items.map((item) => (
               <Select.Item
                 key={item.value}
                 item={item}

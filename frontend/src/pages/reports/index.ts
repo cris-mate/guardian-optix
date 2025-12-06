@@ -40,7 +40,7 @@ export type {
 
   // Attendance Data
   AttendanceSummary,
-  OfficerAttendance,
+  GuardAttendance,
   AttendanceReportData,
 
   // Incident Data
@@ -58,7 +58,7 @@ export type {
 
   // Compliance Data
   CertificationStatus,
-  ComplianceOfficer,
+  ComplianceGuard,
   ComplianceReportData,
 
   // API Response

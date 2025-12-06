@@ -1,7 +1,7 @@
 /**
  * Performance Types
  *
- * TypeScript interfaces for security officer performance tracking.
+ * TypeScript interfaces for security guard performance tracking.
  * Aligned with industry standards from TrackTik/Connecteam.
  */
 
@@ -23,7 +23,7 @@ export interface DateRange {
 export interface PerformanceFilters {
   timeRange: TimeRange;
   dateRange?: DateRange;
-  officerId?: string;
+  guardId?: string;
   siteId?: string;
   category?: PerformanceCategory;
 }
@@ -77,14 +77,14 @@ export interface OverviewMetrics {
 }
 
 // ============================================
-// Individual Officer Performance
+// Individual Guard Performance
 // ============================================
 
 export type PerformanceRating = 'excellent' | 'good' | 'average' | 'needs-improvement' | 'poor';
 
-export interface OfficerPerformance {
-  officerId: string;
-  officerName: string;
+export interface GuardPerformance {
+  guardId: string;
+  guardName: string;
   profileImage?: string;
   badgeNumber?: string;
   guardType?: string;
@@ -122,9 +122,9 @@ export interface OfficerPerformance {
   };
 }
 
-export interface OfficerRanking {
-  officerId: string;
-  officerName: string;
+export interface GuardRanking {
+  guardId: string;
+  guardName: string;
   profileImage?: string;
   rank: number;
   previousRank?: number;
@@ -144,8 +144,8 @@ export type PatrolStatus = 'completed' | 'in-progress' | 'missed' | 'partial';
 export interface PatrolRecord {
   id: string;
   tourName: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   site: string;
   scheduledTime: string;
   startTime?: string;
@@ -176,9 +176,9 @@ export interface PatrolMetrics {
     avgScanTime: number; // seconds
     scanAccuracy: number;
   };
-  byOfficer: {
-    officerId: string;
-    officerName: string;
+  byGuard: {
+    guardId: string;
+    guardName: string;
     tours: number;
     completed: number;
     rate: number;
@@ -201,8 +201,8 @@ export type AttendanceStatus = 'on-time' | 'late' | 'early' | 'no-show' | 'excus
 
 export interface AttendanceRecord {
   id: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   site: string;
   date: string;
   scheduledStart: string;
@@ -236,9 +236,9 @@ export interface AttendanceMetrics {
     count: number;
     avgMinutesEarly: number;
   };
-  byOfficer: {
-    officerId: string;
-    officerName: string;
+  byGuard: {
+    guardId: string;
+    guardName: string;
     shifts: number;
     onTime: number;
     late: number;
@@ -257,8 +257,8 @@ export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 export interface IncidentResponseRecord {
   id: string;
   incidentId: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   site: string;
   severity: IncidentSeverity;
   reportedAt: string;
@@ -283,9 +283,9 @@ export interface IncidentMetrics {
     avgResponseTime: number;
     slaCompliance: number;
   }>;
-  byOfficer: {
-    officerId: string;
-    officerName: string;
+  byGuard: {
+    guardId: string;
+    guardName: string;
     incidents: number;
     avgResponseTime: number;
     slaCompliance: number;
@@ -305,8 +305,8 @@ export interface PerformanceAlert {
   severity: AlertSeverity;
   title: string;
   message: string;
-  officerId?: string;
-  officerName?: string;
+  guardId?: string;
+  guardName?: string;
   site?: string;
   timestamp: string;
   isRead: boolean;
@@ -320,8 +320,8 @@ export interface PerformanceAlert {
 
 export interface PerformanceResponse {
   overview: OverviewMetrics;
-  officers: OfficerPerformance[];
-  rankings: OfficerRanking[];
+  guards: GuardPerformance[];
+  rankings: GuardRanking[];
   patrols: PatrolMetrics;
   attendance: AttendanceMetrics;
   incidents: IncidentMetrics;

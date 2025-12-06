@@ -29,7 +29,7 @@ import type { SiteRef } from './site.types';
  */
 export interface TimeEntry {
   _id: string;
-  officer: string | UserRef;
+  guard: string | UserRef;
   site?: string | SiteRef;
   date: string; // YYYY-MM-DD
   type: EntryType;
@@ -48,7 +48,7 @@ export interface TimeEntry {
  */
 export interface TimeEntryPopulated {
   _id: string;
-  officer: UserRef;
+  guard: UserRef;
   site?: SiteRef;
   date: string;
   type: EntryType;
@@ -62,8 +62,8 @@ export interface TimeEntryPopulated {
   createdAt: string;
 
   // Flattened for UI convenience
-  officerId?: string;
-  officerName?: string;
+  guardId?: string;
+  guardName?: string;
   siteId?: string;
   siteName?: string;
 }
@@ -94,7 +94,7 @@ export interface BreakRecord {
  */
 export interface ActiveSession {
   _id: string;
-  officer: string | UserRef;
+  guard: string | UserRef;
   shift?: string;
   site?: string | SiteRef;
   clockInTime: string;
@@ -119,7 +119,7 @@ export interface ActiveSession {
  */
 export interface Timesheet {
   _id: string;
-  officer: string | UserRef;
+  guard: string | UserRef;
   date: string;
   entries: TimeEntry[];
   breaks: BreakRecord[];
@@ -145,8 +145,8 @@ export interface Timesheet {
  */
 export interface TodayTimesheet {
   date: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   entries: TimeEntryPopulated[];
   totalHours: number;
   regularHours: number;
@@ -194,7 +194,7 @@ export interface ClockActionPayload {
  * Payload for manual time entry
  */
 export interface ManualEntryPayload {
-  officerId: string;
+  guardId: string;
   siteId?: string;
   date: string;
   type: EntryType;

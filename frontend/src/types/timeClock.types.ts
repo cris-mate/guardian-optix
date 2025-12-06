@@ -47,8 +47,8 @@ export interface Geofence {
 
 export interface TimeEntry {
   _id: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   type: EntryType;
   timestamp: string;
   location?: GPSLocation;
@@ -81,8 +81,8 @@ export interface BreakRecord {
 export interface ActiveShift {
   _id: string;
   shiftId: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   badgeNumber?: string;
   site: {
     _id: string;
@@ -108,8 +108,8 @@ export interface ActiveShift {
 
 export interface TodayTimesheet {
   date: string;
-  officerId: string;
-  officerName: string;
+  guardId: string;
+  guardName: string;
   entries: TimeEntry[];
   totalHours: number;
   regularHours: number;
@@ -158,7 +158,7 @@ export interface TimeClockStats {
 
 export interface ActiveGuard {
   _id: string;
-  officerId: string;
+  guardId: string;
   fullName: string;
   badgeNumber?: string;
   profileImage?: string;
@@ -190,7 +190,7 @@ export interface TimeClockFilters {
   dateRange: 'today' | 'week' | 'month' | 'custom';
   startDate?: string;
   endDate?: string;
-  officerId?: string;
+  guardId?: string;
   siteId?: string;
   status?: TimesheetStatus | 'all';
 }

@@ -22,7 +22,7 @@ export interface ReportFilters {
   dateRange?: DateRange;
   category?: ReportCategory;
   siteIds?: string[];
-  officerIds?: string[];
+  guardIds?: string[];
   clientIds?: string[];
 }
 
@@ -136,9 +136,9 @@ export interface AttendanceSummary {
   avgLateMinutes: number;
 }
 
-export interface OfficerAttendance {
-  officerId: string;
-  officerName: string;
+export interface GuardAttendance {
+  guardId: string;
+  guardName: string;
   badgeNumber?: string;
   shiftsScheduled: number;
   shiftsWorked: number;
@@ -152,7 +152,7 @@ export interface OfficerAttendance {
 export interface AttendanceReportData {
   period: DateRange;
   summary: AttendanceSummary;
-  byOfficer: OfficerAttendance[];
+  byGuard: GuardAttendance[];
   dailyBreakdown: {
     date: string;
     scheduled: number;
@@ -282,9 +282,9 @@ export interface CertificationStatus {
   expired: number;
 }
 
-export interface ComplianceOfficer {
-  officerId: string;
-  officerName: string;
+export interface ComplianceGuard {
+  guardId: string;
+  guardName: string;
   badgeNumber?: string;
   siaLicenceStatus: 'valid' | 'expiring-soon' | 'expired';
   siaExpiryDate?: string;
@@ -299,10 +299,10 @@ export interface ComplianceReportData {
   siaCompliance: number;
   trainingCompliance: number;
   certificationStatus: CertificationStatus[];
-  officerCompliance: ComplianceOfficer[];
+  guardCompliance: ComplianceGuard[];
   expiringCertifications: {
-    officerId: string;
-    officerName: string;
+    guardId: string;
+    guardName: string;
     certificationType: string;
     expiryDate: string;
     daysRemaining: number;

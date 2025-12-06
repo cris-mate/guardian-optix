@@ -1,7 +1,7 @@
 /**
  * Guards Routes
  *
- * API routes for guards/officer management.
+ * API routes for guards management.
  * All routes require authentication.
  */
 
@@ -12,12 +12,12 @@ const authorize = require('../middleware/roleMiddleware');
 const {
   getGuards,
   getGuardsStats,
-  getOfficerById,
-  createOfficer,
-  updateOfficer,
-  deleteOfficer,
-  updateOfficerStatus,
-  getAvailableOfficers,
+  getGuardById,
+  createGuard,
+  updateGuard,
+  deleteGuard,
+  updateGuardStatus,
+  getAvailableGuards,
 } = require('../controllers/guardsController');
 
 // All routes require authentication
@@ -43,17 +43,17 @@ router.get('/stats', getGuardsStats);
 
 /**
  * @route   GET /api/guards/available
- * @desc    Get available officers for assignment
+ * @desc    Get available guards for assignment
  * @access  Private
  */
-router.get('/available', getAvailableOfficers);
+router.get('/available', getAvailableGuards);
 
 /**
  * @route   GET /api/guards/:id
- * @desc    Get single officer by ID
+ * @desc    Get single guard by ID
  * @access  Private
  */
-router.get('/:id', getOfficerById);
+router.get('/:id', getGuardById);
 
 // ============================================
 // Write Routes (Admin/Manager only)
@@ -61,30 +61,30 @@ router.get('/:id', getOfficerById);
 
 /**
  * @route   POST /api/guards
- * @desc    Create new officer
+ * @desc    Create new guard
  * @access  Private (Admin/Manager)
  */
-router.post('/', authorize('Admin', 'Manager'), createOfficer);
+router.post('/', authorize('Admin', 'Manager'), createGuard);
 
 /**
  * @route   PUT /api/guards/:id
- * @desc    Update officer
+ * @desc    Update guard
  * @access  Private (Admin/Manager)
  */
-router.put('/:id', authorize('Admin', 'Manager'), updateOfficer);
+router.put('/:id', authorize('Admin', 'Manager'), updateGuard);
 
 /**
  * @route   PATCH /api/guards/:id/status
- * @desc    Update officer status
+ * @desc    Update guard status
  * @access  Private (Admin/Manager)
  */
-router.patch('/:id/status', authorize('Admin', 'Manager'), updateOfficerStatus);
+router.patch('/:id/status', authorize('Admin', 'Manager'), updateGuardStatus);
 
 /**
  * @route   DELETE /api/guards/:id
- * @desc    Delete officer (soft delete)
+ * @desc    Delete guard (soft delete)
  * @access  Private (Admin only)
  */
-router.delete('/:id', authorize('Admin'), deleteOfficer);
+router.delete('/:id', authorize('Admin'), deleteGuard);
 
 module.exports = router;
