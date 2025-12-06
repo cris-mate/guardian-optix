@@ -368,6 +368,7 @@ const ClientDetailsDrawer: React.FC<ExtendedClientDetailsDrawerProps> = ({
 
   // Handle site creation
   const handleAddSite = async (siteData: CreateSiteFormData) => {
+
     if (!client || !onSiteCreated) return;
     await onSiteCreated(client.id, siteData);
     setIsAddSiteModalOpen(false);

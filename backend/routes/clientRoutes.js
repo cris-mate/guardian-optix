@@ -10,8 +10,8 @@ const { getClients, getClientById, createClient, updateClient, deleteClient } = 
 
 router.get('/', authMiddleware, getClients);
 router.get('/:id', authMiddleware, getClientById);
-router.post('/', authMiddleware, roleMiddleware(['Manager', 'Admin']), createClient);
-router.put('/:id', authMiddleware, roleMiddleware(['Manager', 'Admin']), updateClient);
-router.delete('/:id', authMiddleware, roleMiddleware(['Admin']), deleteClient);
+router.post('/', authMiddleware, roleMiddleware('Manager', 'Admin'), createClient);
+router.put('/:id', authMiddleware, roleMiddleware('Manager', 'Admin'), updateClient);
+router.delete('/:id', authMiddleware, roleMiddleware('Admin'), deleteClient);
 
 module.exports = router;

@@ -3,6 +3,7 @@
  */
 
 const Client = require('../models/Client');
+const Site = require('../models/Site');
 const asyncHandler = require('../utils/asyncHandler');
 const mongoose = require('mongoose');
 
@@ -11,45 +12,63 @@ const getClients = asyncHandler(async (req, res) => {
   const { search, status, sortBy, sortOrder, page, limit } = req.query;
   const result = await Client.searchClients(search, { status, sortBy, sortOrder, page, limit });
 
-  const clients = result.clients.map(client => ({
-    id: client._id,
-    companyName: client.companyName,
-    tradingName: client.tradingName,
-    status: client.status,
-    industry: client.industry,
-    logoUrl: client.logoUrl,
-    address: client.address,
-    contacts: client.contacts.map(c => ({
-      id: c._id,
-      firstName: c.firstName,
-      lastName: c.lastName,
-      email: c.email,
-      phone: c.phone,
-      jobTitle: c.jobTitle,
-      isPrimary: c.isPrimary,
-    })),
-    primaryContact: client.contacts.find(c => c.isPrimary) || client.contacts[0] || null,
-    sites: (client.sites || []).map(s => ({
-      id: s._id,
-      name: s.name,
-      address: s.address,
-      status: s.status,
-      guardsAssigned: 0,
-      shiftsThisWeek: 0,
-      hasGeofence: false,
-    })),
-    totalSites: client.sites ? client.sites.length : 0,
-    activeSites: client.sites ? client.sites.filter(s => s.status === 'active').length : 0,
-    totalGuardsAssigned: 0,
-    incidentsThisMonth: 0,
-    notes: client.notes,
-    createdAt: client.createdAt,
-    updatedAt: client.updatedAt,
-    lastActivityAt: client.lastActivityAt,
-  }));
+  // Fetch sites for all clients in one query
+  const clientIds = result.clients.map(c => c._id);
+  const allSites = await Site.find({ client: { $in: clientIds } }).lean();
+
+  // Group sites by client
+  const sitesByClient = {};
+  allSites.forEach(site => {
+    const clientId = site.client.toString();
+    if (!sitesByClient[clientId]) sitesByClient[clientId] = [];
+    sitesByClient[clientId].push(site);
+  });
+
+  const clients = result.clients.map(client => {
+    const clientSites = sitesByClient[client._id.toString()] || [];
+
+    return {
+      id: client._id,
+      companyName: client.companyName,
+      tradingName: client.tradingName,
+      status: client.status,
+      industry: client.industry,
+      logoUrl: client.logoUrl,
+      address: client.address,
+      contacts: (client.contacts || []).map(c => ({
+        id: c._id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        email: c.email,
+        phone: c.phone,
+        jobTitle: c.jobTitle,
+        isPrimary: c.isPrimary,
+      })),
+      primaryContact: client.contacts?.find(c => c.isPrimary) || client.contacts?.[0] || null,
+      sites: clientSites.map(s => ({
+        id: s._id,
+        name: s.name,
+        address: s.address,
+        siteType: s.siteType,
+        status: s.status,
+        guardsAssigned: s.guardsRequired || 0,
+        shiftsThisWeek: 0,
+        hasGeofence: !!s.geofence?.center,
+      })),
+      totalSites: clientSites.length,
+      activeSites: clientSites.filter(s => s.status === 'active').length,
+      totalGuardsAssigned: 0,
+      incidentsThisMonth: 0,
+      notes: client.notes,
+      createdAt: client.createdAt,
+      updatedAt: client.updatedAt,
+      lastActivityAt: client.lastActivityAt,
+    };
+  });
 
   res.json({ clients, pagination: result.pagination });
 });
+
 
 // GET /api/clients/:id
 const getClientById = asyncHandler(async (req, res) => {
@@ -59,11 +78,14 @@ const getClientById = asyncHandler(async (req, res) => {
     throw new Error('Invalid client ID');
   }
 
-  const client = await Client.findById(id).populate('sites', 'name address status').lean();
+  const client = await Client.findById(id);
   if (!client) {
     res.status(404);
     throw new Error('Client not found');
   }
+
+  // Fetch sites for this client
+  const sites = await Site.find({ client: id }).lean();
 
   res.json({
     id: client._id,
@@ -83,17 +105,18 @@ const getClientById = asyncHandler(async (req, res) => {
       isPrimary: c.isPrimary,
     })),
     primaryContact: client.contacts.find(c => c.isPrimary) || client.contacts[0] || null,
-    sites: (client.sites || []).map(s => ({
+    sites: sites.map(s => ({
       id: s._id,
       name: s.name,
       address: s.address,
+      siteType: s.siteType,
       status: s.status,
-      guardsAssigned: 0,
+      guardsAssigned: s.guardsRequired || 0,
       shiftsThisWeek: 0,
-      hasGeofence: false,
+      hasGeofence: !!s.geofence?.center,
     })),
-    totalSites: client.sites ? client.sites.length : 0,
-    activeSites: client.sites ? client.sites.filter(s => s.status === 'active').length : 0,
+    totalSites: sites.length,
+    activeSites: sites.filter(s => s.status === 'active').length,
     totalGuardsAssigned: 0,
     incidentsThisMonth: 0,
     notes: client.notes,

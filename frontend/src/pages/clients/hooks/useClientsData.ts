@@ -591,6 +591,7 @@ export function useClientsData(): UseClientsDataReturn {
           name: siteData.name,
           client: clientId,
           address: siteData.address,
+          siteType: siteData.siteType,
           contactName: siteData.contactName || undefined,
           contactPhone: siteData.contactPhone || undefined,
           contactEmail: siteData.contactEmail || undefined,
