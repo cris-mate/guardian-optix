@@ -3,7 +3,7 @@
  *
  * Modal form for creating new shifts with tasks.
  * Includes intelligent guard recommendations based on site requirements.
- * Uses Chakra UI v3 Dialog components.
+ * Uses Chakra UI components.
  */
 
 import React, { useState } from 'react';
@@ -123,6 +123,9 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
         label: `${o.fullName}${o.badgeNumber ? ` (${o.badgeNumber})` : ''}`,
       })),
   });
+
+  console.log('availableGuards:', availableGuards);
+  console.log('guardOptions:', guardOptions.items);
 
   // Create site options for dropdown
   const siteOptions = createListCollection({

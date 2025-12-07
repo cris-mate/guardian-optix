@@ -38,30 +38,38 @@ const scoreGuard = async (guard, site, siteCoords, shiftDate) => {
       siteCoords.latitude, siteCoords.longitude,
       guardCoords.latitude, guardCoords.longitude
     );
+    // 1. DISTANCE (30% weight)
+    // Uses postcodes.io API to get lat/long, then Haversine formula
+    // Score: 100 at 0km, decreases by 2 points per km, min 0
     breakdown.distance = Math.max(0, 100 - (dist * 2));
   } catch {
     breakdown.distance = 50; // Unknown = neutral
   }
 
-  // Guard type match
+  // 2. GUARD TYPE (25% weight)
+  // Exact match with site requirement = 100
+  // No requirement specified = 50
+  // Mismatch = 20
   breakdown.guardType =
     site.requiredGuardType === guard.guardType ? 100 :
-      !site.requiredGuardType ? 80 : 30;
+      !site.requiredGuardType ? 50 : 20;
 
-  // Licence status
+  // 3. LICENCE STATUS (15% weight)
   const licenceMap = { valid: 100, 'expiring-soon': 50, expired: 0, pending: 25 };
   breakdown.licence = licenceMap[guard.siaLicence?.status] ?? 0;
 
-  // Availability (simplified)
+  // 4. AVAILABILITY (20% weight)
   breakdown.availability = guard.availability ? 100 : 0;
 
-  // Certifications
+  // 5. CERTIFICATIONS (10% weight)
+  // Percentage of site's required certs that guard holds
   const required = site.requiredCertifications || [];
   const held = guard.certifications || [];
+  const matchCount = required.filter(c => held.includes(c)).length;
   breakdown.certifications = required.length === 0 ? 100 :
-    (required.filter(c => held.includes(c)).length / required.length) * 100;
+    (matchCount / required.length) * 100;
 
-  // Weighted total
+  // FINAL SCORE (weighted average)
   score = Object.entries(WEIGHTS).reduce(
     (sum, [key, weight]) => sum + breakdown[key] * weight, 0
   );
