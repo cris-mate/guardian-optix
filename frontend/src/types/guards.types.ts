@@ -125,9 +125,11 @@ export interface GuardsFormData {
 export interface GuardsTableProps {
   guards: Guards[];
   isLoading: boolean;
-  onSelect: (guard: Guards) => void;
+  onSelect: (id: string) => void;
   onEdit: (guard: Guards) => void;
   selectedId?: string;
+  filters: GuardsFilters;
+  onFiltersChange: (filters: Partial<GuardsFilters>) => void;
 }
 
 export interface GuardsFiltersProps {
