@@ -257,10 +257,17 @@ export const useSchedulingData = () => {
         setAvailableGuards(mockGuards);
         setAvailableSites(mockSites);
       } else {
-        // API call would go here
-        const response = await fetch('/api/scheduling/shifts');
-        const data = await response.json();
-        setShifts(data.shifts);
+        // API call
+        const [shiftsRes, guardsRes, sitesRes] = await Promise.all([
+          api.get('/scheduling/shifts'),
+          api.get('/scheduling/available-guards'),
+          api.get('/scheduling/available-sites'),
+        ]);
+
+        // Backend returns { success: true, data: [...] }
+        setShifts(shiftsRes.data.data || []);
+        setAvailableGuards(guardsRes.data.data || []);
+        setAvailableSites(sitesRes.data.data || []);
       }
     } catch (err) {
       setError('Failed to load shifts');

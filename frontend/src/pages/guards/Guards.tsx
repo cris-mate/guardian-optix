@@ -311,7 +311,6 @@ const Guards: React.FC = () => {
     selectGuard,
     createGuard,
     refetch,
-    error,
   } = useGuardsData();
 
   // Computed counts for tabs
