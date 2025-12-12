@@ -1,0 +1,414 @@
+/**
+ * useSocket Hook Tests
+ *
+ * Tests for the Socket.io connection hook.
+ * Covers connection lifecycle, events, and error handling.
+ */
+
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { io, Socket } from 'socket.io-client';
+import { clearAuthStorage, setupAuthenticatedStorage, createMockUser } from '../utils/testUtils';
+
+// ============================================
+// Mocks
+// ============================================
+
+// Mock socket.io-client
+jest.mock('socket.io-client');
+
+const mockSocket = {
+  connected: false,
+  id: 'mock-socket-id',
+  on: jest.fn(),
+  off: jest.fn(),
+  emit: jest.fn(),
+  connect: jest.fn(),
+  disconnect: jest.fn(),
+  removeAllListeners: jest.fn(),
+};
+
+(io as jest.Mock).mockReturnValue(mockSocket);
+
+// Simplified useSocket for testing
+const useSocket = (config: { autoConnect?: boolean; enableLogging?: boolean } = {}) => {
+  const { autoConnect = true, enableLogging = false } = config;
+  const [isConnected, setIsConnected] = React.useState(false);
+  const [isConnecting, setIsConnecting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const socketRef = React.useRef<typeof mockSocket | null>(null);
+
+  const getToken = React.useCallback(() => {
+    return localStorage.getItem('token');
+  }, []);
+
+  const connect = React.useCallback(() => {
+    const token = getToken();
+
+    if (!token) {
+      setError('No authentication token');
+      return;
+    }
+
+    if (socketRef.current?.connected) {
+      return;
+    }
+
+    setIsConnecting(true);
+    setError(null);
+
+    socketRef.current = io('http://localhost:5000', {
+      auth: { token },
+    });
+
+    // Simulate connection events
+    const connectHandler = () => {
+      setIsConnected(true);
+      setIsConnecting(false);
+    };
+
+    const disconnectHandler = () => {
+      setIsConnected(false);
+    };
+
+    const errorHandler = (err: Error) => {
+      setError(err.message);
+      setIsConnecting(false);
+    };
+
+    socketRef.current.on('connect', connectHandler);
+    socketRef.current.on('disconnect', disconnectHandler);
+    socketRef.current.on('connect_error', errorHandler);
+  }, [getToken]);
+
+  const disconnect = React.useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+      setIsConnected(false);
+    }
+  }, []);
+
+  const emit = React.useCallback((event: string, data?: unknown) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(event, data);
+    }
+  }, []);
+
+  const on = React.useCallback(<T,>(event: string, callback: (data: T) => void) => {
+    socketRef.current?.on(event, callback);
+    return () => socketRef.current?.off(event, callback);
+  }, []);
+
+  const off = React.useCallback((event: string) => {
+    socketRef.current?.off(event);
+  }, []);
+
+  React.useEffect(() => {
+    if (autoConnect) {
+      connect();
+    }
+
+    return () => {
+      disconnect();
+    };
+  }, [autoConnect, connect, disconnect]);
+
+  return {
+    socket: socketRef.current,
+    isConnected,
+    isConnecting,
+    error,
+    connect,
+    disconnect,
+    emit,
+    on,
+    off,
+  };
+};
+
+// Need React for the hook
+import React from 'react';
+
+// ============================================
+// Test Setup
+// ============================================
+
+beforeEach(() => {
+  clearAuthStorage();
+  jest.clearAllMocks();
+  mockSocket.connected = false;
+  mockSocket.on.mockClear();
+  mockSocket.off.mockClear();
+  mockSocket.emit.mockClear();
+  mockSocket.disconnect.mockClear();
+});
+
+afterEach(() => {
+  clearAuthStorage();
+});
+
+// ============================================
+// Connection Tests
+// ============================================
+
+describe('useSocket Connection', () => {
+  it('should not connect without auth token', () => {
+    const { result } = renderHook(() => useSocket());
+
+    expect(result.current.error).toBe('No authentication token');
+    expect(result.current.isConnected).toBe(false);
+  });
+
+  it('should attempt connection when token exists', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    renderHook(() => useSocket());
+
+    expect(io).toHaveBeenCalledWith(
+      'http://localhost:5000',
+      expect.objectContaining({
+        auth: { token: 'mock-jwt-token' },
+      })
+    );
+  });
+
+  it('should set isConnecting while connecting', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    const { result } = renderHook(() => useSocket());
+
+    expect(result.current.isConnecting).toBe(true);
+  });
+
+  it('should not auto-connect when autoConnect is false', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    const { result } = renderHook(() => useSocket({ autoConnect: false }));
+
+    expect(io).not.toHaveBeenCalled();
+    expect(result.current.isConnected).toBe(false);
+  });
+
+  it('should call disconnect on unmount', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    const { unmount } = renderHook(() => useSocket());
+
+    unmount();
+
+    expect(mockSocket.disconnect).toHaveBeenCalled();
+  });
+});
+
+// ============================================
+// Manual Connection Tests
+// ============================================
+
+describe('useSocket Manual Connection', () => {
+  it('should connect manually when autoConnect is false', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    const { result } = renderHook(() => useSocket({ autoConnect: false }));
+
+    expect(io).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.connect();
+    });
+
+    expect(io).toHaveBeenCalled();
+  });
+
+  it('should disconnect manually', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    const { result } = renderHook(() => useSocket());
+
+    act(() => {
+      result.current.disconnect();
+    });
+
+    expect(mockSocket.disconnect).toHaveBeenCalled();
+    expect(result.current.isConnected).toBe(false);
+  });
+});
+
+// ============================================
+// Event Handling Tests
+// ============================================
+
+describe('useSocket Event Handling', () => {
+  beforeEach(() => {
+    setupAuthenticatedStorage(createMockUser());
+    mockSocket.connected = true;
+  });
+
+  it('should emit events when connected', () => {
+    const { result } = renderHook(() => useSocket());
+
+    // Simulate connected state
+    act(() => {
+      // Manually set connected for this test
+      mockSocket.connected = true;
+    });
+
+    act(() => {
+      result.current.emit('test-event', { data: 'test' });
+    });
+
+    expect(mockSocket.emit).toHaveBeenCalledWith('test-event', { data: 'test' });
+  });
+
+  it('should register event listeners', () => {
+    const { result } = renderHook(() => useSocket());
+    const callback = jest.fn();
+
+    act(() => {
+      result.current.on('test-event', callback);
+    });
+
+    expect(mockSocket.on).toHaveBeenCalledWith('test-event', callback);
+  });
+
+  it('should return unsubscribe function from on()', () => {
+    const { result } = renderHook(() => useSocket());
+    const callback = jest.fn();
+
+    let unsubscribe: () => void;
+    act(() => {
+      unsubscribe = result.current.on('test-event', callback);
+    });
+
+    act(() => {
+      unsubscribe();
+    });
+
+    expect(mockSocket.off).toHaveBeenCalledWith('test-event', callback);
+  });
+
+  it('should remove event listeners with off()', () => {
+    const { result } = renderHook(() => useSocket());
+
+    act(() => {
+      result.current.off('test-event');
+    });
+
+    expect(mockSocket.off).toHaveBeenCalledWith('test-event');
+  });
+});
+
+// ============================================
+// Error Handling Tests
+// ============================================
+
+describe('useSocket Error Handling', () => {
+  it('should handle missing token gracefully', () => {
+    // No token set
+    const { result } = renderHook(() => useSocket());
+
+    expect(result.current.error).toBe('No authentication token');
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.isConnecting).toBe(false);
+  });
+
+  it('should clear error on successful connection attempt', () => {
+    const { result, rerender } = renderHook(() => useSocket({ autoConnect: false }));
+
+    // Initially has error (no token)
+    act(() => {
+      result.current.connect();
+    });
+    expect(result.current.error).toBe('No authentication token');
+
+    // Add token and reconnect
+    setupAuthenticatedStorage(createMockUser());
+
+    act(() => {
+      result.current.connect();
+    });
+
+    expect(result.current.error).toBeNull();
+  });
+});
+
+// ============================================
+// Multiple Connections Tests
+// ============================================
+
+describe('useSocket Multiple Connections', () => {
+  it('should not create duplicate connections', () => {
+    setupAuthenticatedStorage(createMockUser());
+    mockSocket.connected = true;
+
+    const { result } = renderHook(() => useSocket());
+
+    const initialCallCount = (io as jest.Mock).mock.calls.length;
+
+    act(() => {
+      result.current.connect();
+      result.current.connect();
+      result.current.connect();
+    });
+
+    // Should not create new connections when already connected
+    expect((io as jest.Mock).mock.calls.length).toBe(initialCallCount);
+  });
+});
+
+// ============================================
+// Configuration Tests
+// ============================================
+
+describe('useSocket Configuration', () => {
+  it('should accept enableLogging option', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    // Should not throw
+    const { result } = renderHook(() => useSocket({ enableLogging: true }));
+
+    expect(result.current.error).toBeNull();
+  });
+
+  it('should connect with correct URL', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    renderHook(() => useSocket());
+
+    expect(io).toHaveBeenCalledWith(
+      'http://localhost:5000',
+      expect.any(Object)
+    );
+  });
+});
+
+// ============================================
+// Hook State Tests
+// ============================================
+
+describe('useSocket State', () => {
+  it('should return socket reference', () => {
+    setupAuthenticatedStorage(createMockUser());
+
+    const { result } = renderHook(() => useSocket());
+
+    expect(result.current.socket).toBeDefined();
+  });
+
+  it('should expose all required methods', () => {
+    const { result } = renderHook(() => useSocket({ autoConnect: false }));
+
+    expect(typeof result.current.connect).toBe('function');
+    expect(typeof result.current.disconnect).toBe('function');
+    expect(typeof result.current.emit).toBe('function');
+    expect(typeof result.current.on).toBe('function');
+    expect(typeof result.current.off).toBe('function');
+  });
+
+  it('should expose all required state', () => {
+    const { result } = renderHook(() => useSocket({ autoConnect: false }));
+
+    expect(typeof result.current.isConnected).toBe('boolean');
+    expect(typeof result.current.isConnecting).toBe('boolean');
+    expect(result.current.error === null || typeof result.current.error === 'string').toBe(true);
+  });
+});

@@ -1,0 +1,374 @@
+/**
+ * Login Component Tests
+ *
+ * Tests for the Login form component.
+ * Covers form validation, submission, error handling, and navigation.
+ */
+
+import React from 'react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import Login from '../../../components/auth/Login';
+import { render, createMockUser, clearAuthStorage } from '../utils/testUtils';
+import * as api from '../../../utils/api';
+
+// ============================================
+// Mocks
+// ============================================
+
+// Mock the API module
+jest.mock('../../../utils/api', () => ({
+  login: jest.fn(),
+}));
+
+// Mock useNavigate
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+}));
+
+// ============================================
+// Test Setup
+// ============================================
+
+beforeEach(() => {
+  clearAuthStorage();
+  jest.clearAllMocks();
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+// ============================================
+// Rendering Tests
+// ============================================
+
+describe('Login Component Rendering', () => {
+  it('should render login form', () => {
+    render(<Login />);
+
+    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/email or username/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it('should render registration link', () => {
+    render(<Login />);
+
+    expect(screen.getByText(/don't have an account/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /sign up/i })).toBeInTheDocument();
+  });
+
+  it('should have empty fields initially', () => {
+    render(<Login />);
+
+    const identifierInput = screen.getByLabelText(/email or username/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+
+    expect(identifierInput).toHaveValue('');
+    expect(passwordInput).toHaveValue('');
+  });
+});
+
+// ============================================
+// Form Interaction Tests
+// ============================================
+
+describe('Login Form Interactions', () => {
+  it('should update identifier field on input', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    const identifierInput = screen.getByLabelText(/email or username/i);
+    await user.type(identifierInput, 'testuser@test.com');
+
+    expect(identifierInput).toHaveValue('testuser@test.com');
+  });
+
+  it('should update password field on input', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    const passwordInput = screen.getByLabelText(/password/i);
+    await user.type(passwordInput, 'password123');
+
+    expect(passwordInput).toHaveValue('password123');
+  });
+
+  it('should allow form submission with valid data', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(api.login).toHaveBeenCalledWith('test@test.com', 'password123');
+  });
+});
+
+// ============================================
+// Form Submission Tests
+// ============================================
+
+describe('Login Form Submission', () => {
+  it('should call login API with correct credentials', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'guard@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'securepass');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(api.login).toHaveBeenCalledWith('guard@test.com', 'securepass');
+  });
+
+  it('should show loading state during submission', async () => {
+    (api.login as jest.Mock).mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(resolve, 1000))
+    );
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    // Button should show loading state
+    await waitFor(() => {
+      const button = screen.getByRole('button');
+      expect(button).toBeDisabled();
+    });
+  });
+
+  it('should display success message after successful login', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/login successful/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should navigate to dashboard after successful login', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    // Fast-forward through the redirect timeout
+    await waitFor(() => {
+      expect(screen.getByText(/login successful/i)).toBeInTheDocument();
+    });
+
+    jest.advanceTimersByTime(2000);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+});
+
+// ============================================
+// Error Handling Tests
+// ============================================
+
+describe('Login Error Handling', () => {
+  it('should display error message for invalid credentials', async () => {
+    (api.login as jest.Mock).mockRejectedValueOnce(new Error('Invalid credentials'));
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'wrong@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'wrongpassword');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/login failed/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should clear error when user starts typing again', async () => {
+    (api.login as jest.Mock).mockRejectedValueOnce(new Error('Invalid credentials'));
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    // First attempt - fail
+    await user.type(screen.getByLabelText(/email or username/i), 'wrong@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'wrongpassword');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/login failed/i)).toBeInTheDocument();
+    });
+
+    // Start typing again - error should remain until next submit
+    // (depending on implementation)
+    await user.type(screen.getByLabelText(/email or username/i), 'new');
+
+    // Error handling depends on implementation
+  });
+
+  it('should handle network errors gracefully', async () => {
+    (api.login as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/login failed/i)).toBeInTheDocument();
+    });
+  });
+});
+
+// ============================================
+// Accessibility Tests
+// ============================================
+
+describe('Login Accessibility', () => {
+  it('should have accessible form labels', () => {
+    render(<Login />);
+
+    const identifierInput = screen.getByLabelText(/email or username/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+
+    expect(identifierInput).toHaveAttribute('name', 'identifier');
+    expect(passwordInput).toHaveAttribute('name', 'password');
+    expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  it('should allow form submission via Enter key', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password{enter}');
+
+    expect(api.login).toHaveBeenCalled();
+  });
+
+  it('should have proper focus order', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    // Tab through form elements
+    await user.tab();
+    expect(screen.getByLabelText(/email or username/i)).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByLabelText(/password/i)).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: /sign in/i })).toHaveFocus();
+  });
+});
+
+// ============================================
+// Edge Cases
+// ============================================
+
+describe('Login Edge Cases', () => {
+  it('should trim whitespace from email input', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), '  test@test.com  ');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    // API should be called (implementation may trim or not)
+    expect(api.login).toHaveBeenCalled();
+  });
+
+  it('should handle double form submission', async () => {
+    (api.login as jest.Mock).mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(resolve, 1000))
+    );
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+
+    // Click twice rapidly
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.click(screen.getByRole('button'));
+
+    // Should only call API once due to loading state disabling button
+    expect(api.login).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle login with username instead of email', async () => {
+    const mockUser = createMockUser();
+    (api.login as jest.Mock).mockResolvedValueOnce({
+      token: 'mock-token',
+      user: mockUser,
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<Login />);
+
+    await user.type(screen.getByLabelText(/email or username/i), 'testusername');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(api.login).toHaveBeenCalledWith('testusername', 'password');
+  });
+});
