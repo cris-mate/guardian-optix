@@ -127,6 +127,9 @@ const Header: React.FC<HeaderProps> = ({
           variant="outline"
           onClick={onRefresh}
           disabled={isLoading}
+          color="green.600"
+          borderColor="green.300"
+          _hover={{ bg: 'green.50', borderColor: 'green.400' }}
         >
           <Icon as={LuRefreshCw} mr={2} className={isLoading ? 'spin' : ''} />
           Refresh

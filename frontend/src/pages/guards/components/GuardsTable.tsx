@@ -191,8 +191,9 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                 onSort={handleSort}
               />
             </Table.ColumnHeader>
-            <Table.ColumnHeader>Shift</Table.ColumnHeader>
-            <Table.ColumnHeader>Location</Table.ColumnHeader>
+            <Table.ColumnHeader>
+              Location
+            </Table.ColumnHeader>
             <Table.ColumnHeader>
               <SortHeader
                 label="SIA Licence"
@@ -204,14 +205,13 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
             </Table.ColumnHeader>
             <Table.ColumnHeader>
               <SortHeader
-                label="Last Active"
+                label="Last Active Shift"
                 sortKey="lastActive"
                 currentSort={filters.sortBy}
                 currentOrder={filters.sortOrder}
                 onSort={handleSort}
               />
             </Table.ColumnHeader>
-            <Table.ColumnHeader width="50px"></Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
 
@@ -262,23 +262,15 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                   {guard.guardType && (
                     <Text fontSize="xs" color="gray.500">{guard.guardType}</Text>
                   )}
-                  {guard.managerType && (
-                    <Text fontSize="xs" color="gray.500">{guard.managerType}</Text>
-                  )}
                 </Box>
               </Table.Cell>
 
-              {/* Location (Postcode) */}
+              {/* Location */}
               <Table.Cell>
                 <Box>
                   <Text fontSize="sm" fontFamily="mono">
                     {guard.postCode}
                   </Text>
-                  {guard.assignedSite && (
-                    <Text fontSize="xs" color="gray.500" truncate maxW="150px">
-                      {guard.assignedSite}
-                    </Text>
-                  )}
                 </Box>
               </Table.Cell>
 
@@ -307,46 +299,23 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                 )}
               </Table.Cell>
 
-              {/* Last Active */}
+              {/* Last Active Shift*/}
               <Table.Cell>
-                <Text fontSize="sm" color="gray.600">
-                  {getRelativeTime(guard.lastActiveAt)}
-                </Text>
-              </Table.Cell>
-
-              {/* Actions */}
-              <Table.Cell onClick={(e) => e.stopPropagation()}>
-                <Menu.Root>
-                  <Menu.Trigger asChild>
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      aria-label="Actions"
-                    >
-                      <LuMoveVertical size={16} />
-                    </IconButton>
-                  </Menu.Trigger>
-                  <Menu.Content>
-                    <Menu.Item value="view" onClick={() => onSelect(guard._id)}>
-                      <LuEye size={14} />
-                      <Text ml={2}>View Details</Text>
-                    </Menu.Item>
-                    {onEdit && (
-                      <Menu.Item value="edit" onClick={() => onEdit(guard)}>
-                        <LuPencil size={14} />
-                        <Text ml={2}>Edit</Text>
-                      </Menu.Item>
-                    )}
-                    <Menu.Item value="call" onClick={() => window.open(`tel:${guard.phoneNumber}`)}>
-                      <LuPhone size={14} />
-                      <Text ml={2}>Call</Text>
-                    </Menu.Item>
-                    <Menu.Item value="email" onClick={() => window.open(`mailto:${guard.email}`)}>
-                      <LuMail size={14} />
-                      <Text ml={2}>Email</Text>
-                    </Menu.Item>
-                  </Menu.Content>
-                </Menu.Root>
+                {guard.lastShift ? (
+                  <Box>
+                    <Text fontSize="sm">
+                      {new Date(guard.lastShift.date).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      {guard.lastShift.siteName || guard.lastShift.shiftType}
+                    </Text>
+                  </Box>
+                ) : (
+                  <Text fontSize="sm" color="gray.400">Never assigned</Text>
+                )}
               </Table.Cell>
             </Table.Row>
           ))}

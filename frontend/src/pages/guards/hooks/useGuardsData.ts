@@ -15,6 +15,7 @@ import {
   GuardsFormData,
   Pagination,
   DEFAULT_FILTERS,
+  DEFAULT_STATS,
 } from '../../../types/guards.types';
 
 const USE_MOCK_DATA = MOCK_CONFIG.guards;
@@ -47,6 +48,11 @@ const MOCK_GUARDS: Guards[] = [
     certifications: ['First Aid', 'Fire Safety'],
     createdAt: '2023-06-15T09:00:00Z',
     lastActiveAt: '2024-11-29T08:30:00Z',
+    lastShift: {
+      date: '2024-11-29',
+      siteName: 'Westminster Office Complex',
+      shiftType: 'Morning',
+    },
   },
   {
     _id: '2',
@@ -71,6 +77,11 @@ const MOCK_GUARDS: Guards[] = [
     certifications: ['First Aid', 'Advanced Driving', 'Conflict Management'],
     createdAt: '2022-03-10T09:00:00Z',
     lastActiveAt: '2024-11-28T22:15:00Z',
+    lastShift: {
+      date: '2024-11-28',
+      siteName: 'Canary Wharf Tower',
+      shiftType: 'Night',
+    },
   },
   {
     _id: '3',
@@ -95,6 +106,11 @@ const MOCK_GUARDS: Guards[] = [
     certifications: ['First Aid', 'Vehicle Operations'],
     createdAt: '2023-09-01T09:00:00Z',
     lastActiveAt: '2024-11-29T14:45:00Z',
+    lastShift: {
+      date: '2024-11-29',
+      siteName: 'Manchester Retail Park',
+      shiftType: 'Afternoon',
+    },
   },
   {
     _id: '4',
@@ -118,6 +134,7 @@ const MOCK_GUARDS: Guards[] = [
     certifications: ['First Aid', 'K9 Handler Certification'],
     createdAt: '2021-11-20T09:00:00Z',
     lastActiveAt: '2024-11-15T18:00:00Z',
+    lastShift: null,
   },
   {
     _id: '5',
@@ -142,72 +159,29 @@ const MOCK_GUARDS: Guards[] = [
     certifications: ['First Aid'],
     createdAt: '2024-01-08T09:00:00Z',
     lastActiveAt: '2024-11-29T07:00:00Z',
-  },
-  {
-    _id: '6',
-    fullName: 'Charlotte Davies',
-    username: 'c.davies',
-    email: 'charlotte.davies@guardianoptix.co.uk',
-    phoneNumber: '07700 900678',
-    postCode: 'CF10 1EP',
-    role: 'Manager',
-    managerType: 'Operations Manager',
-    status: 'on-duty',
-    availability: true,
-    createdAt: '2020-05-01T09:00:00Z',
-    lastActiveAt: '2024-11-29T09:30:00Z',
-  },
-  {
-    _id: '7',
-    fullName: 'Daniel Roberts',
-    username: 'd.roberts',
-    email: 'daniel.roberts@guardianoptix.co.uk',
-    phoneNumber: '07700 900789',
-    postCode: 'G2 1DY',
-    role: 'Guard',
-    guardType: 'Static',
-    status: 'off-duty',
-    badgeNumber: 'GO-2024-007',
-    availability: false,
-    siaLicence: {
-      licenceNumber: '6789012345678901',
-      licenceType: 'Security Guard',
-      issueDate: '2023-02-01',
-      expiryDate: '2026-02-01',
-      status: 'valid',
+    lastShift: {
+      date: '2024-11-29',
+      siteName: 'Leeds Business Centre',
+      shiftType: 'Morning',
     },
-    certifications: ['First Aid', 'CCTV Operations'],
-    createdAt: '2023-02-14T09:00:00Z',
-    lastActiveAt: '2024-11-28T06:00:00Z',
-  },
-  {
-    _id: '8',
-    fullName: 'Amelia Johnson',
-    username: 'a.johnson',
-    email: 'amelia.johnson@guardianoptix.co.uk',
-    phoneNumber: '07700 900890',
-    postCode: 'EH1 1RE',
-    role: 'Guard',
-    guardType: 'Close Protection',
-    status: 'on-duty',
-    badgeNumber: 'GO-2024-008',
-    availability: true,
-    assignedSite: 'Edinburgh Executive Suites',
-    siaLicence: {
-      licenceNumber: '7890123456789012',
-      licenceType: 'Close Protection',
-      issueDate: '2022-08-01',
-      expiryDate: '2025-08-01',
-      status: 'valid',
-    },
-    certifications: ['First Aid', 'Advanced Driving', 'Firearms Awareness'],
-    createdAt: '2022-08-22T09:00:00Z',
-    lastActiveAt: '2024-11-29T08:00:00Z',
   },
 ];
 
+const MOCK_STATS: GuardsStats = {
+  total: 5,
+  onDuty: 3,
+  offDuty: 2,
+  onBreak: 0,
+  late: 0,
+  absent: 0,
+  scheduled: 0,
+  availableToday: 3,
+  unassignedThisWeek: 1,
+  expiringLicences: 2,
+};
+
 // ============================================
-// Hook Implementation
+// Hook Interface
 // ============================================
 
 interface UseGuardsDataReturn {
@@ -231,33 +205,19 @@ interface UseGuardsDataReturn {
   refetch: () => void;
 }
 
+// ============================================
+// Main Hook
+// ============================================
+
 export const useGuardsData = (): UseGuardsDataReturn => {
   const [guards, setGuards] = useState<Guards[]>([]);
+  const [stats, setStats] = useState<GuardsStats>(DEFAULT_STATS);
   const [selectedGuard, setSelectedGuard] = useState<Guards | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFiltersState] = useState<GuardsFilters>(DEFAULT_FILTERS);
-
-  // ============================================
-  // Computed Statistics
-  // ============================================
-
-  const stats = useMemo<GuardsStats>(() => {
-    const total = guards.length;
-    const onDuty = guards.filter(p => p.status === 'on-duty').length;
-    const offDuty = guards.filter(p => p.status === 'off-duty').length;
-    const onBreak= guards.filter(p => p.status === 'on-break').length;
-    const late= guards.filter(p => p.status === 'late').length;
-    const absent= guards.filter(p => p.status === 'absent').length;
-    const scheduled= guards.filter(p => p.status === 'scheduled').length;
-    const expiringLicences = guards.filter(
-      p => p.siaLicence?.status === 'expiring-soon' || p.siaLicence?.status === 'expired'
-    ).length;
-
-    return { total, onDuty, offDuty, onBreak, late, absent, scheduled, expiringLicences };
-  }, [guards]);
 
   // ============================================
   // Filtered & Paginated Data
@@ -269,38 +229,39 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      result = result.filter(p =>
-        p.fullName.toLowerCase().includes(searchLower) ||
-        p.email.toLowerCase().includes(searchLower) ||
-        p.badgeNumber?.toLowerCase().includes(searchLower) ||
-        p.postCode.toLowerCase().includes(searchLower)
+      result = result.filter(
+        (p) =>
+          p.fullName.toLowerCase().includes(searchLower) ||
+          p.email.toLowerCase().includes(searchLower) ||
+          p.badgeNumber?.toLowerCase().includes(searchLower) ||
+          p.postCode.toLowerCase().includes(searchLower)
       );
     }
 
     // Status filter
     if (filters.status !== 'all') {
-      result = result.filter(p => p.status === filters.status);
+      result = result.filter((p) => p.status === filters.status);
     }
 
     // Role filter
     if (filters.role !== 'all') {
-      result = result.filter(p => p.role === filters.role);
+      result = result.filter((p) => p.role === filters.role);
     }
 
     // Guard type filter
     if (filters.guardType !== 'all') {
-      result = result.filter(p => p.guardType === filters.guardType);
+      result = result.filter((p) => p.guardType === filters.guardType);
     }
 
     // Availability filter
     if (filters.availability !== 'all') {
       const isAvailable = filters.availability === 'available';
-      result = result.filter(p => p.availability === isAvailable);
+      result = result.filter((p) => p.availability === isAvailable);
     }
 
     // Licence status filter
     if (filters.licenceStatus !== 'all') {
-      result = result.filter(p => p.siaLicence?.status === filters.licenceStatus);
+      result = result.filter((p) => p.siaLicence?.status === filters.licenceStatus);
     }
 
     // Sorting
@@ -318,11 +279,17 @@ export const useGuardsData = (): UseGuardsDataReturn => {
           comparison = a.role.localeCompare(b.role);
           break;
         case 'lastActive':
-          comparison = new Date(b.lastActiveAt || 0).getTime() - new Date(a.lastActiveAt || 0).getTime();
+          comparison =
+            new Date(b.lastActiveAt || 0).getTime() -
+            new Date(a.lastActiveAt || 0).getTime();
           break;
         case 'licenceExpiry':
-          const aExpiry = a.siaLicence?.expiryDate ? new Date(a.siaLicence.expiryDate).getTime() : Infinity;
-          const bExpiry = b.siaLicence?.expiryDate ? new Date(b.siaLicence.expiryDate).getTime() : Infinity;
+          const aExpiry = a.siaLicence?.expiryDate
+            ? new Date(a.siaLicence.expiryDate).getTime()
+            : Infinity;
+          const bExpiry = b.siaLicence?.expiryDate
+            ? new Date(b.siaLicence.expiryDate).getTime()
+            : Infinity;
           comparison = aExpiry - bExpiry;
           break;
       }
@@ -364,9 +331,16 @@ export const useGuardsData = (): UseGuardsDataReturn => {
         // Simulate network delay
         await simulateDelay('medium');
         setGuards(MOCK_GUARDS);
+        setStats(MOCK_STATS);
       } else {
-        const response = await api.get('/guards');
-        setGuards(response.data.data || response.data);
+        // Fetch guards and stats in parallel
+        const [guardsRes, statsRes] = await Promise.all([
+          api.get('/guards'),
+          api.get('/guards/stats'),
+        ]);
+
+        setGuards(guardsRes.data.data || guardsRes.data);
+        setStats(statsRes.data.data || statsRes.data);
       }
     } catch (err) {
       setError('Failed to load guards data');
@@ -382,7 +356,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     try {
       if (USE_MOCK_DATA) {
         await simulateDelay('short');
-        const guard = MOCK_GUARDS.find(p => p._id === id);
+        const guard = MOCK_GUARDS.find((p) => p._id === id);
         setSelectedGuard(guard || null);
       } else {
         const response = await api.get(`/guards/${id}`);
@@ -401,7 +375,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
   // ============================================
 
   const setFilters = useCallback((newFilters: Partial<GuardsFilters>) => {
-    setFiltersState(prev => ({
+    setFiltersState((prev) => ({
       ...prev,
       ...newFilters,
       // Reset to page 1 when filters change (except page itself)
@@ -413,74 +387,86 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     setFiltersState(DEFAULT_FILTERS);
   }, []);
 
-  const selectGuard = useCallback((id: string | null) => {
-    if (id) {
-      fetchGuardDetails(id);
-    } else {
-      setSelectedGuard(null);
-    }
-  }, [fetchGuardDetails]);
-
-  const createGuard = useCallback(async (data: GuardsFormData) => {
-    setIsMutating(true);
-
-    try {
-      if (USE_MOCK_DATA) {
-        await simulateDelay('medium');
-        // In mock mode, just refetch
+  const selectGuard = useCallback(
+    (id: string | null) => {
+      if (id) {
+        fetchGuardDetails(id);
       } else {
-        await api.post('/guards', data);
-      }
-      await fetchGuards();
-    } catch (err) {
-      console.error('Error creating guard:', err);
-      throw err;
-    } finally {
-      setIsMutating(false);
-    }
-  }, [fetchGuards]);
-
-  const updateGuard = useCallback(async (id: string, data: Partial<GuardsFormData>) => {
-    setIsMutating(true);
-
-    try {
-      if (USE_MOCK_DATA) {
-        await simulateDelay('medium');
-      } else {
-        await api.put(`/guards/${id}`, data);
-      }
-      await fetchGuards();
-      if (selectedGuard?._id === id) {
-        await fetchGuardDetails(id);
-      }
-    } catch (err) {
-      console.error('Error updating guard:', err);
-      throw err;
-    } finally {
-      setIsMutating(false);
-    }
-  }, [fetchGuards, fetchGuardDetails, selectedGuard]);
-
-  const deleteGuard = useCallback(async (id: string) => {
-    setIsMutating(true);
-
-    try {
-      if (USE_MOCK_DATA) {
-        await simulateDelay('medium');
-      } else {
-        await api.delete(`/guards/${id}`);
-      }
-      await fetchGuards();
-      if (selectedGuard?._id === id) {
         setSelectedGuard(null);
       }
-    } catch (err) {
-      console.error('Error deleting guard:', err);
-      throw err;
-    } finally {
-      setIsMutating(false);
-    }
-  }, [fetchGuards, selectedGuard]);
+    },
+    [fetchGuardDetails]
+  );
+
+  const createGuard = useCallback(
+    async (data: GuardsFormData) => {
+      setIsMutating(true);
+
+      try {
+        if (USE_MOCK_DATA) {
+          await simulateDelay('medium');
+          // In mock mode, just refetch
+        } else {
+          await api.post('/guards', data);
+        }
+        await fetchGuards();
+      } catch (err) {
+        console.error('Error creating guard:', err);
+        throw err;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [fetchGuards]
+  );
+
+  const updateGuard = useCallback(
+    async (id: string, data: Partial<GuardsFormData>) => {
+      setIsMutating(true);
+
+      try {
+        if (USE_MOCK_DATA) {
+          await simulateDelay('medium');
+        } else {
+          await api.put(`/guards/${id}`, data);
+        }
+        await fetchGuards();
+        if (selectedGuard?._id === id) {
+          await fetchGuardDetails(id);
+        }
+      } catch (err) {
+        console.error('Error updating guard:', err);
+        throw err;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [fetchGuards, fetchGuardDetails, selectedGuard]
+  );
+
+  const deleteGuard = useCallback(
+    async (id: string) => {
+      setIsMutating(true);
+
+      try {
+        if (USE_MOCK_DATA) {
+          await simulateDelay('medium');
+        } else {
+          await api.delete(`/guards/${id}`);
+        }
+        await fetchGuards();
+        if (selectedGuard?._id === id) {
+          setSelectedGuard(null);
+        }
+      } catch (err) {
+        console.error('Error deleting guard:', err);
+        throw err;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [fetchGuards, selectedGuard]
+  );
 
   // ============================================
   // Effects
@@ -503,9 +489,9 @@ export const useGuardsData = (): UseGuardsDataReturn => {
     setFilters,
     resetFilters,
     selectGuard,
-    createGuard: createGuard,
-    updateGuard: updateGuard,
-    deleteGuard: deleteGuard,
+    createGuard,
+    updateGuard,
+    deleteGuard,
     refetch: fetchGuards,
   };
 };

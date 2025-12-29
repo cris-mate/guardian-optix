@@ -6,18 +6,18 @@
  */
 
 const User = require('../models/User');
+const Shift = require('../models/Shift');
 const asyncHandler = require('../utils/asyncHandler');
 
 /**
  * @route   GET /api/guards
- * @desc    Get all guards (Guards and Managers)
+ * @desc    Get all guards (Guards only)
  * @access  Private
  */
 const getGuards = asyncHandler(async (req, res) => {
   const {
     search,
     status,
-    role,
     guardType,
     shift,
     availability,
@@ -30,8 +30,8 @@ const getGuards = asyncHandler(async (req, res) => {
 
   // Build query
   const query = {
-    // Exclude Admin users from guards list (they are system admins, not field staff)
-    role: { $in: ['Guard', 'Manager'] },
+    // Exclude Admin and Manager users from guards list
+    role: 'Guard'
   };
 
   // Search filter
@@ -47,11 +47,6 @@ const getGuards = asyncHandler(async (req, res) => {
   // Status filter
   if (status && status !== 'all') {
     query.status = status;
-  }
-
-  // Role filter
-  if (role && role !== 'all') {
-    query.role = role;
   }
 
   // Guard type filter
@@ -87,13 +82,39 @@ const getGuards = asyncHandler(async (req, res) => {
       .select('-password')
       .sort(sortObj)
       .skip(skip)
-      .limit(parseInt(limit)),
+      .limit(parseInt(limit))
+      .lean(),
     User.countDocuments(query),
   ]);
 
+  // Fetch last completed/in-progress shift for each guard
+  const guardsWithLastShift = await Promise.all(
+    guards.map(async (guard) => {
+      const lastShift = await Shift.findOne({
+        guard: guard._id,
+        status: { $in: ['completed', 'in-progress'] },
+      })
+        .sort({ date: -1, endTime: -1 })
+        .select('date site shiftType')
+        .populate('site', 'name')
+        .lean();
+
+      return {
+        ...guard,
+        lastShift: lastShift
+          ? {
+            date: lastShift.date,
+            siteName: lastShift.site?.name || null,
+            shiftType: lastShift.shiftType,
+          }
+          : null,
+      };
+    })
+  );
+
   res.status(200).json({
     success: true,
-    data: guards,
+    data: guardsWithLastShift,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -104,44 +125,96 @@ const getGuards = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Helper: Get start of current week (Monday)
+ */
+const getStartOfWeek = () => {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Adjust for Sunday
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  return monday.toISOString().split('T')[0];
+};
+
+/**
+ * Helper: Get end of current week (Sunday)
+ */
+const getEndOfWeek = () => {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? 0 : 7 - day; // Adjust for Sunday
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() + diff);
+  return sunday.toISOString().split('T')[0];
+};
+
+/**
  * @route   GET /api/guards/stats
  * @desc    Get guards statistics
  * @access  Private
  */
 const getGuardsStats = asyncHandler(async (req, res) => {
-  const stats = await User.aggregate([
-    { $match: { role: { $in: ['Guard', 'Manager'] } } },
-    {
-      $group: {
-        _id: null,
-        total: { $sum: 1 },
-        onDuty: { $sum: { $cond: [{ $eq: ['$status', 'on-duty'] }, 1, 0] } },
-        offDuty: { $sum: { $cond: [{ $eq: ['$status', 'off-duty'] }, 1, 0] } },
-        onBreak: { $sum: { $cond: [{ $eq: ['$status', 'on-break'] }, 1, 0] } },
-        late: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
-        absent: { $sum: { $cond: [{ $eq: ['$status', 'absent'] }, 1, 0] } },
-        scheduled: { $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] } },
-        expiringLicences: {
-          $sum: {
-            $cond: [
-              { $in: ['$siaLicence.status', ['expiring-soon', 'expired']] },
-              1,
-              0,
-            ],
+  // Get week boundaries
+  const startOfWeek = getStartOfWeek();
+  const endOfWeek = getEndOfWeek();
+
+  // Run aggregation and shift query in parallel
+  const [statsResult, guardsWithShiftsThisWeek, totalGuards] = await Promise.all([
+    // Basic stats aggregation
+    User.aggregate([
+      { $match: { role: 'Guard' } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          onDuty: { $sum: { $cond: [{ $eq: ['$status', 'on-duty'] }, 1, 0] } },
+          offDuty: { $sum: { $cond: [{ $eq: ['$status', 'off-duty'] }, 1, 0] } },
+          onBreak: { $sum: { $cond: [{ $eq: ['$status', 'on-break'] }, 1, 0] } },
+          late: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
+          absent: { $sum: { $cond: [{ $eq: ['$status', 'absent'] }, 1, 0] } },
+          scheduled: { $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] } },
+          availableToday: { $sum: { $cond: [{ $eq: ['$availability', true] }, 1, 0] } },
+          expiringLicences: {
+            $sum: {
+              $cond: [
+                { $in: ['$siaLicence.status', ['expiring-soon', 'expired']] },
+                1,
+                0,
+              ],
+            },
           },
         },
       },
-    },
+    ]),
+    // Get distinct guards who have shifts this week
+    Shift.distinct('guard', {
+      date: { $gte: startOfWeek, $lte: endOfWeek },
+      status: { $ne: 'cancelled' },
+    }),
+    // Total guard count
+    User.countDocuments({ role: 'Guard' }),
   ]);
+
+  const stats = statsResult[0] || {
+    total: 0,
+    onDuty: 0,
+    offDuty: 0,
+    onBreak: 0,
+    late: 0,
+    absent: 0,
+    scheduled: 0,
+    availableToday: 0,
+    expiringLicences: 0,
+  };
+
+  // Calculate unassigned this week
+  const unassignedThisWeek = totalGuards - guardsWithShiftsThisWeek.length;
 
   res.status(200).json({
     success: true,
-    data: stats[0] || {
-      total: 0,
-      active: 0,
-      onLeave: 0,
-      offDuty: 0,
-      expiringLicences: 0,
+    data: {
+      ...stats,
+      unassignedThisWeek,
     },
   });
 });
@@ -159,9 +232,28 @@ const getGuardById = asyncHandler(async (req, res) => {
     throw new Error('Guard not found');
   }
 
+  // Fetch last shift for this guard
+  const lastShift = await Shift.findOne({
+    guard: guard._id,
+    status: { $in: ['completed', 'in-progress'] },
+  })
+    .sort({ date: -1, endTime: -1 })
+    .select('date site shiftType')
+    .populate('site', 'name')
+    .lean();
+
   res.status(200).json({
     success: true,
-    data: guard,
+    data: {
+      ...guard,
+      lastShift: lastShift
+        ? {
+          date: lastShift.date,
+          siteName: lastShift.site?.name || null,
+          shiftType: lastShift.shiftType,
+        }
+        : null,
+    },
   });
 });
 
@@ -353,12 +445,12 @@ const getAvailableGuards = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getGuards: getGuards,
+  getGuards,
   getGuardsStats,
-  getGuardById: getGuardById,
-  createGuard: createGuard,
-  updateGuard: updateGuard,
-  deleteGuard: deleteGuard,
-  updateGuardStatus: updateGuardStatus,
-  getAvailableGuards: getAvailableGuards,
+  getGuardById,
+  createGuard,
+  updateGuard,
+  deleteGuard,
+  updateGuardStatus,
+  getAvailableGuards,
 };

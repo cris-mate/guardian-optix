@@ -44,6 +44,13 @@ export type GuardsStatus =
 // Guards requires status (always computed for display)
 export interface Guards extends Omit<UserExtended, 'status'> {
   status: GuardsStatus;
+
+  // Last completed/in-progress shift (from API)
+  lastShift?: {
+    date: string;
+    siteName?: string;
+    shiftType?: string;
+  } | null;
 }
 
 // ============================================
@@ -94,8 +101,30 @@ export interface GuardsStats {
   total: number;
   onDuty: number;
   offDuty: number;
+  onBreak: number;
+  late: number;
+  absent: number;
+  scheduled: number;
+  availableToday: number;
+  unassignedThisWeek: number;
   expiringLicences: number;
 }
+
+/**
+ * Default stats values
+ */
+export const DEFAULT_STATS: GuardsStats = {
+  total: 0,
+  onDuty: 0,
+  offDuty: 0,
+  onBreak: 0,
+  late: 0,
+  absent: 0,
+  scheduled: 0,
+  availableToday: 0,
+  unassignedThisWeek: 0,
+  expiringLicences: 0,
+};
 
 /**
  * Form data for adding/editing guards
@@ -108,7 +137,7 @@ export interface GuardsFormData {
   phoneNumber: string;
   postCode: string;
   password?: string;
-  role: UserRole;
+  role: "Guard";
   guardType?: GuardType;
   availability?: boolean;
 

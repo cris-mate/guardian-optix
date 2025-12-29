@@ -103,6 +103,9 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, onAddGuard, isLoading, isMan
         size="sm"
         onClick={onRefresh}
         disabled={isLoading}
+        color="green.600"
+        borderColor="green.300"
+        _hover={{ bg: 'green.50', borderColor: 'green.400' }}
       >
         <Icon
           as={LuRefreshCw}
@@ -211,7 +214,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ tabValue, hasFilters, isManager
         {tabValue === 'all' && !hasFilters && isManager && (
           <Button colorPalette="blue" size="sm" onClick={onAddGuard}>
             <Icon as={LuUserPlus} boxSize={4} mr={2} />
-            Add First Guard
+            Add Guard
           </Button>
         )}
       </VStack>
@@ -311,6 +314,7 @@ const Guards: React.FC = () => {
     selectGuard,
     createGuard,
     refetch,
+    stats,
   } = useGuardsData();
 
   // Computed counts for tabs
@@ -321,15 +325,15 @@ const Guards: React.FC = () => {
   ).length;
 
   // Computed stats for cards
-  const availableTodayCount = guards.filter(g =>
-    g.availability && g.status !== 'on-duty'
-  ).length;
-  const unassignedThisWeekCount = guards.filter(g =>
-    g.availability && g.status === 'off-duty'
-  ).length;
-  const complianceAlertsCount = guards.filter(g =>
-    g.siaLicence?.status === 'expiring-soon' || g.siaLicence?.status === 'expired'
-  ).length;
+  // const availableTodayCount = guards.filter(g =>
+  //   g.availability && g.status !== 'on-duty'
+  // ).length;
+  // const unassignedThisWeekCount = guards.filter(g =>
+  //   g.availability && g.status === 'off-duty'
+  // ).length;
+  // const complianceAlertsCount = guards.filter(g =>
+  //   g.siaLicence?.status === 'expiring-soon' || g.siaLicence?.status === 'expired'
+  // ).length;
 
   // Filtered guards based on tab
   const filteredGuards = React.useMemo(() => {
@@ -406,10 +410,10 @@ const Guards: React.FC = () => {
 
       {/* Stats Cards */}
       <StatsCards
-        total={pagination.total}
-        availableToday={availableTodayCount}
-        unassignedThisWeek={unassignedThisWeekCount}
-        complianceAlerts={complianceAlertsCount}
+        total={stats.total}
+        availableToday={stats.availableToday}
+        unassignedThisWeek={stats.unassignedThisWeek}
+        complianceAlerts={stats.expiringLicences}
         isLoading={isLoading}
       />
 

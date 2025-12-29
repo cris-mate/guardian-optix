@@ -134,6 +134,9 @@ const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoading, isCo
         size="sm"
         onClick={onRefresh}
         disabled={isLoading}
+        color="green.600"
+        borderColor="green.300"
+        _hover={{ bg: 'green.50', borderColor: 'green.400' }}
       >
         <Icon
           as={LuRefreshCw}

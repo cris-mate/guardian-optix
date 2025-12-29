@@ -141,6 +141,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({
             colorScheme="gray"
             onClick={onRefresh}
             disabled={isRefreshing}
+            color="green.600"
+            borderColor="green.300"
+            _hover={{ bg: 'green.50', borderColor: 'green.400' }}
           >
             {isRefreshing ? (
               <>
