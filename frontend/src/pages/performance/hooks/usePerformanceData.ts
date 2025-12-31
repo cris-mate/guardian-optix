@@ -564,24 +564,38 @@ export const usePerformanceData = (initialFilters: PerformanceFilters = { timeRa
           lastUpdated: new Date(),
         });
       } else {
-        // Real API calls would go here
-        const [overview, guards, patrols, attendance, incidents, alerts] = await Promise.all([
-          fetch('/api/performance/overview').then(r => r.json()),
-          fetch('/api/performance/guards').then(r => r.json()),
-          fetch('/api/performance/patrols').then(r => r.json()),
-          fetch('/api/performance/attendance').then(r => r.json()),
-          fetch('/api/performance/incidents').then(r => r.json()),
-          fetch('/api/performance/alerts').then(r => r.json()),
+        // Real API calls using authenticated api utility
+        const [overviewRes, guardsRes, patrolsRes, attendanceRes, incidentsRes, alertsRes] = await Promise.all([
+          api.get('/performance/overview'),
+          api.get('/performance/guards'),
+          api.get('/performance/patrols'),
+          api.get('/performance/attendance'),
+          api.get('/performance/incidents'),
+          api.get('/performance/alerts'),
         ]);
 
+        // DEBUG: Log the actual response structure
+        console.log('=== DEBUG: API Response Structure ===');
+        console.log('overviewRes:', overviewRes);
+        console.log('overviewRes.data:', overviewRes.data);
+        console.log('overviewRes.data.data:', overviewRes.data?.data);
+        console.log('=====================================');
+
+        const overview = overviewRes.data?.data;
+
+        if (!overview?.patrolCompletion) {
+          console.error('ERROR: patrolCompletion missing. Full overview:', overview);
+          throw new Error('Invalid API response structure');
+        }
+
         setState({
-          overview: overview.data,
-          guards: guards.data,
-          rankings: generateMockRankings(guards.data),
-          patrols: patrols.data,
-          attendance: attendance.data,
-          incidents: incidents.data,
-          alerts: alerts.data,
+          overview: overviewRes.data.data,
+          guards: guardsRes.data.data || [],
+          rankings: generateMockRankings(guardsRes.data.data || []),
+          patrols: patrolsRes.data.data,
+          attendance: attendanceRes.data.data,
+          incidents: incidentsRes.data.data,
+          alerts: alertsRes.data.data || [],
           isLoading: false,
           error: null,
           lastUpdated: new Date(),
