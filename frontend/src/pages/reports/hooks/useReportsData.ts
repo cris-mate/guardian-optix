@@ -434,18 +434,18 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
           lastUpdated: new Date(),
         });
       } else {
-        const [templates, recent, scheduled, stats] = await Promise.all([
-          fetch('/api/reports/templates').then(r => r.json()),
-          fetch('/api/reports/recent').then(r => r.json()),
-          fetch('/api/reports/scheduled').then(r => r.json()),
-          fetch('/api/reports/stats').then(r => r.json()),
+        const [templatesRes, recentRes, scheduledRes, statsRes] = await Promise.all([
+          api.get('/reports/templates'),
+          api.get('/reports/recent'),
+          api.get('/reports/scheduled'),
+          api.get('/reports/stats'),
         ]);
 
         setState({
-          templates: templates.data,
-          recentReports: recent.data,
-          scheduledReports: scheduled.data,
-          quickStats: stats.data,
+          templates: templatesRes.data.data || [],
+          recentReports: recentRes.data.data || [],
+          scheduledReports: scheduledRes.data.data || [],
+          quickStats: statsRes.data.data,
           operationalData: null,
           attendanceData: null,
           incidentData: null,
@@ -531,20 +531,15 @@ export const useReportsData = (initialFilters: ReportFilters = { timeRange: 'mon
         return newReport;
       }
 
-      const response = await fetch('/api/reports/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templateId, format, dateRange }),
-      });
-
-      const data = await response.json();
+      const response = await api.post('/reports/generate', { templateId, format, dateRange });
+      const data = response.data;
       setState(prev => ({
         ...prev,
-        recentReports: [data.report, ...prev.recentReports],
+        recentReports: [data.data, ...prev.recentReports],
         generatingTemplateId: null,
       }));
 
-      return data.report;
+      return data.data;
     } catch (err) {
       setState(prev => ({
         ...prev,

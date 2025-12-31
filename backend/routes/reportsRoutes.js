@@ -19,6 +19,7 @@ const {
   deleteScheduledReport,
   getOperationalData,
   downloadReport,
+  deleteReport,
 } = require('../controllers/reportsController');
 
 // All report routes require authentication
@@ -77,6 +78,13 @@ router.get('/recent', getRecentReports);
  * @access  Private
  */
 router.get('/stats', getReportStats);
+
+/**
+ * @route   DELETE /api/reports/:id
+ * @desc    Delete a generated report
+ * @access  Private
+ */
+router.delete('/:id', deleteReport);
 
 // ============================================
 // Scheduled Report Routes

@@ -3,11 +3,13 @@
  *
  * Provides report generation and analytics data.
  * Supports multiple report types and export formats.
+ * Uses MongoDB for persistent storage of generated reports.
  */
 
 const asyncHandler = require('../utils/asyncHandler');
 const Shift = require('../models/Shift');
 const Incident = require('../models/Incident');
+const Report = require('../models/Report');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
@@ -43,10 +45,6 @@ const getDateRange = (timeRange) => {
       start = new Date(now);
       start.setMonth(start.getMonth() - 1);
       break;
-    case 'quarter':
-      start = new Date(now);
-      start.setMonth(start.getMonth() - 3);
-      break;
     case 'year':
       start = new Date(now);
       start.setFullYear(start.getFullYear() - 1);
@@ -78,6 +76,7 @@ const formatFileSize = (bytes) => {
  * Calculate shift duration in hours from time strings
  */
 const calculateShiftHours = (startTime, endTime) => {
+  if (!startTime || !endTime) return 8; // Default to 8 hours
   const start = parseInt(startTime.split(':')[0], 10);
   const end = parseInt(endTime.split(':')[0], 10);
   return end > start ? end - start : 24 - start + end;
@@ -170,8 +169,8 @@ const REPORT_TEMPLATES = [
   },
 ];
 
-// In-memory storage for generated reports (would be database in production)
-let generatedReports = [];
+// In-memory storage for scheduled reports and favorites
+// TODO: Move to database models in future enhancement
 let scheduledReports = [];
 let userFavorites = {};
 
@@ -188,13 +187,27 @@ const getTemplates = asyncHandler(async (req, res) => {
   const userId = req.user._id.toString();
   const favorites = userFavorites[userId] || [];
 
+  // Get generation counts from database
+  const generationCounts = await Report.aggregate([
+    {
+      $group: {
+        _id: '$templateId',
+        count: { $sum: 1 },
+        lastGenerated: { $max: '$createdAt' },
+      },
+    },
+  ]);
+
+  const countsMap = {};
+  generationCounts.forEach((g) => {
+    countsMap[g._id] = { count: g.count, lastGenerated: g.lastGenerated };
+  });
+
   const templates = REPORT_TEMPLATES.map((template) => ({
     ...template,
     isFavorite: favorites.includes(template.id),
-    generationCount: generatedReports.filter((r) => r.templateId === template.id).length,
-    lastGenerated: generatedReports
-      .filter((r) => r.templateId === template.id)
-      .sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt))[0]?.generatedAt,
+    generationCount: countsMap[template.id]?.count || 0,
+    lastGenerated: countsMap[template.id]?.lastGenerated,
   }));
 
   res.json({ data: templates });
@@ -208,11 +221,28 @@ const getTemplates = asyncHandler(async (req, res) => {
 const getRecentReports = asyncHandler(async (req, res) => {
   const { limit = 10 } = req.query;
 
-  const reports = generatedReports
-    .sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt))
-    .slice(0, parseInt(limit));
+  const reports = await Report.find()
+    .sort({ createdAt: -1 })
+    .limit(parseInt(limit))
+    .lean();
 
-  res.json({ data: reports });
+  // Transform to match frontend expected format
+  const formattedReports = reports.map((r) => ({
+    id: r._id,
+    templateId: r.templateId,
+    templateName: r.templateName,
+    category: r.category,
+    dateRange: r.dateRange,
+    generatedAt: r.createdAt,
+    generatedBy: r.generatedByName,
+    status: r.status,
+    format: r.format,
+    fileSize: r.fileSize,
+    downloadUrl: `/api/reports/download/${r._id}`,
+    expiresAt: r.expiresAt,
+  }));
+
+  res.json({ data: formattedReports });
 });
 
 /**
@@ -236,34 +266,29 @@ const getReportStats = asyncHandler(async (req, res) => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const reportsThisMonth = generatedReports.filter(
-    (r) => new Date(r.generatedAt) >= monthStart
-  ).length;
+  // Get stats from database
+  const [totalCount, monthCount, lastReport, templateStats] = await Promise.all([
+    Report.countDocuments(),
+    Report.countDocuments({ createdAt: { $gte: monthStart } }),
+    Report.findOne().sort({ createdAt: -1 }).lean(),
+    Report.aggregate([
+      { $group: { _id: '$templateId', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 1 },
+    ]),
+  ]);
 
-  const lastReport = generatedReports.sort(
-    (a, b) => new Date(b.generatedAt) - new Date(a.generatedAt)
-  )[0];
-
-  // Find most used template
-  const templateCounts = {};
-  generatedReports.forEach((r) => {
-    templateCounts[r.templateId] = (templateCounts[r.templateId] || 0) + 1;
-  });
-
-  const mostUsedTemplateId = Object.entries(templateCounts).sort(
-    ([, a], [, b]) => b - a
-  )[0]?.[0];
-
+  const mostUsedTemplateId = templateStats[0]?._id;
   const mostUsedTemplate = REPORT_TEMPLATES.find((t) => t.id === mostUsedTemplateId);
 
   res.json({
     data: {
-      reportsGenerated: generatedReports.length,
-      reportsThisMonth,
+      reportsGenerated: totalCount,
+      reportsThisMonth: monthCount,
       scheduledReports: scheduledReports.filter((s) => s.isActive).length,
       favoriteReports: favorites.length,
-      lastReportGenerated: lastReport?.generatedAt,
-      mostUsedTemplate: mostUsedTemplate?.name,
+      lastReportGenerated: lastReport?.createdAt,
+      mostUsedTemplate: mostUsedTemplate?.name || null,
     },
   });
 });
@@ -275,6 +300,7 @@ const getReportStats = asyncHandler(async (req, res) => {
  */
 const generateReport = asyncHandler(async (req, res) => {
   const { templateId, format = 'pdf', dateRange } = req.body;
+  const userId = req.user._id;
   const userName = req.user.fullName || req.user.username;
 
   const template = REPORT_TEMPLATES.find((t) => t.id === templateId);
@@ -284,27 +310,40 @@ const generateReport = asyncHandler(async (req, res) => {
   }
 
   // Calculate date range
-  const range = dateRange || getDateRange('month');
+  const range = dateRange || {
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    end: new Date(),
+  };
 
-  // Create report record
-  const report = {
-    id: `rpt-${Date.now()}`,
+  // Create report in database
+  const report = await Report.create({
     templateId,
     templateName: template.name,
     category: template.category,
     dateRange: range,
-    generatedAt: new Date().toISOString(),
-    generatedBy: userName,
-    status: 'ready',
+    generatedBy: userId,
+    generatedByName: userName,
     format,
+    status: 'ready',
     fileSize: Math.floor(Math.random() * 300000) + 100000,
-    downloadUrl: `/api/reports/download/rpt-${Date.now()}`,
-    expiresAt: new Date(Date.now() + 604800000).toISOString(), // 7 days
-  };
+  });
 
-  generatedReports.unshift(report);
-
-  res.status(201).json({ data: report });
+  res.status(201).json({
+    data: {
+      id: report._id,
+      templateId: report.templateId,
+      templateName: report.templateName,
+      category: report.category,
+      dateRange: report.dateRange,
+      generatedAt: report.createdAt,
+      generatedBy: report.generatedByName,
+      status: report.status,
+      format: report.format,
+      fileSize: report.fileSize,
+      downloadUrl: `/api/reports/download/${report._id}`,
+      expiresAt: report.expiresAt,
+    },
+  });
 });
 
 /**
@@ -401,14 +440,26 @@ const deleteScheduledReport = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Delete a generated report
+ * @route   DELETE /api/reports/:id
+ * @access  Private
+ */
+const deleteReport = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const report = await Report.findByIdAndDelete(id);
+  if (!report) {
+    res.status(404);
+    throw new Error('Report not found');
+  }
+
+  res.json({ message: 'Report deleted' });
+});
+
+/**
  * @desc    Get operational report data
  * @route   GET /api/reports/data/operational
  * @access  Private
- *
- * REFACTORED: Now uses Shift model instead of legacy Schedule model
- * - Changed query field from 'startTime' to 'date' (YYYY-MM-DD string)
- * - Changed status 'active' to 'in-progress' per Shift model enum
- * - Added actual hours calculation from shift start/end times
  */
 const getOperationalData = asyncHandler(async (req, res) => {
   const { timeRange = 'month' } = req.query;
@@ -431,7 +482,7 @@ const getOperationalData = asyncHandler(async (req, res) => {
   const inProgressShifts = shifts.filter((s) => s.status === 'in-progress').length;
   const scheduledShifts = shifts.filter((s) => s.status === 'scheduled').length;
 
-  // Calculate actual hours from shift times (not hardcoded 8-hour assumption)
+  // Calculate actual hours from shift times
   const totalHours = shifts.reduce((sum, shift) => {
     return sum + calculateShiftHours(shift.startTime, shift.endTime);
   }, 0);
@@ -457,19 +508,17 @@ const getOperationalData = asyncHandler(async (req, res) => {
       shifts: {
         totalShifts,
         completedShifts,
-        inProgressShifts, // Renamed from 'activeShifts' for clarity
+        inProgressShifts,
         scheduledShifts,
         completionRate: totalShifts > 0 ? (completedShifts / totalShifts) * 100 : 0,
         totalHours,
         overtimeHours,
       },
       patrols: {
-        // Task-based metrics from embedded Shift.tasks
         totalTasks,
         completedTasks,
         pendingTasks: totalTasks - completedTasks,
         taskCompletionRate: Math.round(taskCompletionRate * 10) / 10,
-        // Legacy patrol metrics (placeholder - would need patrol checkpoints model)
         totalPatrols: Math.floor(shifts.length * 2),
         completedPatrols: Math.floor(shifts.length * 1.8),
         partialPatrols: Math.floor(shifts.length * 0.15),
@@ -507,7 +556,8 @@ const downloadReport = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { format } = req.query;
 
-  const report = generatedReports.find((r) => r.id === id);
+  // Find report in database
+  const report = await Report.findById(id).lean();
   if (!report) {
     res.status(404);
     throw new Error('Report not found');
@@ -622,7 +672,7 @@ const generatePDF = async (res, report, data, filename) => {
     .fontSize(10)
     .font('Helvetica')
     .text(`Generated: ${new Date().toLocaleString('en-GB')}`)
-    .text(`Generated By: ${report.generatedBy}`)
+    .text(`Generated By: ${report.generatedByName}`)
     .text(
       `Period: ${data.period.start.toLocaleDateString('en-GB')} - ${data.period.end.toLocaleDateString('en-GB')}`
     )
@@ -682,6 +732,36 @@ const generatePDF = async (res, report, data, filename) => {
     if (data.shifts.length > 20) {
       doc.moveDown().text(`... and ${data.shifts.length - 20} more shifts`, { italic: true });
     }
+  }
+
+  // Incidents Section
+  if (data.incidents.length > 0) {
+    doc.addPage();
+    doc.fontSize(14).font('Helvetica-Bold').text('Incident Summary').moveDown(0.5);
+
+    doc.fontSize(9).font('Helvetica-Bold');
+    const incidentTableTop = doc.y;
+    doc.text('Date', 50, incidentTableTop);
+    doc.text('Type', 120, incidentTableTop);
+    doc.text('Severity', 250, incidentTableTop);
+    doc.text('Status', 350, incidentTableTop);
+    doc.text('Location', 450, incidentTableTop);
+
+    doc.moveDown(0.5);
+
+    doc.font('Helvetica').fontSize(8);
+    data.incidents.slice(0, 20).forEach((incident) => {
+      const y = doc.y;
+      if (y > 700) {
+        doc.addPage();
+      }
+      doc.text(incident.date, 50, doc.y);
+      doc.text(incident.type || 'N/A', 120, doc.y - 10);
+      doc.text(incident.severity || 'N/A', 250, doc.y - 10);
+      doc.text(incident.status || 'N/A', 350, doc.y - 10);
+      doc.text((incident.location || 'N/A').substring(0, 15), 450, doc.y - 10);
+      doc.moveDown(0.3);
+    });
   }
 
   // Footer
@@ -824,7 +904,6 @@ const generateXLSX = async (res, data, filename) => {
   res.end();
 };
 
-
 // ============================================
 // Exports
 // ============================================
@@ -840,4 +919,5 @@ module.exports = {
   deleteScheduledReport,
   getOperationalData,
   downloadReport,
+  deleteReport,
 };

@@ -41,6 +41,7 @@ import {
   LuCalendarClock,
 } from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
+import { api } from '../../utils/api';
 
 // Components
 import ReportQuickStats from './components/ReportQuickStats';
@@ -290,29 +291,54 @@ const Reports: React.FC = () => {
     const report = recentReports.find(r => r.id === reportId);
     if (!report) return;
 
-    const token = localStorage.getItem('token');
-
     try {
-      const response = await fetch(
-        `/api/reports/download/${reportId}?format=${report.format}`,
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : '',
-          },
-        }
-      );
+      const response = await api.get(`/reports/download/${reportId}?format=${report.format}`, {
+        responseType: 'blob',
+      });
 
-      const blob = await response.blob();
+      const mimeTypes: Record<string, string> = {
+        pdf: 'application/pdf',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        csv: 'text/csv',
+      };
+
+      const blob = new Blob([response.data], { type: mimeTypes[report.format] || 'application/octet-stream' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `report-${reportId}.${report.format}`;
+      a.download = `${report.templateName.replace(/\s+/g, '-')}-${reportId}.${report.format}`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Download failed:', err);
     }
   };
+
+    // const token = localStorage.getItem('token');
+
+    // try {
+    //   const response = await fetch(
+    //     `/api/reports/download/${reportId}?format=${report.format}`,
+    //     {
+    //       headers: {
+    //         Authorization: token ? `Bearer ${token}` : '',
+    //       },
+    //     }
+    //   );
+
+  //     const blob = await response.blob();
+  //     const url = window.URL.createObjectURL(blob);
+  //     const a = document.createElement('a');
+  //     a.href = url;
+  //     a.download = `report-${reportId}.${report.format}`;
+  //     a.click();
+  //     window.URL.revokeObjectURL(url);
+  //   } catch (err) {
+  //     console.error('Download failed:', err);
+  //   }
+  // };
 
   // Loading state
   if (isLoading && !quickStats) {
