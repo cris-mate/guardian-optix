@@ -45,6 +45,7 @@ import { useAuth } from '../../context/AuthContext';
 import ClientsTable from './components/ClientsTable';
 import ClientDetailsDrawer from './components/ClientDetailsDrawer';
 import AddClientModal from './components/AddClientModal';
+import SitesOverview from './components/SitesOverview';
 
 // Hooks
 import { useClientsData } from './hooks/useClientsData';
@@ -194,7 +195,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({
       color: 'purple',
     },
     {
-      label: 'Incidents (Month)',
+      label: 'Incidents',
       value: totalIncidents,
       icon: LuTriangleAlert,
       color: totalIncidents > 10 ? 'red' : 'gray',
@@ -398,102 +399,6 @@ const Pagination: React.FC<PaginationProps> = ({
         </Button>
       </HStack>
     </Flex>
-  );
-};
-
-// ============================================
-// Sites Overview Component (for Sites tab)
-// ============================================
-
-interface SitesOverviewProps {
-  clients: Client[];
-  isLoading: boolean;
-}
-
-const SitesOverview: React.FC<SitesOverviewProps> = ({ clients, isLoading }) => {
-  const totalSites = clients.reduce((sum, c) => sum + c.totalSites, 0);
-  const activeSites = clients.reduce((sum, c) => sum + c.activeSites, 0);
-
-  if (isLoading) {
-    return (
-      <Flex justify="center" py={12}>
-        <Spinner size="lg" color="blue.500" />
-      </Flex>
-    );
-  }
-
-  return (
-    <VStack align="stretch" gap={4}>
-      {/* Sites Summary */}
-      <Box
-        bg="white"
-        borderRadius="xl"
-        borderWidth="1px"
-        borderColor="gray.200"
-        p={6}
-      >
-        <HStack justify="space-between" mb={4}>
-          <Text fontWeight="semibold" color="gray.700">Sites Summary</Text>
-          <Badge colorPalette="purple" variant="subtle">
-            {activeSites} active of {totalSites} total
-          </Badge>
-        </HStack>
-
-        <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap={4}>
-          {clients
-            .filter(c => c.totalSites > 0)
-            .sort((a, b) => b.totalSites - a.totalSites)
-            .slice(0, 6)
-            .map((client) => (
-              <Box
-                key={client.id}
-                p={4}
-                borderRadius="lg"
-                borderWidth="1px"
-                borderColor="gray.100"
-                bg="gray.50"
-              >
-                <Text fontWeight="medium" color="gray.800" mb={1}>
-                  {client.companyName}
-                </Text>
-                <HStack gap={2}>
-                  <Badge colorPalette="green" variant="subtle" size="sm">
-                    {client.activeSites} active
-                  </Badge>
-                  <Text fontSize="sm" color="gray.500">
-                    / {client.totalSites} sites
-                  </Text>
-                </HStack>
-              </Box>
-            ))}
-        </Grid>
-
-        {clients.filter(c => c.totalSites > 0).length > 6 && (
-          <Text fontSize="sm" color="gray.500" mt={4} textAlign="center">
-            + {clients.filter(c => c.totalSites > 0).length - 6} more clients with sites
-          </Text>
-        )}
-      </Box>
-
-      {/* Info Card */}
-      <Box
-        bg="purple.50"
-        borderRadius="xl"
-        borderWidth="1px"
-        borderColor="purple.200"
-        p={6}
-        textAlign="center"
-      >
-        <Icon as={LuMapPin} boxSize={10} color="purple.400" mb={3} />
-        <Text fontWeight="semibold" color="gray.700" mb={2}>
-          Site Management
-        </Text>
-        <Text fontSize="sm" color="gray.500" mb={4}>
-          View and manage individual sites by selecting a client from the All Clients tab.
-          Each client profile includes detailed site information and assignments.
-        </Text>
-      </Box>
-    </VStack>
   );
 };
 
@@ -778,7 +683,7 @@ const Clients: React.FC = () => {
 
           {/* Sites Tab */}
           <Tabs.Content value="sites" pt={4}>
-            <SitesOverview clients={clients} isLoading={isLoading} />
+            <SitesOverview />
           </Tabs.Content>
         </Tabs.Root>
       </Box>

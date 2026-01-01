@@ -5,18 +5,20 @@
  *
  * @example
  * import Scheduling from '@/pages/scheduling';
- * import { useSchedulingData, useShiftCoverage } from '@/pages/scheduling';
- * import { ShiftCoverageCard } from '@/pages/scheduling';
+ * import { useSchedulingData, useShiftCoverage, ShiftCoverageCard } from '@/pages/scheduling';
  */
 
-// Components
+// Main component
 export { default } from './Scheduling';
 export { default as Scheduling } from './Scheduling';
+
+// Components
 export { default as ShiftCoverageCard } from './components/ShiftCoverageCard';
 
 // Hooks
 export { useSchedulingData } from './hooks/useSchedulingData';
 export { useShiftCoverage } from './hooks/useShiftCoverage';
+export { useGenerateShifts } from './hooks/useGenerateShifts';
 
 // Types
 export type {
