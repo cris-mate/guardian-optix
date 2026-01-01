@@ -13,6 +13,7 @@ const {
   getSites,
   getSiteById,
   getSitesByClient,
+  getSitesWithActiveContracts,
   createSite,
   updateSite,
   deleteSite,
@@ -53,6 +54,13 @@ router.get('/client/:clientId', getSitesByClient);
  * @access  Private
  */
 router.get('/:id', getSiteById);
+
+/**
+ * @route   GET /api/sites/active-contracts
+ * @desc    Get sites with currently active contracts
+ * @access  Private
+ */
+router.get('/active-contracts', getSitesWithActiveContracts);
 
 // ============================================
 // Write Routes (Manager/Admin only)

@@ -1,11 +1,13 @@
 /**
  * Site Model
  *
- * MongoDB schema for client sites/locations.
- * Includes geofence configuration for GPS verification.
+ * MongoDB schema for client sites.
+ * Includes geofence configuration for GPS verification
+ * and coverage requirements for scheduling
  */
 
 const mongoose = require('mongoose');
+const { SHIFT_TIMES } = require('../utils/shiftTimes');
 
 // ============================================
 // Geofence Sub-schema
@@ -62,6 +64,57 @@ const AddressSchema = new mongoose.Schema({
 }, { _id: false });
 
 // ============================================
+// Requirements Sub-schema
+// ============================================
+
+const RequirementsSchema = new mongoose.Schema({
+  contractStart: {
+    type: Date,
+    required: [true, 'Contract start date is required'],
+  },
+  contractEnd: {
+    type: Date,
+    default: null, // null = ongoing
+  },
+  isOngoing: {
+    type: Boolean,
+    default: false,
+  },
+
+  // Coverage
+  shiftsPerDay: [{
+    shiftType: {
+      type: String,
+      enum: {
+        values: Object.keys(SHIFT_TIMES),
+        message: 'Invalid shift type. Must be one of: ' + Object.keys(SHIFT_TIMES).join(', '),
+      },
+      required: [true, 'Shift type is required'],
+    },
+    guardsRequired: {
+      type: Number,
+      min: [1, 'At least 1 guard required'],
+      default: 1,
+    },
+    guardType: {
+      type: String,
+      enum: ['Static', 'Mobile Patrol', 'CCTV Operator', 'Door Supervisor', 'Close Protection'],
+      default: 'Static',
+    },
+  }],
+
+  // Operating Days
+  daysOfWeek: {
+    type: [Number],
+    default: [1, 2, 3, 4, 5], // Mon-Fri
+    validate: {
+      validator: (arr) => arr.every(d => d >= 1 && d <= 7),
+      message: 'Days must be 1-7',
+    },
+  },
+}, { _id: false });
+
+// ============================================
 // Main Site Schema
 // ============================================
 
@@ -108,24 +161,9 @@ const SiteSchema = new mongoose.Schema(
     geofence: {
       type: GeofenceSchema,
     },
-    guardsRequired: {
-      type: Number,
-      default: 1,
-      min: [1, 'At least 1 guard is required'],
-    },
-    operatingHours: {
-      is24Hour: {
-        type: Boolean,
-        default: false,
-      },
-      weekday: {
-        start: String, // HH:mm
-        end: String,
-      },
-      weekend: {
-        start: String,
-        end: String,
-      },
+    requirements: {
+      type: RequirementsSchema,
+      default: null,
     },
     contactName: {
       type: String,
@@ -167,6 +205,7 @@ SiteSchema.index({ name: 'text' });
 SiteSchema.index({ 'address.postCode': 1 });
 SiteSchema.index({ client: 1, status: 1 });
 SiteSchema.index({ status: 1, createdAt: -1 });
+SiteSchema.index({ 'requirements.contractStart': 1, 'requirements.contractEnd': 1 });
 
 // ============================================
 // Virtuals
@@ -175,6 +214,33 @@ SiteSchema.index({ status: 1, createdAt: -1 });
 SiteSchema.virtual('fullAddress').get(function() {
   const addr = this.address;
   return `${addr.street}, ${addr.city}, ${addr.postCode}`;
+});
+
+/**
+ * Virtual: Calculate total guards needed per day based on requirements
+ */
+SiteSchema.virtual('totalDailyGuards').get(function() {
+  if (!this.requirements || !this.requirements.shiftsPerDay) {
+    return this.guardsRequired || 1;
+  }
+  return this.requirements.shiftsPerDay.reduce((sum, shift) => sum + (shift.guardsRequired || 1), 0);
+});
+
+/**
+ * Virtual: Check if contract is currently active
+ */
+SiteSchema.virtual('isContractActive').get(function() {
+  if (!this.requirements) return true; // No requirements = always active
+
+  const now = new Date();
+  const start = this.requirements.contractStart;
+  const end = this.requirements.contractEnd;
+
+  if (now < start) return false;
+  if (this.requirements.isOngoing) return true;
+  if (end && now > end) return false;
+
+  return true;
 });
 
 // Ensure virtuals are included in JSON output
@@ -209,6 +275,14 @@ SiteSchema.methods.isLocationInGeofence = function(latitude, longitude) {
   return distance <= this.geofence.radius;
 };
 
+/**
+ * Get shift times for a given shift type from this site's requirements
+ * Falls back to default SHIFT_TIMES if not customised
+ */
+SiteSchema.methods.getShiftTimes = function(shiftType) {
+  return SHIFT_TIMES[shiftType] || null;
+};
+
 // ============================================
 // Statics
 // ============================================
@@ -218,6 +292,24 @@ SiteSchema.methods.isLocationInGeofence = function(latitude, longitude) {
  */
 SiteSchema.statics.findActiveByClient = function(clientId) {
   return this.find({ client: clientId, status: 'active' }).sort({ name: 1 });
+};
+
+/**
+ * Find sites with active contracts
+ */
+SiteSchema.statics.findWithActiveContracts = function() {
+  const now = new Date();
+  return this.find({
+    status: 'active',
+    $or: [
+      { requirements: null },
+      { 'requirements.isOngoing': true, 'requirements.contractStart': { $lte: now } },
+      {
+        'requirements.contractStart': { $lte: now },
+        'requirements.contractEnd': { $gte: now },
+      },
+    ],
+  }).sort({ name: 1 });
 };
 
 /**
