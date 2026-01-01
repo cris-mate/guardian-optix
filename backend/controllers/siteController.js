@@ -8,6 +8,7 @@
 const Site = require('../models/Site');
 const Client = require('../models/Client');
 const asyncHandler = require('../utils/asyncHandler');
+const { generateShiftsForSite } = require('../utils/shiftGenerator');
 const { SHIFT_TIMES } = require('../utils/shiftTimes');
 
 // ============================================
@@ -297,6 +298,22 @@ const createSite = asyncHandler(async (req, res) => {
     success: true,
     data: populatedSite,
   });
+
+  // Auto-generate shifts for the next 2 weeks
+  if (site.status === 'active') {
+    generateShiftsForSite(site._id, { weeks: 2 })
+      .then((result) => {
+        console.log(`Auto-generated ${result.created} shifts for new site: ${site.name}`);
+      })
+      .catch((err) => {
+        console.error(`Failed to auto-generate shifts for site ${site.name}:`, err.message);
+      });
+  }
+
+  res.status(201).json({
+    success: true,
+    data: populatedSite,
+  });
 });
 
 // ============================================
@@ -394,10 +411,6 @@ const deleteSite = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Site not found');
   }
-
-  // TODO: Check for active shifts or tasks before deleting
-  // For now, soft delete by setting status to inactive
-  // await site.deleteOne();
 
   // Soft delete
   site.status = 'inactive';

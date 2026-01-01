@@ -5,16 +5,18 @@
  *
  * @example
  * import Scheduling from '@/pages/scheduling';
- * import { useSchedulingData } from '@/pages/scheduling';
- * import { SHIFT_STATUS_CONFIG } from '@/pages/scheduling';
+ * import { useSchedulingData, useShiftCoverage } from '@/pages/scheduling';
+ * import { ShiftCoverageCard } from '@/pages/scheduling';
  */
 
-// Main component
+// Components
 export { default } from './Scheduling';
 export { default as Scheduling } from './Scheduling';
+export { default as ShiftCoverageCard } from './components/ShiftCoverageCard';
 
 // Hooks
 export { useSchedulingData } from './hooks/useSchedulingData';
+export { useShiftCoverage } from './hooks/useShiftCoverage';
 
 // Types
 export type {
@@ -50,3 +52,10 @@ export type {
   CalendarViewProps,
   SchedulingFiltersProps,
 } from '../../types/scheduling.types';
+
+// Types from useShiftCoverage
+export type {
+  ShiftCoverageStats,
+  SiteNeedingCoverage,
+  ActivityHubStats,
+} from './hooks/useShiftCoverage';

@@ -23,8 +23,59 @@ const {
   getRecommendedGuards,
 } = require('../controllers/schedulingController');
 
+const {
+  generateForSite,
+  generateForAllSites,
+  getCoverageStats,
+  getUnassignedStats,
+  getActivityHubStats,
+} = require('../controllers/shiftGeneratorController');
+
 // All routes require authentication
 router.use(protect);
+
+// ============================================
+// Shift Generation Routes
+// ============================================
+
+/**
+ * @route   POST /api/scheduling/generate/:siteId
+ * @desc    Generate shifts for a specific site
+ * @access  Private (Manager/Admin)
+ */
+router.post('/generate/:siteId', authorize('Manager', 'Admin'), generateForSite);
+
+/**
+ * @route   POST /api/scheduling/generate-all
+ * @desc    Generate shifts for all active sites
+ * @access  Private (Admin)
+ */
+router.post('/generate-all', authorize('Admin'), generateForAllSites);
+
+// ============================================
+// Statistics Routes (for ActivityHub)
+// ============================================
+
+/**
+ * @route   GET /api/scheduling/stats/coverage
+ * @desc    Get shift coverage statistics
+ * @access  Private
+ */
+router.get('/stats/coverage', getCoverageStats);
+
+/**
+ * @route   GET /api/scheduling/stats/unassigned
+ * @desc    Get unassigned shifts by site
+ * @access  Private
+ */
+router.get('/stats/unassigned', getUnassignedStats);
+
+/**
+ * @route   GET /api/scheduling/stats/activity-hub
+ * @desc    Get combined ActivityHub statistics
+ * @access  Private
+ */
+router.get('/stats/activity-hub', getActivityHubStats);
 
 // ============================================
 // Read Routes (all authenticated users)
@@ -57,6 +108,13 @@ router.get('/available-guards', getAvailableGuards);
  * @access  Private
  */
 router.get('/available-sites', getAvailableSites);
+
+/**
+ * @route   GET /api/scheduling/recommended-guards/:siteId
+ * @desc    Get recommended guards for a site
+ * @access  Private
+ */
+router.get('/recommended-guards/:siteId', getRecommendedGuards);
 
 /**
  * @route   GET /api/scheduling/shifts/:id
@@ -103,7 +161,5 @@ router.patch('/shifts/:shiftId/tasks/:taskId', updateTaskStatus);
  * @access  Private (Admin/Manager)
  */
 router.delete('/shifts/:id', authorize('Admin', 'Manager'), deleteShift);
-
-router.get('/recommended-guards/:siteId', getRecommendedGuards);
 
 module.exports = router;

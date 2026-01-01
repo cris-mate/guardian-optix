@@ -34,13 +34,12 @@ import {
 } from 'react-icons/fi';
 import { usePageTitle } from '../../context/PageContext';
 
-// Components
 import ActivityLog from './components/ActivityLog';
 import UpdatesFeed from './components/UpdatesFeed';
 import ActivityStats from './components/ActivityStats';
-
-// Hooks
 import { useActivityHubData } from './hooks/useActivityHubData';
+import { useShiftCoverage } from '../scheduling';
+import { ShiftCoverageCard } from '../scheduling';
 
 // ============================================
 // Tab Configuration
@@ -158,6 +157,7 @@ const ActivityHub: React.FC = () => {
   const { setTitle } = usePageTitle();
   const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { stats: coverageStats, isLoading: coverageLoading } = useShiftCoverage(7);
 
   // Set page title
   useEffect(() => {
@@ -282,6 +282,10 @@ const ActivityHub: React.FC = () => {
                   onLoadMore={() => setActiveTab('activity')}
                   hasMore={activities.length > 10}
                 />
+              </GridItem>
+              <GridItem>
+                {/* Add ShiftCoverageCard in your Overview tab or sidebar */}
+                <ShiftCoverageCard stats={coverageStats} isLoading={coverageLoading} />
               </GridItem>
               <GridItem>
                 <UpdatesFeed
