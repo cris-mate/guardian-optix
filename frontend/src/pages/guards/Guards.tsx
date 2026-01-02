@@ -7,7 +7,7 @@
  * Features:
  * - Guard portfolio overview with key metrics
  * - Searchable and filterable guard list
- * - Status-based tabs (All, On Duty, Off Duty, Expiring Licences)
+ * - Status-based tabs (All + each status)
  * - Guard details drawer with full profile
  */
 
@@ -30,11 +30,14 @@ import {
   LuUsers,
   LuRefreshCw,
   LuUserPlus,
-  LuUserMinus,
   LuSearch,
   LuShieldAlert,
   LuCircleCheck,
   LuCirclePause,
+  LuCoffee,
+  LuClock,
+  LuUserX,
+  LuCalendarClock,
   LuBadgeAlert,
 } from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
@@ -49,25 +52,30 @@ import AddGuardsModal from './components/AddGuardsModal';
 import { useGuardsData } from './hooks/useGuardsData';
 
 // Types
-import type { Guards as GuardsType } from '../../types/guards.types';
+import type { Guards as GuardsType, GuardsStatus } from '../../types/guards.types';
 
 // ============================================
 // Tab Configuration
 // ============================================
 
-type TabValue = 'all' | 'on-duty' | 'off-duty' | 'expiring';
+type TabValue = 'all' | GuardsStatus | 'expiring';
 
 interface TabConfig {
   value: TabValue;
   label: string;
   icon: React.ElementType;
+  color: string;
 }
 
 const tabs: TabConfig[] = [
-  { value: 'all', label: 'All Guards', icon: LuUsers },
-  { value: 'on-duty', label: 'On Duty', icon: LuCircleCheck },
-  { value: 'off-duty', label: 'Off Duty', icon: LuCirclePause },
-  { value: 'expiring', label: 'Expiring Licences', icon: LuBadgeAlert },
+  { value: 'all', label: 'All Guards', icon: LuUsers, color: 'blue' },
+  { value: 'on-duty', label: 'On Duty', icon: LuCircleCheck, color: 'green' },
+  { value: 'off-duty', label: 'Off Duty', icon: LuCirclePause, color: 'gray' },
+  { value: 'on-break', label: 'On Break', icon: LuCoffee, color: 'yellow' },
+  { value: 'scheduled', label: 'Scheduled', icon: LuCalendarClock, color: 'blue' },
+  { value: 'late', label: 'Late', icon: LuClock, color: 'orange' },
+  { value: 'absent', label: 'Absent', icon: LuUserX, color: 'red' },
+  { value: 'expiring', label: 'Expiring Licences', icon: LuBadgeAlert, color: 'orange' },
 ];
 
 // ============================================
@@ -116,11 +124,7 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, onAddGuard, isLoading, isMan
         {isLoading ? 'Refreshing...' : 'Refresh'}
       </Button>
       {isManager && (
-        <Button
-          colorPalette="blue"
-          size="sm"
-          onClick={onAddGuard}
-        >
+        <Button colorPalette="blue" size="sm" onClick={onAddGuard}>
           <Icon as={LuUserPlus} boxSize={4} mr={2} />
           Add Guard
         </Button>
@@ -130,58 +134,122 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, onAddGuard, isLoading, isMan
 );
 
 // ============================================
-// Stats Cards Component
+// Quick Stats Component
 // ============================================
 
-interface StatsCardsProps {
-  total: number;
-  availableToday: number;
-  unassignedThisWeek: number;
-  complianceAlerts: number;
+interface QuickStatsProps {
+  stats: {
+    total: number;
+    onDuty: number;
+    offDuty: number;
+    onBreak: number;
+    late: number;
+    absent: number;
+    scheduled: number;
+    availableToday: number;
+    unassignedThisWeek: number;
+    expiringLicences: number;
+  };
   isLoading: boolean;
 }
 
-const StatsCards: React.FC<StatsCardsProps> = ({
-                                                 total,
-                                                 availableToday,
-                                                 unassignedThisWeek,
-                                                 complianceAlerts,
-                                                 isLoading,
-                                               }) => {
-  const stats = [
-    { label: 'Total Guards', value: total, icon: LuUsers, color: 'blue' },
-    { label: 'Available Today', value: availableToday, icon: LuCircleCheck, color: 'green' },
-    { label: 'Unassigned This Week', value: unassignedThisWeek, icon: LuUserMinus, color: 'orange' },
-    { label: 'Compliance Alerts', value: complianceAlerts, icon: LuShieldAlert, color: 'red' },
+const QuickStats: React.FC<QuickStatsProps> = ({ stats, isLoading }) => {
+  const statCards = [
+    { label: 'Total Guards', value: stats.total, icon: LuUsers, color: 'blue' },
+    { label: 'Available Today', value: stats.availableToday, icon: LuCircleCheck, color: 'green' },
+    { label: 'Unassigned This Week', value: stats.unassignedThisWeek, icon: LuCalendarClock, color: 'orange' },
+    { label: 'Compliance Alert', value: stats.expiringLicences, icon: LuShieldAlert, color: stats.expiringLicences > 0 ? 'red' : 'gray' },
   ];
 
   return (
-    <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={4}>
-      {stats.map((stat) => (
+    <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={4}>
+      {statCards.map((stat) => (
         <Box
           key={stat.label}
           bg="white"
           borderRadius="xl"
           borderWidth="1px"
           borderColor="gray.200"
-          p={4}
+          p={5}
+          transition="all 0.2s"
+          _hover={{ borderColor: `${stat.color}.300`, shadow: 'sm' }}
         >
-          <HStack justify="space-between" mb={2}>
-            <Text fontSize="sm" color="gray.500">
-              {stat.label}
-            </Text>
-            <Icon as={stat.icon} boxSize={5} color={`${stat.color}.500`} />
-          </HStack>
           {isLoading ? (
-            <Spinner size="sm" color="gray.400" />
+            <VStack align="flex-start" gap={2}>
+              <Box bg="gray.100" h={4} w={24} borderRadius="md" />
+              <Box bg="gray.100" h={8} w={16} borderRadius="md" />
+            </VStack>
           ) : (
-            <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-              {stat.value}
-            </Text>
+            <HStack gap={3}>
+              <Box p={2} borderRadius="md" bg={`${stat.color}.50`} color={`${stat.color}.600`}>
+                <Icon as={stat.icon} boxSize={5} />
+              </Box>
+              <Box>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                  {stat.value}
+                </Text>
+                <Text fontSize="sm" color="gray.500">
+                  {stat.label}
+                </Text>
+              </Box>
+            </HStack>
           )}
         </Box>
       ))}
     </Grid>
+  );
+};
+
+// ============================================
+// Search Bar Component
+// ============================================
+
+interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSearch: () => void;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, onSearch }) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch();
+  };
+
+  return (
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      bg="white"
+      borderRadius="lg"
+      borderWidth="1px"
+      borderColor="gray.200"
+      p={4}
+    >
+      <HStack gap={3}>
+        <Box position="relative" flex={1} maxW="400px">
+          <Box
+            position="absolute"
+            left={3}
+            top="50%"
+            transform="translateY(-50%)"
+            color="gray.400"
+            zIndex={1}
+          >
+            <LuSearch size={18} />
+          </Box>
+          <Input
+            placeholder="Search by name, email, badge, or postcode..."
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            pl={10}
+          />
+        </Box>
+        <Button type="submit" colorPalette="blue">
+          Search
+        </Button>
+      </HStack>
+    </Box>
   );
 };
 
@@ -197,21 +265,32 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ tabValue, hasFilters, isManager, onAddGuard }) => {
-  const emptyMessages: Record<TabValue, { icon: React.ElementType; message: string }> = {
-    all: { icon: LuUsers, message: hasFilters ? 'No guards match your filters' : 'No guards found' },
-    'on-duty': { icon: LuCircleCheck, message: 'No guards currently on duty' },
-    'off-duty': { icon: LuCirclePause, message: 'No guards currently off duty' },
-    expiring: { icon: LuBadgeAlert, message: 'No licences expiring soon' },
+  const getEmptyMessage = () => {
+    if (hasFilters) return 'No guards match your search criteria';
+    switch (tabValue) {
+      case 'on-duty': return 'No guards currently on duty';
+      case 'off-duty': return 'No guards currently off duty';
+      case 'on-break': return 'No guards currently on break';
+      case 'scheduled': return 'No guards scheduled';
+      case 'late': return 'No late guards - great!';
+      case 'absent': return 'No absent guards - excellent!';
+      case 'expiring': return 'No expiring licences - all compliant!';
+      default: return 'No guards found';
+    }
   };
 
-  const { icon, message } = emptyMessages[tabValue];
+  const showPositive = tabValue === 'late' || tabValue === 'absent' || tabValue === 'expiring';
 
   return (
     <Flex justify="center" align="center" py={16}>
-      <VStack gap={3}>
-        <Icon as={icon} boxSize={12} color="gray.300" />
-        <Text color="gray.500">{message}</Text>
-        {tabValue === 'all' && !hasFilters && isManager && (
+      <VStack gap={4}>
+        <Box color={showPositive ? 'green.400' : 'gray.400'}>
+          {showPositive ? <LuCircleCheck size={48} /> : <LuUsers size={48} />}
+        </Box>
+        <Text color={showPositive ? 'green.600' : 'gray.500'} fontSize="lg">
+          {getEmptyMessage()}
+        </Text>
+        {!hasFilters && tabValue === 'all' && isManager && (
           <Button colorPalette="blue" size="sm" onClick={onAddGuard}>
             <Icon as={LuUserPlus} boxSize={4} mr={2} />
             Add Guard
@@ -257,7 +336,7 @@ const Pagination: React.FC<PaginationProps> = ({
       bg="gray.50"
     >
       <Text fontSize="sm" color="gray.600">
-        Showing {start}-{end} of {total}
+        Showing {start} to {end} of {total} guards
       </Text>
       <HStack gap={2}>
         <Button
@@ -268,6 +347,9 @@ const Pagination: React.FC<PaginationProps> = ({
         >
           Previous
         </Button>
+        <Text fontSize="sm" color="gray.600">
+          Page {page} of {totalPages}
+        </Text>
         <Button
           size="sm"
           variant="outline"
@@ -309,50 +391,39 @@ const Guards: React.FC = () => {
     isMutating,
     pagination,
     filters,
+    stats,
     setFilters,
-    resetFilters,
     selectGuard,
     createGuard,
     refetch,
-    stats,
   } = useGuardsData();
 
-  // Computed counts for tabs
-  const onDutyCount = guards.filter(g => g.status === 'on-duty').length;
-  const offDutyCount = guards.filter(g => g.status === 'off-duty').length;
-  const expiringCount = guards.filter(g =>
-    g.siaLicence?.status === 'expiring-soon'
-  ).length;
-
-  // Computed stats for cards
-  // const availableTodayCount = guards.filter(g =>
-  //   g.availability && g.status !== 'on-duty'
-  // ).length;
-  // const unassignedThisWeekCount = guards.filter(g =>
-  //   g.availability && g.status === 'off-duty'
-  // ).length;
-  // const complianceAlertsCount = guards.filter(g =>
-  //   g.siaLicence?.status === 'expiring-soon' || g.siaLicence?.status === 'expired'
-  // ).length;
+  // Get counts per status for badges
+  const statusCounts = React.useMemo(() => ({
+    'on-duty': stats.onDuty,
+    'off-duty': stats.offDuty,
+    'on-break': stats.onBreak,
+    'late': stats.late,
+    'absent': stats.absent,
+    'scheduled': stats.scheduled,
+    'expiring': stats.expiringLicences,
+  }), [stats.onDuty, stats.offDuty, stats.onBreak, stats.late, stats.absent, stats.scheduled, stats.expiringLicences]);
 
   // Filtered guards based on tab
   const filteredGuards = React.useMemo(() => {
-    switch (activeTab) {
-      case 'on-duty':
-        return guards.filter(g => g.status === 'on-duty');
-      case 'off-duty':
-        return guards.filter(g => g.status === 'off-duty');
-      case 'expiring':
-        return guards.filter(g => g.siaLicence?.status === 'expiring-soon');
-      default:
-        return guards;
+    if (activeTab === 'all') return guards;
+    if (activeTab === 'expiring') {
+      return guards.filter(g =>
+        g.siaLicence?.status === 'expiring-soon' || g.siaLicence?.status === 'expired'
+      );
     }
+    return guards.filter(g => g.status === activeTab);
   }, [guards, activeTab]);
 
   // Handlers
   const handleSearch = useCallback(() => {
-    setFilters({ ...filters, search: searchInput, page: 1 });
-  }, [filters, searchInput, setFilters]);
+    setFilters({ search: searchInput, page: 1 });
+  }, [searchInput, setFilters]);
 
   const handleGuardSelect = useCallback((id: string) => {
     selectGuard(id);
@@ -370,15 +441,14 @@ const Guards: React.FC = () => {
   }, [selectGuard]);
 
   const handlePageChange = useCallback((page: number) => {
-    setFilters({ ...filters, page });
-  }, [filters, setFilters]);
+    setFilters({ page });
+  }, [setFilters]);
 
   const handleRefresh = () => {
     refetch();
   };
 
-  const hasFilters = !!filters.search || filters.status !== 'all' ||
-    filters.role !== 'all' || filters.guardType !== 'all';
+  const hasFilters = !!filters.search;
 
   // Loading state
   if (isLoading && guards.length === 0) {
@@ -408,45 +478,15 @@ const Guards: React.FC = () => {
         isManager={isManager}
       />
 
-      {/* Stats Cards */}
-      <StatsCards
-        total={stats.total}
-        availableToday={stats.availableToday}
-        unassignedThisWeek={stats.unassignedThisWeek}
-        complianceAlerts={stats.expiringLicences}
-        isLoading={isLoading}
-      />
+      {/* Quick Stats */}
+      <QuickStats stats={stats} isLoading={isLoading && guards.length === 0} />
 
       {/* Search Bar */}
-      <HStack gap={2}>
-        <Box position="relative" flex={1}>
-          <Input
-            placeholder="Search by name, badge, or email..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            pl={10}
-            bg="white"
-          />
-          <Icon
-            as={LuSearch}
-            position="absolute"
-            left={3}
-            top="50%"
-            transform="translateY(-50%)"
-            color="gray.400"
-            boxSize={4}
-          />
-        </Box>
-        <Button variant="outline" onClick={handleSearch}>
-          Search
-        </Button>
-        {hasFilters && (
-          <Button variant="ghost" onClick={resetFilters}>
-            Clear
-          </Button>
-        )}
-      </HStack>
+      <SearchBar
+        value={searchInput}
+        onChange={setSearchInput}
+        onSearch={handleSearch}
+      />
 
       {/* Tabs */}
       <Box>
@@ -454,175 +494,90 @@ const Guards: React.FC = () => {
           value={activeTab}
           onValueChange={(e) => setActiveTab(e.value as TabValue)}
         >
-          <Tabs.List
-            bg="white"
-            borderRadius="lg"
-            borderWidth="1px"
-            borderColor="gray.200"
-            p={1}
-          >
-            {tabs.map((tab) => (
-              <Tabs.Trigger
-                key={tab.value}
-                value={tab.value}
-                px={4}
-                py={2}
-                borderRadius="md"
-                fontWeight="medium"
-                _selected={{
-                  bg: 'blue.50',
-                  color: 'blue.600',
-                }}
+          <Box overflowX="auto" pb={2}>
+            <Tabs.List
+              bg="white"
+              borderRadius="lg"
+              borderWidth="1px"
+              borderColor="gray.200"
+              p={1}
+              minW="fit-content"
+            >
+              {tabs.map((tab) => {
+                const count = tab.value === 'all' ? stats.total : statusCounts[tab.value as keyof typeof statusCounts];
+                return (
+                  <Tabs.Trigger
+                    key={tab.value}
+                    value={tab.value}
+                    px={3}
+                    py={2}
+                    borderRadius="md"
+                    fontWeight="medium"
+                    fontSize="sm"
+                    color="gray.600"
+                    whiteSpace="nowrap"
+                    _selected={{
+                      bg: `${tab.color}.50`,
+                      color: `${tab.color}.600`,
+                    }}
+                  >
+                    <HStack gap={2}>
+                      <Icon as={tab.icon} boxSize={4} />
+                      <Text>{tab.label}</Text>
+                      {count !== undefined && count > 0 && (
+                        <Badge
+                          colorPalette={tab.color}
+                          variant="solid"
+                          size="sm"
+                        >
+                          {count}
+                        </Badge>
+                      )}
+                    </HStack>
+                  </Tabs.Trigger>
+                );
+              })}
+            </Tabs.List>
+          </Box>
+
+          {/* Tab Content */}
+          {tabs.map((tab) => (
+            <Tabs.Content key={tab.value} value={tab.value} pt={4}>
+              <Box
+                bg="white"
+                borderRadius="xl"
+                borderWidth="1px"
+                borderColor="gray.200"
+                overflow="hidden"
               >
-                <HStack gap={2}>
-                  <Icon as={tab.icon} boxSize={4} />
-                  <Text>{tab.label}</Text>
-                  {tab.value === 'on-duty' && onDutyCount > 0 && (
-                    <Badge colorPalette="green" variant="solid" size="sm">
-                      {onDutyCount}
-                    </Badge>
-                  )}
-                  {tab.value === 'off-duty' && offDutyCount > 0 && (
-                    <Badge colorPalette="gray" variant="solid" size="sm">
-                      {offDutyCount}
-                    </Badge>
-                  )}
-                  {tab.value === 'expiring' && expiringCount > 0 && (
-                    <Badge colorPalette="orange" variant="solid" size="sm">
-                      {expiringCount}
-                    </Badge>
-                  )}
-                </HStack>
-              </Tabs.Trigger>
-            ))}
-          </Tabs.List>
-
-          {/* All Guards Tab */}
-          <Tabs.Content value="all" pt={4}>
-            <Box
-              bg="white"
-              borderRadius="xl"
-              borderWidth="1px"
-              borderColor="gray.200"
-              overflow="hidden"
-            >
-              {filteredGuards.length === 0 ? (
-                <EmptyState
-                  tabValue="all"
-                  hasFilters={hasFilters}
-                  isManager={isManager}
-                  onAddGuard={() => setIsAddModalOpen(true)}
+                {filteredGuards.length === 0 ? (
+                  <EmptyState
+                    tabValue={tab.value}
+                    hasFilters={hasFilters}
+                    isManager={isManager}
+                    onAddGuard={() => setIsAddModalOpen(true)}
+                  />
+                ) : (
+                  <GuardsTable
+                    guards={filteredGuards}
+                    isLoading={isLoading}
+                    onSelect={handleGuardSelect}
+                    onEdit={isManager ? handleGuardEdit : undefined}
+                    selectedId={selectedGuard?._id}
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                  />
+                )}
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  total={pagination.total}
+                  limit={pagination.limit}
+                  onPageChange={handlePageChange}
                 />
-              ) : (
-                <GuardsTable
-                  guards={filteredGuards}
-                  isLoading={isLoading}
-                  onSelect={handleGuardSelect}
-                  onEdit={isManager ? handleGuardEdit : undefined}
-                  selectedId={selectedGuard?._id}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-              )}
-              <Pagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                total={pagination.total}
-                limit={pagination.limit}
-                onPageChange={handlePageChange}
-              />
-            </Box>
-          </Tabs.Content>
-
-          {/* On Duty Tab */}
-          <Tabs.Content value="on-duty" pt={4}>
-            <Box
-              bg="white"
-              borderRadius="xl"
-              borderWidth="1px"
-              borderColor="gray.200"
-              overflow="hidden"
-            >
-              {filteredGuards.length === 0 ? (
-                <EmptyState
-                  tabValue="on-duty"
-                  hasFilters={hasFilters}
-                  isManager={isManager}
-                  onAddGuard={() => setIsAddModalOpen(true)}
-                />
-              ) : (
-                <GuardsTable
-                  guards={filteredGuards}
-                  isLoading={isLoading}
-                  onSelect={handleGuardSelect}
-                  onEdit={isManager ? handleGuardEdit : undefined}
-                  selectedId={selectedGuard?._id}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-              )}
-            </Box>
-          </Tabs.Content>
-
-          {/* Off Duty Tab */}
-          <Tabs.Content value="off-duty" pt={4}>
-            <Box
-              bg="white"
-              borderRadius="xl"
-              borderWidth="1px"
-              borderColor="gray.200"
-              overflow="hidden"
-            >
-              {filteredGuards.length === 0 ? (
-                <EmptyState
-                  tabValue="off-duty"
-                  hasFilters={hasFilters}
-                  isManager={isManager}
-                  onAddGuard={() => setIsAddModalOpen(true)}
-                />
-              ) : (
-                <GuardsTable
-                  guards={filteredGuards}
-                  isLoading={isLoading}
-                  onSelect={handleGuardSelect}
-                  onEdit={isManager ? handleGuardEdit : undefined}
-                  selectedId={selectedGuard?._id}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-              )}
-            </Box>
-          </Tabs.Content>
-
-          {/* Expiring Licences Tab */}
-          <Tabs.Content value="expiring" pt={4}>
-            <Box
-              bg="white"
-              borderRadius="xl"
-              borderWidth="1px"
-              borderColor="gray.200"
-              overflow="hidden"
-            >
-              {filteredGuards.length === 0 ? (
-                <EmptyState
-                  tabValue="expiring"
-                  hasFilters={hasFilters}
-                  isManager={isManager}
-                  onAddGuard={() => setIsAddModalOpen(true)}
-                />
-              ) : (
-                <GuardsTable
-                  guards={filteredGuards}
-                  isLoading={isLoading}
-                  onSelect={handleGuardSelect}
-                  onEdit={isManager ? handleGuardEdit : undefined}
-                  selectedId={selectedGuard?._id}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-              )}
-            </Box>
-          </Tabs.Content>
+              </Box>
+            </Tabs.Content>
+          ))}
         </Tabs.Root>
       </Box>
 

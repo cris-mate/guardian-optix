@@ -225,7 +225,9 @@ const getGuardsStats = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getGuardById = asyncHandler(async (req, res) => {
-  const guard = await User.findById(req.params.id).select('-password');
+  const guard = await User.findById(req.params.id)
+    .select('-password')
+    .lean();
 
   if (!guard) {
     res.status(404);
@@ -270,14 +272,9 @@ const createGuard = asyncHandler(async (req, res) => {
     postCode,
     role,
     guardType,
-    managerType,
-    shift,
-    badgeNumber,
-    startDate,
     siaLicenceNumber,
     siaLicenceType,
     siaLicenceExpiry,
-    emergencyContact,
   } = req.body;
 
   // Check if email already exists
@@ -291,19 +288,13 @@ const createGuard = asyncHandler(async (req, res) => {
   const userData = {
     fullName,
     email,
-    username: email.split('@')[0], // Generate username from email
+    username: email.split('@')[0],
     phoneNumber,
     postCode,
     role,
     guardType: role === 'Guard' ? guardType : undefined,
-    managerType: role === 'Manager' ? managerType : undefined,
-    shift,
-    badgeNumber,
-    startDate,
-    emergencyContact,
-    status: 'active',
+    status: 'off-duty',
     availability: true,
-    // Generate temporary password (should be changed on first login)
     password: Math.random().toString(36).slice(-8),
   };
 
@@ -389,7 +380,7 @@ const deleteGuard = asyncHandler(async (req, res) => {
  */
 const updateGuardStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
-  const validStatuses = ['active', 'on-leave', 'off-duty', 'suspended'];
+  const validStatuses = ['on-duty', 'off-duty', 'on-break', 'late', 'absent', 'scheduled'];
 
   if (!validStatuses.includes(status)) {
     res.status(400);

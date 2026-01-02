@@ -3,6 +3,7 @@
  *
  * Side panel displaying detailed guard information.
  * Uses Chakra UI v3 Drawer components.
+ * * Handles missing fields gracefully for API data.
  */
 
 import React from 'react';
@@ -17,7 +18,7 @@ import {
   Spinner,
   Flex,
   Separator,
-  IconButton,
+  IconButton, Icon,
 } from '@chakra-ui/react';
 import {
   LuX,
@@ -26,11 +27,10 @@ import {
   LuMapPin,
   LuCalendar,
   LuShield,
-  LuUser,
   LuTriangleAlert,
   LuPencil,
   LuBadgeCheck,
-  LuFileText,
+  LuFileText, LuCircleCheck,
 } from 'react-icons/lu';
 import { Guards, LicenceStatus, GuardsStatus } from '../../../types/guards.types';
 
@@ -53,6 +53,12 @@ const getStatusColor = (status: GuardsStatus): string => {
     'scheduled': 'blue',
   };
   return colors[status] || 'gray';
+};
+
+// Status display text
+const getStatusText = (status?: GuardsStatus): string => {
+  if (!status) return 'Unknown';
+  return status.replace('-', ' ');
 };
 
 // Licence status colour mapping
@@ -119,6 +125,8 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
     ? getDaysUntilExpiry(guard.siaLicence.expiryDate)
     : null;
 
+  const currentStatus = guard?.status || 'off-duty';
+
   return (
     <Drawer.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()} placement="end" size="md">
       <Drawer.Backdrop />
@@ -126,7 +134,7 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
         <Drawer.Content>
           <Drawer.Header borderBottomWidth="1px" borderColor="gray.200">
             <Flex justify="space-between" align="center">
-              <Text fontSize="lg" fontWeight="semibold"><Text>{guard?.role} Details</Text></Text>
+              <Text fontSize="lg" fontWeight="semibold"><Text>{guard?.role === 'Guard' ? 'Guard' : guard?.role || 'Guard'} Details</Text></Text>
               <HStack gap={2}>
                 {onEdit && guard && (
                   <IconButton
@@ -155,26 +163,36 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
             ) : guard ? (
               <VStack gap={0} align="stretch">
                 {/* Profile Header */}
-                <Box bg="gray.50" p={6}>
+                <Box
+                  bg={`${getStatusColor(currentStatus)}.50`}
+                  p={6}
+                  borderBottomWidth="2px"
+                  borderColor={`${getStatusColor(currentStatus)}.200`}
+                >
                   <VStack gap={4}>
+                    {/* Guard Name (moved to top) */}
                     <VStack gap={1}>
                       <Text fontSize="xl" fontWeight="semibold">{guard.fullName}</Text>
-                      {guard.badgeNumber && (
-                        <Text fontSize="sm" color="gray.500" fontFamily="mono">
-                          {guard.badgeNumber}
-                        </Text>
-                      )}
                       <HStack gap={2} mt={1}>
-                        <Badge colorPalette={getStatusColor(guard.status)} variant="subtle">
-                          {guard.status.replace('-', ' ')}
-                        </Badge>
-                        {guard.availability && guard.status === 'on-duty' && (
-                          <Badge colorPalette="green" variant="outline">
-                            Available
+                        {guard.guardType && (
+                          <Badge colorPalette="purple" variant="outline">
+                            {guard.guardType}
                           </Badge>
                         )}
                       </HStack>
                     </VStack>
+                    {/* Status Badge */}
+                    <Badge
+                      colorPalette={getStatusColor(currentStatus)}
+                      variant="solid"
+                      px={4}
+                      py={1}
+                      fontSize="sm"
+                      textTransform="capitalize"
+                    >
+                      <Icon as={LuCircleCheck} mr={1} />
+                      {getStatusText(currentStatus)}
+                    </Badge>
                   </VStack>
                 </Box>
 
@@ -185,7 +203,8 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                       flex={1}
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(`tel:${guard.phoneNumber}`)}
+                      onClick={() => guard.phoneNumber && window.open(`tel:${guard.phoneNumber}`)}
+                      disabled={!guard.phoneNumber}
                     >
                       <LuPhone size={14} />
                       Call
@@ -194,7 +213,8 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                       flex={1}
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(`mailto:${guard.email}`)}
+                      onClick={() => guard.email && window.open(`mailto:${guard.email}`)}
+                      disabled={!guard.email}
                     >
                       <LuMail size={14} />
                       Email
@@ -216,54 +236,20 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                     <InfoRow
                       icon={<LuPhone size={14} />}
                       label="Phone"
-                      value={guard.phoneNumber}
+                      value={guard.phoneNumber || '-'}
                     />
                     <InfoRow
                       icon={<LuMapPin size={14} />}
                       label="Postcode"
-                      value={guard.postCode}
+                      value={guard.postCode || '-'}
                     />
-                  </VStack>
-                </Box>
-
-                <Separator />
-
-                {/* Employment Details */}
-                <Box px={6} py={4}>
-                  <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={3}>
-                    Employment Details
-                  </Text>
-                  <VStack gap={0} align="stretch">
-                    <InfoRow
-                      icon={<LuUser size={14} />}
-                      label="Role"
-                      value={
-                        <VStack gap={0} align="flex-end">
-                          <Text fontSize="sm" fontWeight="medium">
-                            {guard.role === 'Guard' ? 'Security Officer' : guard.role}
-                          </Text>
-                          {(guard.guardType || guard.managerType) && (
-                            <Text fontSize="xs" color="gray.500">
-                              {guard.guardType || guard.managerType}
-                            </Text>
-                          )}
-                        </VStack>
-                      }
-                    />
-                    {guard.assignedSite && (
-                      <InfoRow
-                        icon={<LuMapPin size={14} />}
-                        label="Assigned Site"
-                        value={guard.assignedSite}
-                      />
-                    )}
                   </VStack>
                 </Box>
 
                 <Separator />
 
                 {/* SIA Licence */}
-                {guard.siaLicence && (
+                {guard.siaLicence ? (
                   <>
                     <Box px={6} py={4}>
                       <Flex justify="space-between" align="center" mb={3}>
@@ -303,14 +289,14 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                         <InfoRow
                           icon={<LuShield size={14} />}
                           label="Licence Type"
-                          value={guard.siaLicence.licenceType}
+                          value={guard.siaLicence.licenceType || '-'}
                         />
                         <InfoRow
                           icon={<LuFileText size={14} />}
                           label="Licence Number"
                           value={
                             <Text fontSize="sm" fontWeight="medium" fontFamily="mono">
-                              {guard.siaLicence.licenceNumber}
+                              {guard.siaLicence.licenceNumber || '-'}
                             </Text>
                           }
                         />
@@ -337,6 +323,26 @@ const GuardsDrawer: React.FC<GuardsDrawerProps> = ({
                           }
                         />
                       </VStack>
+                    </Box>
+                    <Separator />
+                  </>
+                ) : (
+                  <>
+                    <Box px={6} py={4}>
+                      <Flex justify="space-between" align="center" mb={3}>
+                        <Text fontSize="sm" fontWeight="semibold" color="gray.700">
+                          SIA Licence
+                        </Text>
+                        <Badge colorPalette="gray" variant="subtle">
+                          Not Provided
+                        </Badge>
+                      </Flex>
+                      <Box bg="gray.50" borderRadius="md" p={4} textAlign="center">
+                        <Icon as={LuShield} boxSize={6} color="gray.400" mb={2} />
+                        <Text fontSize="sm" color="gray.500">
+                          No SIA licence information on file
+                        </Text>
+                      </Box>
                     </Box>
                     <Separator />
                   </>
