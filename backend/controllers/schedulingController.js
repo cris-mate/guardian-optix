@@ -369,12 +369,34 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getAvailableGuards = asyncHandler(async (req, res) => {
+  const { date, shiftType } = req.query;
   const guards = await User.find({
     role: 'Guard',
-    status: 'off-duty',
+    status: { $in: ['active', 'on-duty', 'off-duty', 'scheduled'] },
   })
     .select('fullName siaLicenceNumber guardType availability')
-    .sort('fullName');
+    .sort('fullName')
+    .lean();
+
+  if (date && shiftType) {
+    const conflictingShifts = await Shift.find({
+      date,
+      shiftType,
+      status: {$nin: ['cancelled']},
+      guard: {$ne: null},
+    }).select('guard');
+
+    const busyGuardIds = conflictingShifts.map((s) => s.guard.toString());
+
+    const availableGuards = guards.filter(
+      (g) => !busyGuardIds.includes(g._id.toString())
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: availableGuards,
+    });
+  }
 
   res.status(200).json({
     success: true,

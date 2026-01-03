@@ -23,7 +23,6 @@ import {
   Grid,
   GridItem,
   Tabs,
-  Spinner,
   Badge,
 } from '@chakra-ui/react';
 import {
@@ -127,35 +126,6 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, onAddShift, isLoading, isMan
       )}
     </HStack>
   </HStack>
-);
-
-// ============================================
-// Error Banner Component
-// ============================================
-
-interface ErrorBannerProps {
-  message: string;
-  onRetry: () => void;
-}
-
-const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
-  <Box
-    bg="red.50"
-    borderWidth="1px"
-    borderColor="red.200"
-    borderRadius="lg"
-    p={4}
-  >
-    <HStack justify="space-between">
-      <HStack gap={3}>
-        <Icon as={LuTriangleAlert} color="red.500" boxSize={5} />
-        <Text color="red.700" fontSize="sm">{message}</Text>
-      </HStack>
-      <Button size="sm" colorPalette="red" variant="outline" onClick={onRetry}>
-        Retry
-      </Button>
-    </HStack>
-  </Box>
 );
 
 // ============================================
@@ -293,6 +263,7 @@ const Scheduling: React.FC = () => {
     refetch,
     navigateDate,
     goToToday,
+    fetchAvailableGuards,
   } = useSchedulingData();
 
   // Handlers
@@ -490,6 +461,7 @@ const Scheduling: React.FC = () => {
         availableSites={availableSites}
         selectedDate={filters.selectedDate}
         isSubmitting={isMutating}
+        onRefreshGuards={fetchAvailableGuards}
       />
 
       {/* CSS for spinner animation */}

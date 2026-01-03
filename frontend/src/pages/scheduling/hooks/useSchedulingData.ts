@@ -185,7 +185,6 @@ const getMonthDates = (date: Date): CalendarDay[] => {
   const today = new Date().toISOString().split('T')[0];
 
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
 
   // Start from Monday of the week containing the first day
   const startDate = new Date(firstDay);
@@ -274,6 +273,27 @@ export const useSchedulingData = () => {
       console.error('Error fetching shifts:', err);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Fetch available guards filtered by date and shiftType
+   */
+  const fetchAvailableGuards = useCallback(async (date?: string, shiftType?: string) => {
+    try {
+      if (USE_MOCK_DATA) {
+        setAvailableGuards(mockGuards);
+        return;
+      }
+
+      const params = new URLSearchParams();
+      if (date) params.append('date', date);
+      if (shiftType) params.append('shiftType', shiftType);
+
+      const res = await api.get(`/scheduling/available-guards?${params}`);
+      setAvailableGuards(res.data.data || []);
+    } catch (err) {
+      console.error('Error fetching available guards:', err);
     }
   }, []);
 
@@ -610,6 +630,7 @@ export const useSchedulingData = () => {
     deleteShift,
     toggleTaskComplete,
     refetch: fetchShifts,
+    fetchAvailableGuards,
 
     // Navigation
     navigateDate,

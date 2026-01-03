@@ -5,7 +5,7 @@
  * Includes intelligent guard recommendations based on site requirements.
  */
 
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Box,
   Dialog,
@@ -46,6 +46,7 @@ interface AddShiftModalProps {
   availableSites: AvailableSite[];
   selectedDate?: string;
   isSubmitting?: boolean;
+  onRefreshGuards?: (date: string, shiftType: string) => void;
 }
 
 // ============================================
@@ -78,19 +79,6 @@ const getInitialFormData = (selectedDate?: string): ShiftFormData => ({
   notes: '',
 });
 
-// // Create guard options for dropdown
-// const guardOptions = createListCollection({
-//   items: [
-//     { value: '', label: '— Leave Unassigned —' },  // ← ADD THIS
-//     ...availableGuards
-//       .filter((g) => g.availability)
-//       .map((g) => ({
-//         value: g._id,
-//         label: `${g.fullName}${g.siaLicenceNumber ? ` (${g.siaLicenceNumber})` : ''}`,
-//       })),
-//   ],
-// });
-
 // ============================================
 // Main Component
 // ============================================
@@ -103,10 +91,35 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                                                        availableSites,
                                                        selectedDate,
                                                        isSubmitting = false,
+                                                       onRefreshGuards,
                                                      }) => {
   const [formData, setFormData] = useState<ShiftFormData>(
     getInitialFormData(selectedDate)
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        guardId: '',
+        siteId: '',
+        date: selectedDate || new Date().toISOString().split('T')[0],
+        shiftType: 'Morning',
+        tasks: [],
+        notes: '',
+      });
+    }
+  }, [isOpen, selectedDate]);
+
+  /**
+   * Refresh available guards when date or shiftType changes
+   * This filters out guards who already have shifts at that time
+   */
+  useEffect(() => {
+    if (isOpen && formData.date && formData.shiftType && onRefreshGuards) {
+      onRefreshGuards(formData.date, formData.shiftType);
+    }
+  }, [isOpen, formData.date, formData.shiftType, onRefreshGuards]);
+
   const [newTask, setNewTask] = useState<TaskFormData>({
     title: '',
     description: '',
