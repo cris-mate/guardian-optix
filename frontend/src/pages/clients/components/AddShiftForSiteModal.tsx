@@ -24,6 +24,7 @@ import {
 } from '@chakra-ui/react';
 import { LuX, LuCalendarPlus, LuMapPin, LuClock, LuUser } from 'react-icons/lu';
 import { api } from '../../../utils/api';
+import RecommendedGuardsPanel from '../../scheduling/components/RecommendedGuardsPanel';
 import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 
 // ============================================
@@ -108,6 +109,9 @@ const AddShiftForSiteModal: React.FC<AddShiftForSiteModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingGuards, setIsLoadingGuards] = useState(false);
   const [availableGuards, setAvailableGuards] = useState<AvailableGuard[]>([]);
+  const handleRecommendedGuardSelect = (guardId: string) => {
+    setFormData((prev) => ({ ...prev, guardId }));
+  };
 
   // Fetch available guards
   useEffect(() => {
@@ -253,7 +257,7 @@ const AddShiftForSiteModal: React.FC<AddShiftForSiteModalProps> = ({
           {/* Body */}
           <Dialog.Body py={5}>
             <VStack gap={4} align="stretch">
-              {/* Site Info (Read-only) */}
+              {/* Site Info */}
               <Box bg="purple.50" borderRadius="md" p={4}>
                 <HStack gap={2} mb={1}>
                   <Icon as={LuMapPin} color="purple.500" boxSize={4} />
@@ -311,6 +315,16 @@ const AddShiftForSiteModal: React.FC<AddShiftForSiteModalProps> = ({
                   </Badge>
                 </HStack>
               </Field.Root>
+
+              {/* Recommended Guards Panel */}
+              {formData.date && formData.shiftType && (
+                <RecommendedGuardsPanel
+                  siteId={site._id}
+                  date={formData.date}
+                  onSelect={handleRecommendedGuardSelect}
+                  selectedGuardId={formData.guardId}
+                />
+              )}
 
               {/* Guard (Optional) */}
               <Field.Root>

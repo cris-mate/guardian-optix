@@ -162,7 +162,6 @@ const getShiftById = asyncHandler(async (req, res) => {
 /**
  * @route   POST /api/scheduling/shifts
  * @desc    Create new shift
- * @access  Private (Admin/Manager)
  */
 const createShift = asyncHandler(async (req, res) => {
   const {
@@ -229,7 +228,6 @@ const createShift = asyncHandler(async (req, res) => {
 /**
  * @route   PUT /api/scheduling/shifts/:id
  * @desc    Update shift
- * @access  Private (Admin/Manager)
  */
 const updateShift = asyncHandler(async (req, res) => {
   const shift = await Shift.findById(req.params.id);
@@ -257,7 +255,6 @@ const updateShift = asyncHandler(async (req, res) => {
 /**
  * @route   DELETE /api/scheduling/shifts/:id
  * @desc    Delete shift
- * @access  Private (Admin/Manager)
  */
 const deleteShift = asyncHandler(async (req, res) => {
   const shift = await Shift.findById(req.params.id);
@@ -427,43 +424,113 @@ const getAvailableSites = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @route   GET /api/scheduling/recommended-guards/:siteId
+ * @desc    Get top 3 recommended guards for a site based on scoring algorithm
+ *
+ * Scoring factors:
+ * - Distance from site (30%)
+ * - Guard type match (25%)
+ * - Availability (20%)
+ * - SIA Licence status (15%)
+ * - Certifications match (10%)
+ */
 const getRecommendedGuards = asyncHandler(async (req, res) => {
   const { siteId } = req.params;
   const { date, shiftType } = req.query;
 
+  // Validate site
   const site = await Site.findById(siteId);
   if (!site) throw new Error('Site not found');
 
-  const siteCoords = await getPostcodeCoords(site.address.postCode);
+  // Get site location
+  let siteCoords = null;
+  const sitePostCode = site.address?.postCode || site.postCode;
+  if (sitePostCode) {
+    try {
+      siteCoords = await getPostcodeCoords(sitePostCode);
+    } catch (error) {
+      console.warn('Failed to get site coordinates:', error.message);
+    }
+  }
 
-  // Get eligible guards (off-duty, valid licence, available)
+  // Get eligible guards
   const guards = await User.find({
     role: 'Guard',
-    status: 'off-duty',
+    $or: [
+      { status: { $in: ['active', 'off-duty', 'available'] } },
+      { availability: true },
+    ],
     'siaLicence.status': { $in: ['valid', 'expiring-soon'] },
-  });
+  }).lean();
 
-  // Score each guard
-  const scored = await Promise.all(
-    guards.map(async (guard) => ({
-      guard: {
-        _id: guard._id,
-        fullName: guard.fullName,
-        guardType: guard.guardType,
-        postCode: guard.postCode,
-        siaLicence: guard.siaLicence,
-        certifications: guard.certifications,
-      },
-      ...(await scoreGuard(guard, site, siteCoords, date)),
-    }))
+  if (guards.length === 0) {
+    return res.json({
+      success: true,
+      data: [],
+      message: 'No eligible guards found',
+    });
+  }
+
+  // Get guards already assigned to shifts on this date
+  let busyGuardIds = [];
+  if (date) {
+    const query = {
+      date,
+      status: { $nin: ['cancelled'] },
+      guard: { $ne: null },
+    };
+
+    // If shiftType provided, only exclude guards on that exact shift type
+    if (shiftType) {
+      query.shiftType = shiftType;
+    }
+
+    const conflictingShifts = await Shift.find(query).select('guard').lean();
+    busyGuardIds = conflictingShifts.map((s) => s.guard.toString());
+  }
+
+  // Filter out busy guards
+  const availableGuards = guards.filter(
+    (g) => !busyGuardIds.includes(g._id.toString())
   );
 
-  // Sort and return top 3
+  if (availableGuards.length === 0) {
+    return res.json({
+      success: true,
+      data: [],
+      message: 'All eligible guards are already assigned on this date',
+    });
+  }
+
+  // Score each available guard
+  const scored = await Promise.all(
+    availableGuards.map(async (guard) => {
+      const scoring = await scoreGuard(guard, site, siteCoords);
+      return {
+        guard: {
+          _id: guard._id,
+          guardType: guard.guardType || null,
+          postCode: guard.postCode,
+          siaLicence: guard.siaLicence || null,
+          certifications: guard.certifications || [],
+        },
+        score: scoring.score,
+        breakdown: scoring.breakdown,
+        distanceKm: scoring.distanceKm,
+      };
+    })
+  );
+
+  // Sort by score (descending) and return top 3
   const recommendations = scored
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
 
-  res.json({ success: true, data: recommendations });
+  res.json({
+    success: true,
+    data: recommendations,
+  });
 });
 
 module.exports = {
@@ -475,7 +542,7 @@ module.exports = {
   deleteShift,
   updateShiftStatus,
   updateTaskStatus,
-  getAvailableGuards: getAvailableGuards,
+  getAvailableGuards,
   getAvailableSites,
   getRecommendedGuards,
 };
