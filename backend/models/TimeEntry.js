@@ -114,6 +114,18 @@ const TimeEntrySchema = new mongoose.Schema(
       enum: ['inside', 'outside', 'unknown'],
       default: 'unknown',
     },
+    geofenceDistance: {
+      type: Number, // Distance in metres from site center
+      default: null,
+    },
+    isSimulated: {
+      type: Boolean,
+      default: false,
+    },
+    simulationScenario: {
+      type: String,
+      default: null,
+    },
     notes: {
       type: String,
       trim: true,

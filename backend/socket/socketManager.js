@@ -140,7 +140,7 @@ const emitClockAction = (data) => {
   const { guardId, guardName, action, siteId, siteName, geofenceStatus } = data;
 
   // Broadcast to dashboard subscribers
-  io.to('dashboard').emit('timeclock:action', {
+  io.to('dashboard').emit('timeClock:action', {
     guardId,
     guardName,
     action, // 'clock-in' | 'clock-out' | 'break-start' | 'break-end'

@@ -3,14 +3,6 @@
  *
  * Digital time tracking for security guards in Guardian Optix.
  * Features GPS-verified clock in/out, break management, and timesheet generation.
- *
- * Features:
- * - GPS-verified clock in/out with geofence compliance
- * - Break management (paid/unpaid)
- * - Real-time location tracking
- * - Today's time entries with location data
- * - Timesheet summary (daily/weekly)
- * - Active guards overview (manager view)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -26,7 +18,6 @@ import {
   Tabs,
   Spinner,
   Badge,
-  Flex,
 } from '@chakra-ui/react';
 import {
   LuClock,
@@ -51,7 +42,34 @@ import TimesheetSummary from './components/TimesheetSummary';
 import { useTimeClockData } from './hooks/useTimeClockData';
 
 // Types
-import type { TimeClockStats } from '../../types/timeClock.types';
+import type { TimeClockStats, WeeklySummary } from '../../types/timeClock.types';
+
+// ============================================
+// Default Stats (for null safety)
+// ============================================
+
+const DEFAULT_STATS: TimeClockStats = {
+  todayHours: 0,
+  weekHours: 0,
+  monthHours: 0,
+  overtimeThisWeek: 0,
+  breaksTaken: 0,
+  onTimeClockIns: 0,
+  lateClockIns: 0,
+  activeGuardsCount: 0,
+  guardsOnBreak: 0,
+  pendingApprovals: 0,
+};
+
+const DEFAULT_WEEKLY_SUMMARY: WeeklySummary = {
+  weekStart: new Date().toISOString(),
+  weekEnd: new Date().toISOString(),
+  totalHours: 0,
+  regularHours: 0,
+  overtimeHours: 0,
+  daysWorked: 0,
+  averageHoursPerDay: 0,
+};
 
 // ============================================
 // Tab Configuration
@@ -358,8 +376,19 @@ const TimeClock: React.FC = () => {
     refetch,
     error,
     locationError,
-    clearError,
+    // Simulation controls
+    geofenceConfig,
+    simulationEnabled,
+    setSimulationEnabled,
+    selectedScenario,
+    setSelectedScenario,
   } = useTimeClockData();
+
+  // Use default stats if null
+  const safeStats = stats ?? DEFAULT_STATS;
+
+  // Use default weeklySummary if null
+  const safeWeeklySummary = weeklySummary ?? DEFAULT_WEEKLY_SUMMARY;
 
   // Filter tabs based on role
   const visibleTabs = tabs.filter((tab) => !tab.managerOnly || isManager);
@@ -399,7 +428,7 @@ const TimeClock: React.FC = () => {
 
       {/* Quick Stats */}
       <QuickStats
-        stats={stats}
+        stats={safeStats}
         isLoading={isLoading && !stats}
         isManager={isManager}
       />
@@ -434,9 +463,9 @@ const TimeClock: React.FC = () => {
                 <HStack gap={2}>
                   <Icon as={tab.icon} boxSize={4} />
                   <Text>{tab.label}</Text>
-                  {tab.value === 'team' && stats.activeGuardsCount > 0 && (
+                  {tab.value === 'team' && safeStats.activeGuardsCount > 0 && (
                     <Badge colorPalette="green" variant="solid" size="sm">
-                      {stats.activeGuardsCount}
+                      {safeStats.activeGuardsCount}
                     </Badge>
                   )}
                 </HStack>
@@ -475,11 +504,17 @@ const TimeClock: React.FC = () => {
                     onBreakStart={startBreak}
                     onBreakEnd={endBreak}
                     onRefreshLocation={refreshLocation}
+                    // Simulation props
+                    geofenceConfig={geofenceConfig}
+                    simulationEnabled={simulationEnabled}
+                    onSimulationEnabledChange={setSimulationEnabled}
+                    selectedScenario={selectedScenario}
+                    onScenarioChange={setSelectedScenario}
                   />
                 </Box>
               </GridItem>
 
-              {/* Today's Time Entries (Double Width) */}
+              {/* Today's Time Entries */}
               <GridItem>
                 <Box
                   bg="white"
@@ -530,7 +565,7 @@ const TimeClock: React.FC = () => {
                   <Box p={4}>
                     <TimesheetSummary
                       todayTimesheet={todayTimesheet}
-                      weeklySummary={weeklySummary}
+                      weeklySummary={safeWeeklySummary}
                       isLoading={isLoading}
                     />
                   </Box>
@@ -604,7 +639,7 @@ const TimeClock: React.FC = () => {
                         Active Guards
                       </Text>
                       <Badge colorPalette="green" variant="solid" size="sm">
-                        {stats.activeGuardsCount}
+                        {safeStats.activeGuardsCount}
                       </Badge>
                     </HStack>
                     <Box p={4}>
@@ -632,22 +667,22 @@ const TimeClock: React.FC = () => {
                       <VStack align="stretch" gap={3}>
                         <HStack justify="space-between">
                           <Text fontSize="sm" color="gray.500">Active Now</Text>
-                          <Text fontWeight="medium">{stats.activeGuardsCount}</Text>
+                          <Text fontWeight="medium">{safeStats.activeGuardsCount}</Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontSize="sm" color="gray.500">On Break</Text>
-                          <Text fontWeight="medium">{stats.guardsOnBreak}</Text>
+                          <Text fontWeight="medium">{safeStats.guardsOnBreak}</Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontSize="sm" color="gray.500">On Time Today</Text>
                           <Text fontWeight="medium" color="green.600">
-                            {stats.onTimeClockIns}
+                            {safeStats.onTimeClockIns}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontSize="sm" color="gray.500">Late Today</Text>
-                          <Text fontWeight="medium" color={stats.lateClockIns > 0 ? 'red.500' : 'gray.600'}>
-                            {stats.lateClockIns}
+                          <Text fontWeight="medium" color={safeStats.lateClockIns > 0 ? 'red.500' : 'gray.600'}>
+                            {safeStats.lateClockIns}
                           </Text>
                         </HStack>
                       </VStack>
@@ -665,13 +700,13 @@ const TimeClock: React.FC = () => {
                         <Text fontWeight="semibold" color="gray.700">
                           Pending Approvals
                         </Text>
-                        {stats.pendingApprovals > 0 && (
+                        {safeStats.pendingApprovals > 0 && (
                           <Badge colorPalette="orange" variant="solid">
-                            {stats.pendingApprovals}
+                            {safeStats.pendingApprovals}
                           </Badge>
                         )}
                       </HStack>
-                      {stats.pendingApprovals === 0 ? (
+                      {safeStats.pendingApprovals === 0 ? (
                         <Text fontSize="sm" color="gray.500" textAlign="center" py={4}>
                           No timesheets pending approval
                         </Text>

@@ -5,12 +5,14 @@
  * Toggle USE_MOCK_DATA to switch between mock and API data.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../utils/api';
 import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import {
   ClockStatus,
   BreakType,
+  GeofenceStatus,
+  GPSLocation,
   TimeEntry,
   ActiveShift,
   TodayTimesheet,
@@ -18,8 +20,7 @@ import {
   TimeClockStats,
   ActiveGuard,
   ClockActionPayload,
-  GPSLocation,
-  GeofenceStatus,
+  GeofenceConfig,
 } from '../../../types/timeClock.types';
 
 
@@ -236,8 +237,8 @@ interface UseTimeClockDataReturn {
   // Data
   timeEntries: TimeEntry[];
   todayTimesheet: TodayTimesheet | null;
-  weeklySummary: WeeklySummary;
-  stats: TimeClockStats;
+  weeklySummary: WeeklySummary | null;
+  stats: TimeClockStats | null;
   activeGuards: ActiveGuard[];
 
   // Loading states
@@ -252,13 +253,20 @@ interface UseTimeClockDataReturn {
   clockOut: (notes?: string) => Promise<void>;
   startBreak: (breakType: BreakType) => Promise<void>;
   endBreak: () => Promise<void>;
-  refreshLocation: () => Promise<void>;
+  refreshLocation: () => Promise<GPSLocation | null | undefined>;
   refetch: () => Promise<void>;
 
   // Error handling
   error: string | null;
   locationError: string | null;
   clearError: () => void;
+
+  // Simulation controls
+  geofenceConfig: GeofenceConfig | null;
+  simulationEnabled: boolean;
+  setSimulationEnabled: (enabled: boolean) => void;
+  selectedScenario: string;
+  setSelectedScenario: (scenario: string) => void;
 }
 
 // ============================================
@@ -273,8 +281,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
   const [geofenceStatus, setGeofenceStatus] = useState<GeofenceStatus>('unknown');
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [todayTimesheet, setTodayTimesheet] = useState<TodayTimesheet | null>(null);
-  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>(MOCK_WEEKLY_SUMMARY);
-  const [stats, setStats] = useState<TimeClockStats>(MOCK_STATS);
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
+  const [stats, setStats] = useState<TimeClockStats | null>(null);
   const [activeGuards, setActiveGuards] = useState<ActiveGuard[]>([]);
 
   // Loading states
@@ -287,6 +295,27 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
   // Error states
   const [error, setError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  // ============================================
+  // Simulation State
+  // ============================================
+  const [geofenceConfig, setGeofenceConfig] = useState<GeofenceConfig | null>(null);
+  const [simulationEnabled, setSimulationEnabled] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState<string>('inside_center');
+
+  // ============================================
+  // Fetch Geofence Config
+  // ============================================
+  const fetchGeofenceConfig = useCallback(async () => {
+    try {
+      const response = await api.get('/timeClock/geofence-config');
+      if (response.data.success) {
+        setGeofenceConfig(response.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch geofence config:', err);
+    }
+  }, []);
 
   // ============================================
   // Location Handling
@@ -303,7 +332,6 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
         setCurrentLocation(mockLoc);
         setGeofenceStatus('inside');
       } else {
-        // Real GPS implementation would use navigator.geolocation
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
@@ -320,13 +348,12 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
         };
 
         setCurrentLocation(location);
-        // API call to verify geofence
-        const response = await api.post('/api/timeClock/verify-location', { location });
-        setGeofenceStatus(response.data.geofenceStatus);
+        return location;
       }
     } catch (err) {
       setLocationError('Unable to get current location. Please enable GPS.');
       console.error('Location error:', err);
+      return null;
     } finally {
       setIsLocationLoading(false);
     }
@@ -367,22 +394,41 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
         // Refresh location
         await refreshLocation();
       } else {
-        const [shiftRes, entriesRes, guardsRes, statsRes] = await Promise.all([
-          api.get('/api/timeClock/active-shift'),
-          api.get('/api/timeClock/entries/today'),
-          api.get('/api/timeClock/active-guards'),
-          api.get('/api/timeClock/stats'),
+        const [statusRes, entriesRes, timesheetRes] = await Promise.all([
+          api.get('/timeClock/status'),
+          api.get('/timeClock/entries/today'),
+          api.get('/timeClock/timesheet/today'),
         ]);
 
-        setActiveShift(shiftRes.data);
-        setTimeEntries(entriesRes.data);
-        setActiveGuards(guardsRes.data);
-        setStats(statsRes.data);
+        if (statusRes.data.success) {
+          const data = statusRes.data.data;
+          setClockStatus(data.clockStatus);
+          setActiveShift(data.site ? {
+            _id: data._id,
+            shiftId: data.shift?._id,
+            guardId: data.guard,
+            guardName: '',
+            site: data.site,
+            scheduledStart: data.shift?.startTime,
+            scheduledEnd: data.shift?.endTime,
+            clockStatus: data.clockStatus,
+            geofenceStatus: data.geofenceStatus,
+            breaks: [],
+            totalBreakMinutes: data.totalBreakMinutesToday || 0,
+            totalWorkedMinutes: 0,
+          } : null);
+          setGeofenceStatus(data.geofenceStatus || 'unknown');
+        }
 
-        if (shiftRes.data) {
-          setClockStatus(shiftRes.data.clockStatus);
+        if (entriesRes.data.success) {
+          setTimeEntries(entriesRes.data.data);
+        }
+
+        if (timesheetRes.data.success) {
+          setTodayTimesheet(timesheetRes.data.data);
         }
       }
+      await refreshLocation();
     } catch (err) {
       setError('Failed to load time clock data');
       console.error('Error fetching time clock data:', err);
@@ -392,7 +438,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
   }, [refreshLocation]);
 
   // ============================================
-  // Clock Actions
+  // Clock In
   // ============================================
 
   const clockIn = useCallback(async (notes?: string) => {
@@ -429,14 +475,27 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           });
         }
       } else {
-        const payload: ClockActionPayload = {
+        const payload: ClockActionPayload & { simulationScenario?: string } = {
           type: 'clock-in',
           location: currentLocation || undefined,
           siteId: activeShift?.site._id,
           notes,
         };
 
-        await api.post('/api/timeClock/clock-in', payload);
+        // Add simulation scenario if enabled
+        if (simulationEnabled && geofenceConfig?.simulationEnabled) {
+          payload.simulationScenario = selectedScenario;
+        }
+
+        const response = await api.post('/timeClock/clock-in', payload);
+
+        if (response.data.success) {
+          // Update geofence status from response
+          if (response.data.data.geofence) {
+            setGeofenceStatus(response.data.data.geofence.status);
+          }
+        }
+
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -445,8 +504,19 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
     } finally {
       setIsClockingIn(false);
     }
-  }, [currentLocation, activeShift, refreshLocation, fetchTimeClockData]);
+  }, [
+    currentLocation,
+    activeShift,
+    refreshLocation,
+    fetchTimeClockData,
+    simulationEnabled,
+    selectedScenario,
+    geofenceConfig,
+  ]);
 
+  // ============================================
+  // Clock Out
+  // ============================================
   const clockOut = useCallback(async (notes?: string) => {
     setIsClockingOut(true);
     setError(null);
@@ -481,13 +551,17 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           });
         }
       } else {
-        const payload: ClockActionPayload = {
+        const payload: ClockActionPayload & { simulationScenario?: string } = {
           type: 'clock-out',
           location: currentLocation || undefined,
           notes,
         };
 
-        await api.post('/api/timeClock/clock-out', payload);
+        if (simulationEnabled && geofenceConfig?.simulationEnabled) {
+          payload.simulationScenario = selectedScenario;
+        }
+
+        await api.post('/timeClock/clock-out', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -496,8 +570,19 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
     } finally {
       setIsClockingOut(false);
     }
-  }, [currentLocation, activeShift, refreshLocation, fetchTimeClockData]);
+  }, [
+    currentLocation,
+    activeShift,
+    refreshLocation,
+    fetchTimeClockData,
+    simulationEnabled,
+    selectedScenario,
+    geofenceConfig,
+  ]);
 
+  // ============================================
+  // Start Break
+  // ============================================
   const startBreak = useCallback(async (breakType: BreakType) => {
     setIsProcessingBreak(true);
     setError(null);
@@ -528,13 +613,17 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           });
         }
       } else {
-        const payload: ClockActionPayload = {
+        const payload: ClockActionPayload & { simulationScenario?: string; breakType: BreakType } = {
           type: 'break-start',
           location: currentLocation || undefined,
           breakType,
         };
 
-        await api.post('/api/timeClock/break/start', payload);
+        if (simulationEnabled && geofenceConfig?.simulationEnabled) {
+          payload.simulationScenario = selectedScenario;
+        }
+
+        await api.post('/timeClock/break/start', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -543,8 +632,18 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
     } finally {
       setIsProcessingBreak(false);
     }
-  }, [currentLocation, activeShift, fetchTimeClockData]);
+  }, [
+    currentLocation,
+    activeShift,
+    fetchTimeClockData,
+    simulationEnabled,
+    selectedScenario,
+    geofenceConfig
+  ]);
 
+  // ============================================
+  // End Break
+  // ============================================
   const endBreak = useCallback(async () => {
     setIsProcessingBreak(true);
     setError(null);
@@ -575,12 +674,16 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           });
         }
       } else {
-        const payload: ClockActionPayload = {
+        const payload: ClockActionPayload & { simulationScenario?: string } = {
           type: 'break-end',
           location: currentLocation || undefined,
         };
 
-        await api.post('/api/timeClock/break/end', payload);
+        if (simulationEnabled && geofenceConfig?.simulationEnabled) {
+          payload.simulationScenario = selectedScenario;
+        }
+
+        await api.post('/timeClock/break/end', payload);
         await fetchTimeClockData();
       }
     } catch (err) {
@@ -589,7 +692,14 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
     } finally {
       setIsProcessingBreak(false);
     }
-  }, [currentLocation, activeShift, fetchTimeClockData]);
+  }, [
+    currentLocation,
+    activeShift,
+    fetchTimeClockData,
+    simulationEnabled,
+    selectedScenario,
+    geofenceConfig,
+  ]);
 
   // ============================================
   // Effects
@@ -597,7 +707,8 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
   useEffect(() => {
     fetchTimeClockData();
-  }, [fetchTimeClockData]);
+    fetchGeofenceConfig();
+  }, [fetchTimeClockData, fetchGeofenceConfig]);
 
   // ============================================
   // Return
@@ -627,6 +738,11 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
     error,
     locationError,
     clearError: () => setError(null),
+    geofenceConfig,
+    simulationEnabled,
+    setSimulationEnabled,
+    selectedScenario,
+    setSelectedScenario,
   };
 };
 

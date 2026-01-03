@@ -3,7 +3,7 @@
  *
  * Handles time clock functionality including clock-in/out,
  * break management, and timesheet operations.
- * Integrates GPS reverse geocoding for location addresses.
+ * Integrates GPS reverse geocoding and geofence verification with simulation support.
  */
 
 const { TimeEntry, Timesheet, ActiveSession } = require('../models/TimeEntry');
@@ -12,6 +12,11 @@ const Shift = require('../models/Shift');
 const User = require('../models/User');
 const { emitClockAction, emitGeofenceViolation } = require('../socket/socketManager');
 const { reverseGeocode } = require('../services/geocodingService');
+const {
+  verifyGeofence,
+  getTestScenarios,
+  canUserSimulate,
+} = require('../services/geofenceService');
 const asyncHandler = require('../utils/asyncHandler');
 
 // ============================================
@@ -19,53 +24,9 @@ const asyncHandler = require('../utils/asyncHandler');
 // ============================================
 
 /**
- * Get today's date in YYYY-MM-DD format
+ * Get today's date
  */
 const getTodayDate = () => new Date().toISOString().split('T')[0];
-
-/**
- * Calculate distance between two GPS coordinates (Haversine formula)
- * @returns Distance in metres
- */
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371000; // Earth's radius in metres
-  const lat1Rad = (lat1 * Math.PI) / 180;
-  const lat2Rad = (lat2 * Math.PI) / 180;
-  const deltaLat = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLon = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-    Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-};
-
-/**
- * Verify if location is within site geofence
- */
-const verifyGeofence = async (location, siteId) => {
-  if (!location || !siteId) return 'unknown';
-
-  try {
-    const site = await Site.findById(siteId);
-    if (!site || !site.geofence || !site.geofence.center) return 'unknown';
-
-    const distance = calculateDistance(
-      location.latitude,
-      location.longitude,
-      site.geofence.center.latitude,
-      site.geofence.center.longitude
-    );
-
-    const radius = site.geofence.radius || 150;
-    return distance <= radius ? 'inside' : 'outside';
-  } catch (error) {
-    console.error('Geofence verification error:', error);
-    return 'unknown';
-  }
-};
 
 /**
  * Calculate worked minutes between two timestamps
@@ -81,7 +42,7 @@ const calculateMinutesWorked = (startTime, endTime) => {
  * Enrich location with reverse geocoded address
  */
 const enrichLocationWithAddress = async (location) => {
-  if (!location || !location.latitude || !location.longitude) {
+  if (!location?.latitude || !location?.longitude) {
     return location;
   }
 
@@ -103,17 +64,40 @@ const enrichLocationWithAddress = async (location) => {
 };
 
 // ============================================
+// Geofence Configuration Endpoint
+// ============================================
+
+/**
+ * @route   GET /api/timeClock/geofence-config
+ * @desc    Get geofence configuration for current user
+ * @access  Private
+ */
+const getGeofenceConfig = asyncHandler(async (req, res) => {
+  const userRole = req.user.role;
+
+  res.json({
+    success: true,
+    data: {
+      simulationEnabled: canUserSimulate(userRole),
+      testScenarios: canUserSimulate(userRole) ? getTestScenarios() : [],
+      enforcement: process.env.NODE_ENV === 'production' ? 'strict' : 'permissive',
+    },
+  });
+});
+
+// ============================================
 // Clock Actions
 // ============================================
 
 /**
- * @route   POST /api/timeclock/clock-in
+ * @route   POST /api/timeClock/clock-in
  * @desc    Clock in for current user
  * @access  Private
  */
 const clockIn = asyncHandler(async (req, res) => {
-  const { location, siteId, shiftId, notes } = req.body;
+  const { location, siteId, shiftId, notes, simulationScenario } = req.body;
   const guardId = req.user._id;
+  const userRole = req.user.role;
   const today = getTodayDate();
 
   // Check if already clocked in
@@ -123,14 +107,19 @@ const clockIn = asyncHandler(async (req, res) => {
     throw new Error('Already clocked in. Please clock out first.');
   }
 
-  // Verify geofence if location provided
-  let geofenceStatus = 'unknown';
-  if (location && siteId) {
-    geofenceStatus = await verifyGeofence(location, siteId);
-  }
+  // Verify geofence (with simulation support)
+  const geofenceResult = await verifyGeofence(location, siteId, {
+    simulationScenario,
+    userRole,
+  });
 
-  // Enrich location with address via reverse geocoding
-  const enrichedLocation = await enrichLocationWithAddress(location);
+  // Determine location to use (simulated or actual)
+  const locationToEnrich = geofenceResult.isSimulated
+    ? geofenceResult.coordinates?.checked
+    : location;
+
+  // Enrich location with address
+  const enrichedLocation = await enrichLocationWithAddress(locationToEnrich);
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
@@ -141,7 +130,10 @@ const clockIn = asyncHandler(async (req, res) => {
     type: 'clock-in',
     timestamp: new Date(),
     location: enrichedLocation,
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
+    geofenceDistance: geofenceResult.distance,
+    isSimulated: geofenceResult.isSimulated,
+    simulationScenario: geofenceResult.simulationScenario,
     notes,
   });
 
@@ -154,7 +146,7 @@ const clockIn = asyncHandler(async (req, res) => {
       clockStatus: 'clocked-in',
       clockedInAt: new Date(),
       lastKnownLocation: enrichedLocation,
-      geofenceStatus,
+      geofenceStatus: geofenceResult.status,
     });
   } else {
     session.clockStatus = 'clocked-in';
@@ -162,7 +154,7 @@ const clockIn = asyncHandler(async (req, res) => {
     session.shift = shiftId;
     session.site = siteId;
     session.lastKnownLocation = enrichedLocation;
-    session.geofenceStatus = geofenceStatus;
+    session.geofenceStatus = geofenceResult.status;
     session.totalBreakMinutesToday = 0;
     await session.save();
   }
@@ -187,18 +179,37 @@ const clockIn = asyncHandler(async (req, res) => {
     siteId ? Site.findById(siteId).select('name') : null,
   ]);
 
+  // Build response
+  const responseData = {
+    entry: timeEntry,
+    session: {
+      clockStatus: session.clockStatus,
+      clockedInAt: session.clockedInAt,
+      geofenceStatus: geofenceResult.status,
+    },
+    location: enrichedLocation,
+    geofence: {
+      status: geofenceResult.status,
+      distance: geofenceResult.distance,
+      message: geofenceResult.message,
+    },
+  };
+
+  // Add simulation info if applicable
+  if (geofenceResult.isSimulated) {
+    responseData.simulation = {
+      enabled: true,
+      scenario: geofenceResult.simulationScenario,
+      warning: 'This entry used simulated GPS coordinates',
+    };
+  }
+
   res.status(201).json({
     success: true,
-    data: {
-      entry: timeEntry,
-      session: {
-        clockStatus: session.clockStatus,
-        clockedInAt: session.clockedInAt,
-        geofenceStatus: session.geofenceStatus,
-      },
-      location: enrichedLocation,
-    },
-    message: 'Clocked in successfully',
+    data: responseData,
+    message: geofenceResult.status === 'outside'
+      ? `Clocked in (${geofenceResult.message})`
+      : 'Clocked in successfully',
   });
 
   // Emit socket events
@@ -208,29 +219,33 @@ const clockIn = asyncHandler(async (req, res) => {
     action: 'clock-in',
     siteId,
     siteName: site?.name || 'Unknown Site',
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
+    isSimulated: geofenceResult.isSimulated,
   });
 
-  if (geofenceStatus === 'outside') {
+  if (geofenceResult.status === 'outside') {
     emitGeofenceViolation({
       guardId,
       guardName: guard?.fullName || 'Unknown',
       siteId,
       siteName: site?.name || 'Unknown Site',
       location: enrichedLocation,
+      distance: geofenceResult.distance,
       action: 'clock-in',
+      isSimulated: geofenceResult.isSimulated,
     });
   }
 });
 
 /**
- * @route   POST /api/timeclock/clock-out
+ * @route   POST /api/timeClock/clock-out
  * @desc    Clock out for current user
  * @access  Private
  */
 const clockOut = asyncHandler(async (req, res) => {
-  const { location, notes } = req.body;
+  const { location, notes, simulationScenario } = req.body;
   const guardId = req.user._id;
+  const userRole = req.user.role;
   const today = getTodayDate();
 
   // Verify user is clocked in
@@ -246,13 +261,19 @@ const clockOut = asyncHandler(async (req, res) => {
     session.totalBreakMinutesToday += breakDuration;
   }
 
-  // Verify geofence
-  const geofenceStatus = session.site
-    ? await verifyGeofence(location, session.site)
-    : 'unknown';
+  // Verify geofence (with simulation support)
+  const geofenceResult = await verifyGeofence(location, session.site, {
+    simulationScenario,
+    userRole,
+  });
+
+  // Determine location to use
+  const locationToEnrich = geofenceResult.isSimulated
+    ? geofenceResult.coordinates?.checked
+    : location;
 
   // Enrich location with address
-  const enrichedLocation = await enrichLocationWithAddress(location);
+  const enrichedLocation = await enrichLocationWithAddress(locationToEnrich);
 
   // Create time entry
   const timeEntry = await TimeEntry.create({
@@ -263,7 +284,10 @@ const clockOut = asyncHandler(async (req, res) => {
     type: 'clock-out',
     timestamp: new Date(),
     location: enrichedLocation,
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
+    geofenceDistance: geofenceResult.distance,
+    isSimulated: geofenceResult.isSimulated,
+    simulationScenario: geofenceResult.simulationScenario,
     notes,
   });
 
@@ -290,24 +314,40 @@ const clockOut = asyncHandler(async (req, res) => {
   // Update session
   session.clockStatus = 'clocked-out';
   session.lastKnownLocation = enrichedLocation;
-  session.geofenceStatus = geofenceStatus;
+  session.geofenceStatus = geofenceResult.status;
   await session.save();
 
   // Get names for broadcast
   const guard = await User.findById(guardId).select('fullName');
   const site = session.site ? await Site.findById(session.site).select('name') : null;
 
+  // Build response
+  const responseData = {
+    entry: timeEntry,
+    timesheet: {
+      totalMinutesWorked: timesheet.totalMinutesWorked,
+      totalBreakMinutes: timesheet.totalBreakMinutes,
+      hoursWorked: timesheet.hoursWorked,
+    },
+    location: enrichedLocation,
+    geofence: {
+      status: geofenceResult.status,
+      distance: geofenceResult.distance,
+      message: geofenceResult.message,
+    },
+  };
+
+  if (geofenceResult.isSimulated) {
+    responseData.simulation = {
+      enabled: true,
+      scenario: geofenceResult.simulationScenario,
+      warning: 'This entry used simulated GPS coordinates',
+    };
+  }
+
   res.status(201).json({
     success: true,
-    data: {
-      entry: timeEntry,
-      timesheet: {
-        totalMinutesWorked: timesheet.totalMinutesWorked,
-        totalBreakMinutes: timesheet.totalBreakMinutes,
-        hoursWorked: timesheet.hoursWorked,
-      },
-      location: enrichedLocation,
-    },
+    data: responseData,
     message: 'Clocked out successfully',
   });
 
@@ -318,17 +358,20 @@ const clockOut = asyncHandler(async (req, res) => {
     action: 'clock-out',
     siteId: session.site,
     siteName: site?.name || 'Unknown Site',
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
+    isSimulated: geofenceResult.isSimulated,
   });
 
-  if (geofenceStatus === 'outside') {
+  if (geofenceResult.status === 'outside') {
     emitGeofenceViolation({
       guardId,
       guardName: guard?.fullName || 'Unknown',
       siteId: session.site,
       siteName: site?.name || 'Unknown Site',
       location: enrichedLocation,
+      distance: geofenceResult.distance,
       action: 'clock-out',
+      isSimulated: geofenceResult.isSimulated,
     });
   }
 });
@@ -350,10 +393,8 @@ const startBreak = asyncHandler(async (req, res) => {
     throw new Error('Must be clocked in to start a break.');
   }
 
-  // Verify geofence
-  const geofenceStatus = session.site
-    ? await verifyGeofence(location, session.site)
-    : 'unknown';
+  // Verify geofence (no simulation for breaks - simpler)
+  const geofenceResult = await verifyGeofence(location, session.site, {});
 
   // Enrich location
   const enrichedLocation = await enrichLocationWithAddress(location);
@@ -367,7 +408,8 @@ const startBreak = asyncHandler(async (req, res) => {
     type: 'break-start',
     timestamp: new Date(),
     location: enrichedLocation,
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
+    geofenceDistance: geofenceResult.distance,
   });
 
   // Update session
@@ -401,7 +443,7 @@ const startBreak = asyncHandler(async (req, res) => {
     action: 'break-start',
     siteId: session.site,
     siteName: 'Unknown Site',
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
   });
 });
 
@@ -426,9 +468,7 @@ const endBreak = asyncHandler(async (req, res) => {
   const breakDuration = calculateMinutesWorked(session.currentBreakStartedAt, new Date());
 
   // Verify geofence
-  const geofenceStatus = session.site
-    ? await verifyGeofence(location, session.site)
-    : 'unknown';
+  const geofenceResult = await verifyGeofence(location, session.site, {});
 
   // Enrich location
   const enrichedLocation = await enrichLocationWithAddress(location);
@@ -442,7 +482,8 @@ const endBreak = asyncHandler(async (req, res) => {
     type: 'break-end',
     timestamp: new Date(),
     location: enrichedLocation,
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
+    geofenceDistance: geofenceResult.distance,
   });
 
   // Update timesheet with break record
@@ -479,12 +520,12 @@ const endBreak = asyncHandler(async (req, res) => {
   });
 
   emitClockAction({
-    guardId: guardId,
+    guardId,
     guardName: req.user.fullName,
     action: 'break-end',
     siteId: session.site,
     siteName: 'Unknown Site',
-    geofenceStatus,
+    geofenceStatus: geofenceResult.status,
   });
 });
 
@@ -531,7 +572,7 @@ const getClockStatus = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/entries/today
+ * @route   GET /api/timeClock/entries/today
  * @desc    Get today's time entries for current user
  * @access  Private
  */
@@ -553,7 +594,7 @@ const getTodayEntries = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/entries
+ * @route   GET /api/timeClock/entries
  * @desc    Get time entries with filtering
  * @access  Private
  */
@@ -590,7 +631,7 @@ const getTimeEntries = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/timesheet/today
+ * @route   GET /api/timeClock/timesheet/today
  * @desc    Get today's timesheet
  * @access  Private
  */
@@ -598,8 +639,7 @@ const getTodayTimesheet = asyncHandler(async (req, res) => {
   const guardId = req.user._id;
   const today = getTodayDate();
 
-  let timesheet = await Timesheet.findOne({ guard: guardId, date: today })
-    .populate('entries');
+  let timesheet = await Timesheet.findOne({ guard: guardId, date: today }).populate('entries');
 
   if (!timesheet) {
     timesheet = {
@@ -621,7 +661,7 @@ const getTodayTimesheet = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/timesheet/weekly
+ * @route   GET /api/timeClock/timesheet/weekly
  * @desc    Get weekly summary
  * @access  Private
  */
@@ -651,19 +691,17 @@ const getWeeklySummary = asyncHandler(async (req, res) => {
   let totalBreakMinutes = 0;
   let daysWorked = 0;
 
-  const dailySummary = [];
-
-  timesheets.forEach((ts) => {
+  const dailySummary = timesheets.map((ts) => {
     totalMinutes += ts.totalMinutesWorked || 0;
     totalBreakMinutes += ts.totalBreakMinutes || 0;
     if (ts.totalMinutesWorked > 0) daysWorked++;
 
-    dailySummary.push({
+    return {
       date: ts.date,
       hoursWorked: Math.round(((ts.totalMinutesWorked || 0) / 60) * 100) / 100,
       breakMinutes: ts.totalBreakMinutes || 0,
       status: ts.status,
-    });
+    };
   });
 
   res.json({
@@ -680,41 +718,39 @@ const getWeeklySummary = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   GET /api/timeclock/stats
+ * @route   GET /api/timeClock/stats
  * @desc    Get time clock statistics
  * @access  Private (Manager/Admin)
  */
 const getStats = asyncHandler(async (req, res) => {
   const today = getTodayDate();
 
-  const [activeSessions, todayEntries] = await Promise.all([
+  const [activeSessions, onBreak, todayTimesheets] = await Promise.all([
     ActiveSession.countDocuments({ clockStatus: { $ne: 'clocked-out' } }),
-    TimeEntry.find({ date: today, type: 'clock-in' }),
+    ActiveSession.countDocuments({ clockStatus: 'on-break' }),
+    Timesheet.find({ date: today }),
   ]);
 
-  // Calculate stats
-  const guardsOnDuty = activeSessions;
-  const onBreak = await ActiveSession.countDocuments({ clockStatus: 'on-break' });
-
-  // Calculate total hours today
-  const todayTimesheets = await Timesheet.find({ date: today });
-  const totalMinutesToday = todayTimesheets.reduce((sum, ts) => sum + (ts.totalMinutesWorked || 0), 0);
+  const totalMinutesToday = todayTimesheets.reduce(
+    (sum, ts) => sum + (ts.totalMinutesWorked || 0),
+    0
+  );
 
   res.json({
     success: true,
     data: {
-      guardsOnDuty,
+      guardsOnDuty: activeSessions,
       onBreak,
-      clockedOut: 0, // Would need to calculate based on expected vs actual
+      clockedOut: 0,
       totalHoursToday: Math.round((totalMinutesToday / 60) * 100) / 100,
-      lateArrivals: 0, // Would come from dashboard controller
+      lateArrivals: 0,
       activeBreaks: onBreak,
     },
   });
 });
 
 /**
- * @route   GET /api/timeclock/active-guards
+ * @route   GET /api/timeClock/active-guards
  * @desc    Get list of currently active guards
  * @access  Private (Manager/Admin)
  */
@@ -734,10 +770,6 @@ const getActiveGuards = asyncHandler(async (req, res) => {
         date: today,
       });
 
-      const hoursToday = timesheet
-        ? Math.round(((timesheet.totalMinutesWorked || 0) / 60) * 100) / 100
-        : 0;
-
       return {
         _id: session._id,
         guardId: session.guard._id,
@@ -749,7 +781,9 @@ const getActiveGuards = asyncHandler(async (req, res) => {
         currentSite: session.site?.name,
         currentLocation: session.lastKnownLocation,
         geofenceStatus: session.geofenceStatus,
-        hoursToday,
+        hoursToday: timesheet
+          ? Math.round(((timesheet.totalMinutesWorked || 0) / 60) * 100) / 100
+          : 0,
       };
     })
   );
@@ -761,7 +795,7 @@ const getActiveGuards = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   POST /api/timeclock/verify-location
+ * @route   POST /api/timeClock/verify-location
  * @desc    Verify if location is within geofence and get address
  * @access  Private
  */
@@ -773,11 +807,8 @@ const verifyLocation = asyncHandler(async (req, res) => {
     throw new Error('Location is required');
   }
 
-  // Get geofence status if site provided
-  let geofenceStatus = 'unknown';
-  if (siteId) {
-    geofenceStatus = await verifyGeofence(location, siteId);
-  }
+  // Use geofence service for verification
+  const geofenceResult = await verifyGeofence(location, siteId, {});
 
   // Reverse geocode the location
   const enrichedLocation = await enrichLocationWithAddress(location);
@@ -785,14 +816,15 @@ const verifyLocation = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      geofenceStatus,
+      geofenceStatus: geofenceResult.status,
+      geofenceDistance: geofenceResult.distance,
       location: enrichedLocation,
     },
   });
 });
 
 /**
- * @route   PATCH /api/timeclock/timesheet/:id/approve
+ * @route   PATCH /api/timeClock/timesheet/:id/approve
  * @desc    Approve a timesheet
  * @access  Private (Admin/Manager)
  */
@@ -822,7 +854,7 @@ const approveTimesheet = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   PATCH /api/timeclock/timesheet/:id/reject
+ * @route   PATCH /api/timeClock/timesheet/:id/reject
  * @desc    Reject a timesheet
  * @access  Private (Admin/Manager)
  */
@@ -868,6 +900,7 @@ module.exports = {
 
   // Utilities
   verifyLocation,
+  getGeofenceConfig,
 
   // Timesheet management
   approveTimesheet,

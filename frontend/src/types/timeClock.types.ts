@@ -28,20 +28,6 @@ export interface GPSLocation {
 }
 
 // ============================================
-// Geofence Interface
-// ============================================
-
-export interface Geofence {
-  siteId: string;
-  siteName: string;
-  center: {
-    latitude: number;
-    longitude: number;
-  };
-  radius: number; // metres
-}
-
-// ============================================
 // Time Entry Interface
 // ============================================
 
@@ -223,14 +209,61 @@ export interface TimeEntriesTableProps {
   onEntryClick?: (entry: TimeEntry) => void;
 }
 
-export interface ActiveGuardsListProps {
-  guards: ActiveGuard[];
-  isLoading: boolean;
-  onGuardClick?: (guard: ActiveGuard) => void;
+// ============================================
+// Geofence Interface
+// ============================================
+
+export interface Geofence {
+  siteId: string;
+  siteName: string;
+  center: {
+    latitude: number;
+    longitude: number;
+  };
+  radius: number; // metres
 }
 
-export interface TimesheetPreviewProps {
-  timesheet: TodayTimesheet | null;
-  isLoading: boolean;
-  onSubmit?: () => void;
+// ============================================
+// Geofence Simulation Types
+// ============================================
+
+export interface GeofenceTestScenario {
+  value: string;
+  label: string;
+}
+
+export interface GeofenceConfig {
+  simulationEnabled: boolean;
+  testScenarios: GeofenceTestScenario[];
+  enforcement: 'strict' | 'permissive';
+}
+
+export interface GeofenceResult {
+  status: GeofenceStatus;
+  distance: number | null;
+  message: string;
+}
+
+export interface SimulationInfo {
+  enabled: boolean;
+  scenario: string | null;
+  warning: string;
+}
+
+// ============================================
+// Enhanced Clock Action Payload (with simulation)
+// ============================================
+
+export interface ClockActionPayloadWithSimulation extends ClockActionPayload {
+  simulationScenario?: string;
+}
+
+// ============================================
+// Enhanced Time Entry (with simulation tracking)
+// ============================================
+
+export interface TimeEntryWithSimulation extends TimeEntry {
+  geofenceDistance?: number | null;
+  isSimulated?: boolean;
+  simulationScenario?: string | null;
 }

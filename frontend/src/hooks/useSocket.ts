@@ -303,7 +303,7 @@ export const useDashboardSocket = (events: DashboardSocketEvents) => {
     }
 
     if (events.onClockAction) {
-      cleanups.push(on('timeclock:action', events.onClockAction));
+      cleanups.push(on('timeClock:action', events.onClockAction));
     }
 
     if (events.onShiftUpdate) {
