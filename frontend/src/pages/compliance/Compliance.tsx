@@ -6,6 +6,7 @@
  *
  * Features:
  * - Compliance metrics dashboard with key indicators
+ * - AI-powered incident pattern analysis
  * - Certification tracking with expiry alerts
  * - Incident reporting and management
  * - Document library for policies and procedures
@@ -25,6 +26,10 @@ import {
   Tabs,
   Spinner,
   Badge,
+  SimpleGrid,
+  Progress,
+  List,
+  Heading,
 } from '@chakra-ui/react';
 import {
   LuShield,
@@ -35,13 +40,16 @@ import {
   LuHistory,
   LuCircleCheck,
   LuCircleAlert,
+  LuClock,
+  LuActivity,
+  LuBrain,
+  LuTrendingUp,
 } from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
 import { useAuth } from '../../context/AuthContext';
 import { MOCK_CONFIG } from '../../config/api.config';
 
 // Components
-import ComplianceDashboard from './components/ComplianceDashboard';
 import CertificationTracker from './components/CertificationTracker';
 import IncidentReports from './components/IncidentReports';
 import DocumentLibrary from './components/DocumentLibrary';
@@ -49,9 +57,10 @@ import AuditTrail from './components/AuditTrail';
 
 // Hooks
 import { useComplianceData, useMockComplianceData } from './hooks/useComplianceData';
+import { usePatternInsights } from '../../hooks/useSeverityPrediction';
 
 // Types
-import type { ComplianceMetrics } from '../../types/compliance.types';
+import type { ComplianceMetrics, ComplianceAlert } from '../../types/compliance.types';
 
 // ============================================
 // Configuration
@@ -155,7 +164,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
 );
 
 // ============================================
-// Quick Stats Component
+// Quick Stats Component (with hover effects)
 // ============================================
 
 interface QuickStatsProps {
@@ -174,7 +183,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading }) => {
     {
       label: 'Expiring Soon',
       value: metrics.certsExpiringSoon,
-      icon: LuCircleAlert,
+      icon: LuClock,
       color: metrics.certsExpiringSoon > 0 ? 'orange' : 'gray',
     },
     {
@@ -202,7 +211,11 @@ const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading }) => {
           borderColor="gray.200"
           p={5}
           transition="all 0.2s"
-          _hover={{ borderColor: `${stat.color}.300`, shadow: 'sm' }}
+          _hover={{
+            borderColor: `${stat.color}.400`,
+            shadow: 'md',
+            transform: 'translateY(-2px)',
+          }}
         >
           {isLoading ? (
             <VStack align="flex-start" gap={2}>
@@ -235,17 +248,32 @@ const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading }) => {
 // ============================================
 
 interface AlertsPanelProps {
-  alerts: Array<{
-    id: string;
-    severity: 'info' | 'warning' | 'critical';
-    message: string;
-    date: string;
-  }>;
+  alerts: ComplianceAlert[];
   onDismiss: (alertId: string) => void;
 }
 
 const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, onDismiss }) => {
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) {
+    return (
+      <Box
+        bg="white"
+        borderRadius="xl"
+        borderWidth="1px"
+        borderColor="gray.200"
+        p={5}
+      >
+        <Heading as="h3" size="sm" mb={4} color="gray.700">
+          Action Required
+        </Heading>
+        <Box textAlign="center" py={6}>
+          <Icon as={LuShield} boxSize={8} color="green.400" mb={2} />
+          <Text fontSize="sm" color="gray.500">
+            No outstanding alerts
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
@@ -264,46 +292,242 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, onDismiss }) => {
       borderRadius="xl"
       borderWidth="1px"
       borderColor="gray.200"
-      overflow="hidden"
+      p={5}
     >
-      <HStack p={4} borderBottomWidth="1px" borderColor="gray.100">
-        <Icon as={LuCircleAlert} boxSize={5} color="orange.500" />
-        <Text fontWeight="semibold" color="gray.700">
+      <HStack mb={4}>
+        <Heading as="h3" size="sm" color="gray.700">
           Action Required
-        </Text>
+        </Heading>
         <Badge colorPalette="orange" variant="solid" size="sm">
           {alerts.length}
         </Badge>
       </HStack>
 
-      <VStack align="stretch" gap={0} p={2}>
+      <List.Root gap={2} listStyle="none">
         {alerts.map((alert) => {
           const styles = getSeverityStyles(alert.severity);
           return (
-            <HStack
-              key={alert.id}
-              p={3}
-              borderRadius="md"
-              bg={styles.bg}
-              borderWidth="1px"
-              borderColor={styles.border}
-              m={1}
-            >
-              <Text fontSize="lg">{styles.icon}</Text>
-              <Text flex={1} fontSize="sm" color="gray.800">
-                {alert.message}
-              </Text>
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() => onDismiss(alert.id)}
+            <List.Item key={alert.id}>
+              <HStack
+                p={3}
+                borderRadius="md"
+                bg={styles.bg}
+                borderWidth="1px"
+                borderColor={styles.border}
               >
-                Dismiss
-              </Button>
-            </HStack>
+                <Text fontSize="lg">{styles.icon}</Text>
+                <Text flex={1} fontSize="sm" color="gray.800">
+                  {alert.message}
+                </Text>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => onDismiss(alert.id)}
+                >
+                  Dismiss
+                </Button>
+              </HStack>
+            </List.Item>
           );
         })}
-      </VStack>
+      </List.Root>
+    </Box>
+  );
+};
+
+// ============================================
+// Risk Type Card Component
+// ============================================
+
+interface RiskTypeCardProps {
+  type: string;
+  riskScore: number;
+}
+
+const RiskTypeCard: React.FC<RiskTypeCardProps> = ({ type, riskScore }) => {
+  const getRiskColor = (score: number) => {
+    if (score >= 70) return 'red';
+    if (score >= 50) return 'orange';
+    return 'yellow';
+  };
+
+  const color = getRiskColor(riskScore);
+  const formattedType = type
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  return (
+    <Box
+      p={3}
+      bg={`${color}.50`}
+      borderRadius="md"
+      borderWidth="1px"
+      borderColor={`${color}.200`}
+    >
+      <HStack justify="space-between" mb={2}>
+        <HStack gap={2}>
+          <Icon as={LuTriangleAlert} color={`${color}.600`} boxSize={4} />
+          <Text fontSize="sm" fontWeight="medium" color="gray.700">
+            {formattedType}
+          </Text>
+        </HStack>
+        <Badge colorPalette={color} size="sm">
+          {riskScore}% Risk
+        </Badge>
+      </HStack>
+      <Progress.Root value={riskScore} size="sm" colorPalette={color}>
+        <Progress.Track borderRadius="full">
+          <Progress.Range borderRadius="full" />
+        </Progress.Track>
+      </Progress.Root>
+    </Box>
+  );
+};
+
+// ============================================
+// AI Pattern Insights Panel Component
+// ============================================
+
+const PatternInsightsPanel: React.FC = () => {
+  const { insights, isLoading, error, fetchInsights } = usePatternInsights();
+
+  useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
+
+  if (isLoading) {
+    return (
+      <Box
+        bg="white"
+        borderRadius="xl"
+        borderWidth="1px"
+        borderColor="gray.200"
+        p={5}
+      >
+        <HStack gap={2} mb={4}>
+          <Icon as={LuBrain} color="purple.500" boxSize={5} />
+          <Text fontWeight="semibold" color="gray.700">
+            AI Pattern Analysis
+          </Text>
+          <Spinner size="sm" color="purple.500" ml={2} />
+        </HStack>
+        <Text fontSize="sm" color="gray.500">
+          Analyzing incident patterns...
+        </Text>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        bg="white"
+        borderRadius="xl"
+        borderWidth="1px"
+        borderColor="gray.200"
+        p={5}
+      >
+        <HStack gap={2} mb={3}>
+          <Icon as={LuBrain} color="purple.500" boxSize={5} />
+          <Text fontWeight="semibold" color="gray.700">
+            AI Pattern Analysis
+          </Text>
+        </HStack>
+        <Text fontSize="sm" color="gray.500">
+          Pattern analysis unavailable. Report incidents to build prediction model.
+        </Text>
+      </Box>
+    );
+  }
+
+  const hasInsights = insights && insights.highRiskTypes.length > 0;
+
+  return (
+    <Box
+      bg="white"
+      borderRadius="xl"
+      borderWidth="1px"
+      borderColor="purple.200"
+      overflow="hidden"
+    >
+      {/* Header */}
+      <Box bgGradient="linear(to-r, purple.500, blue.500)" px={5} py={3}>
+        <HStack justify="space-between">
+          <HStack gap={2}>
+            <Icon as={LuBrain} color="white" boxSize={5} />
+            <Text fontWeight="semibold" color="white">
+              AI Pattern Analysis
+            </Text>
+          </HStack>
+          <Badge colorPalette="purple" variant="solid" bg="whiteAlpha.300">
+            ML Powered
+          </Badge>
+        </HStack>
+      </Box>
+
+      {/* Content */}
+      <Box p={5}>
+        {hasInsights ? (
+          <VStack align="stretch" gap={4}>
+            {/* High Risk Types */}
+            <Box>
+              <HStack gap={2} mb={3}>
+                <Icon as={LuTrendingUp} color="red.500" boxSize={4} />
+                <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                  High-Risk Incident Types
+                </Text>
+              </HStack>
+              <VStack align="stretch" gap={2}>
+                {insights.highRiskTypes.slice(0, 5).map((item) => (
+                  <RiskTypeCard
+                    key={item.type}
+                    type={item.type}
+                    riskScore={item.riskScore}
+                  />
+                ))}
+              </VStack>
+            </Box>
+
+            {/* Stats Footer */}
+            <Box pt={4} borderTopWidth="1px" borderColor="gray.100">
+              <SimpleGrid columns={2} gap={4}>
+                <HStack>
+                  <Icon as={LuActivity} color="gray.400" boxSize={4} />
+                  <VStack align="flex-start" gap={0}>
+                    <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                      {insights.totalIncidentsAnalysed}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      Incidents Analysed
+                    </Text>
+                  </VStack>
+                </HStack>
+                <HStack>
+                  <Icon as={LuClock} color="gray.400" boxSize={4} />
+                  <VStack align="flex-start" gap={0}>
+                    <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                      {new Date(insights.modelUpdatedAt).toLocaleDateString()}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      Last Updated
+                    </Text>
+                  </VStack>
+                </HStack>
+              </SimpleGrid>
+            </Box>
+          </VStack>
+        ) : (
+          <VStack py={4} gap={3}>
+            <Icon as={LuShield} boxSize={10} color="gray.300" />
+            <Text fontSize="sm" color="gray.500" textAlign="center">
+              No high-risk patterns detected.
+              <br />
+              Continue reporting incidents to improve predictions.
+            </Text>
+          </VStack>
+        )}
+      </Box>
     </Box>
   );
 };
@@ -380,11 +604,6 @@ const Compliance: React.FC = () => {
       {/* Quick Stats */}
       <QuickStats metrics={metrics} isLoading={isLoading && !metrics.validCertifications} />
 
-      {/* Alerts Panel */}
-      {alerts.length > 0 && (
-        <AlertsPanel alerts={alerts} onDismiss={dismissAlert} />
-      )}
-
       {/* Tabs */}
       <Box>
         <Tabs.Root
@@ -433,9 +652,36 @@ const Compliance: React.FC = () => {
           {/* Overview Tab */}
           <Tabs.Content value="overview" pt={4}>
             <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={6}>
+              {/* Main Content: Alerts + AI Insights */}
               <GridItem>
-                <ComplianceDashboard />
+                <VStack align="stretch" gap={6}>
+                  {/* Two Column: Alerts + AI */}
+                  <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+                    <AlertsPanel alerts={alerts} onDismiss={dismissAlert} />
+                    <PatternInsightsPanel />
+                  </SimpleGrid>
+
+                  {/* Recent Activity Placeholder */}
+                  <Box
+                    bg="white"
+                    borderRadius="xl"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    p={5}
+                  >
+                    <Heading as="h3" size="sm" mb={3} color="gray.700">
+                      Recent Compliance Activity
+                    </Heading>
+                    <Box bg="gray.50" p={6} borderRadius="md" textAlign="center">
+                      <Text color="gray.400" fontSize="sm">
+                        Activity feed coming soon
+                      </Text>
+                    </Box>
+                  </Box>
+                </VStack>
               </GridItem>
+
+              {/* Sidebar: Quick Actions */}
               <GridItem>
                 <VStack align="stretch" gap={4}>
                   {/* Quick Links */}

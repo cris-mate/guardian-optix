@@ -1,3 +1,10 @@
+/**
+ * Incident Reports Component
+ *
+ * Displays incident list with filtering and allows reporting new incidents.
+ * Integrates ML-based severity prediction for intelligent form assistance.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -17,29 +24,117 @@ import {
   Flex,
   Collapsible,
   Separator,
+  Icon,
 } from '@chakra-ui/react';
+import { LuBrain, LuSparkles } from 'react-icons/lu';
 import { api } from '../../../utils/api';
+import { useSeverityPrediction } from '../../../hooks/useSeverityPrediction';
 import { Incident } from '../../../types/compliance.types';
+
+// ============================================
+// Types
+// ============================================
 
 type FilterStatus = 'all' | 'open' | 'under-review' | 'resolved' | 'closed';
 
+type IncidentTypeValue =
+  | 'security-breach'
+  | 'theft'
+  | 'vandalism'
+  | 'trespassing'
+  | 'suspicious-activity'
+  | 'medical-emergency'
+  | 'fire-alarm'
+  | 'equipment-failure'
+  | 'unauthorized-access'
+  | 'property-damage'
+  | 'assault'
+  | 'other';
+
+interface FormData {
+  location: string;
+  incidentType: IncidentTypeValue;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  witnesses: string;
+}
+
+// ============================================
+// Constants
+// ============================================
+
+const INCIDENT_TYPES: { value: IncidentTypeValue; label: string }[] = [
+  { value: 'security-breach', label: 'Security Breach' },
+  { value: 'theft', label: 'Theft' },
+  { value: 'vandalism', label: 'Vandalism' },
+  { value: 'trespassing', label: 'Trespassing' },
+  { value: 'suspicious-activity', label: 'Suspicious Activity' },
+  { value: 'medical-emergency', label: 'Medical Emergency' },
+  { value: 'fire-alarm', label: 'Fire Alarm' },
+  { value: 'equipment-failure', label: 'Equipment Failure' },
+  { value: 'unauthorized-access', label: 'Unauthorized Access' },
+  { value: 'property-damage', label: 'Property Damage' },
+  { value: 'assault', label: 'Assault' },
+  { value: 'other', label: 'Other' },
+];
+
+const INITIAL_FORM_DATA: FormData = {
+  location: '',
+  incidentType: 'security-breach',
+  severity: 'medium',
+  description: '',
+  witnesses: '',
+};
+
+// ============================================
+// Component
+// ============================================
+
 const IncidentReports: React.FC = () => {
+  // State
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    location: '',
-    incidentType: 'security-breach',
-    severity: 'medium',
-    description: '',
-    witnesses: '',
-  });
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
+
+  // Severity prediction hook
+  const {
+    prediction,
+    isLoading: isPredicting,
+    fetchPrediction,
+    clearPrediction,
+  } = useSeverityPrediction();
+
+  // ============================================
+  // Effects
+  // ============================================
 
   useEffect(() => {
     fetchIncidents();
   }, []);
+
+  // Auto-apply predicted severity when prediction changes
+  useEffect(() => {
+    if (prediction?.predictedSeverity) {
+      setFormData((prev) => ({
+        ...prev,
+        severity: prediction.predictedSeverity,
+      }));
+    }
+  }, [prediction]);
+
+  // Clear prediction when form closes
+  useEffect(() => {
+    if (!showForm) {
+      clearPrediction();
+    }
+  }, [showForm, clearPrediction]);
+
+  // ============================================
+  // Handlers
+  // ============================================
 
   const fetchIncidents = async () => {
     try {
@@ -59,17 +154,15 @@ const IncidentReports: React.FC = () => {
     try {
       const payload = {
         ...formData,
-        witnesses: formData.witnesses.split(',').map((w) => w.trim()).filter(Boolean),
+        witnesses: formData.witnesses
+          .split(',')
+          .map((w) => w.trim())
+          .filter(Boolean),
       };
       await api.post('/compliance/incidents', payload);
       setShowForm(false);
-      setFormData({
-        location: '',
-        incidentType: 'security-breach',
-        severity: 'medium',
-        description: '',
-        witnesses: '',
-      });
+      setFormData(INITIAL_FORM_DATA);
+      clearPrediction();
       await fetchIncidents();
     } catch (err) {
       setError('Failed to submit incident report');
@@ -81,11 +174,28 @@ const IncidentReports: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Trigger severity prediction when incident type changes
+    if (name === 'incidentType' && value) {
+      fetchPrediction(value as IncidentTypeValue);
+    }
   };
 
-  const filteredIncidents = filter === 'all'
-    ? incidents
-    : incidents.filter((i) => i.status === filter);
+  const handleApplyPrediction = () => {
+    if (prediction?.predictedSeverity) {
+      setFormData((prev) => ({
+        ...prev,
+        severity: prediction.predictedSeverity,
+      }));
+    }
+  };
+
+  // ============================================
+  // Computed Values
+  // ============================================
+
+  const filteredIncidents =
+    filter === 'all' ? incidents : incidents.filter((i) => i.status === filter);
 
   const getSeverityColor = (severity: string) => {
     const colors: Record<string, string> = {
@@ -107,14 +217,24 @@ const IncidentReports: React.FC = () => {
     return colors[status] || 'gray';
   };
 
+  // ============================================
+  // Render: Loading State
+  // ============================================
+
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
         <Spinner size="lg" color="blue.500" />
-        <Text mt={4} color="gray.500">Loading incidents...</Text>
+        <Text mt={4} color="gray.500">
+          Loading incidents...
+        </Text>
       </Box>
     );
   }
+
+  // ============================================
+  // Render: Main Component
+  // ============================================
 
   return (
     <Box>
@@ -132,6 +252,7 @@ const IncidentReports: React.FC = () => {
         </Button>
       </Flex>
 
+      {/* Error Alert */}
       {error && (
         <Alert.Root status="error" borderRadius="md" mb={4}>
           <Alert.Indicator />
@@ -144,15 +265,25 @@ const IncidentReports: React.FC = () => {
       {/* Incident Form */}
       <Collapsible.Root open={showForm}>
         <Collapsible.Content>
-          <Box bg="gray.50" p={6} borderRadius="lg" mb={6} borderWidth="1px" borderColor="gray.200">
+          <Box
+            bg="gray.50"
+            p={6}
+            borderRadius="lg"
+            mb={6}
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
             <Heading as="h3" size="sm" mb={4} color="gray.700">
               New Incident Report
             </Heading>
             <form onSubmit={handleSubmit}>
               <VStack gap={4} align="stretch">
                 <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                  {/* Location Field */}
                   <Field.Root required>
-                    <Field.Label fontSize="sm" color="gray.600">Location</Field.Label>
+                    <Field.Label fontSize="sm" color="gray.600">
+                      Location
+                    </Field.Label>
                     <Input
                       name="location"
                       value={formData.location}
@@ -161,8 +292,12 @@ const IncidentReports: React.FC = () => {
                       bg="white"
                     />
                   </Field.Root>
+
+                  {/* Incident Type Field */}
                   <Field.Root required>
-                    <Field.Label fontSize="sm" color="gray.600">Incident Type</Field.Label>
+                    <Field.Label fontSize="sm" color="gray.600">
+                      Incident Type
+                    </Field.Label>
                     <NativeSelect.Root>
                       <NativeSelect.Field
                         name="incidentType"
@@ -170,21 +305,23 @@ const IncidentReports: React.FC = () => {
                         onChange={handleInputChange}
                         bg="white"
                       >
-                        <option value="security-breach">Security Breach</option>
-                        <option value="injury">Injury</option>
-                        <option value="property-damage">Property Damage</option>
-                        <option value="unauthorized-access">Unauthorized Access</option>
-                        <option value="equipment-failure">Equipment Failure</option>
-                        <option value="policy-violation">Policy Violation</option>
-                        <option value="other">Other</option>
+                        {INCIDENT_TYPES.map((type) => (
+                          <option key={type.value} value={type.value}>
+                            {type.label}
+                          </option>
+                        ))}
                       </NativeSelect.Field>
                     </NativeSelect.Root>
                   </Field.Root>
-                </SimpleGrid>
 
-                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                  {/* Severity Field with AI Prediction */}
                   <Field.Root required>
-                    <Field.Label fontSize="sm" color="gray.600">Severity</Field.Label>
+                    <Field.Label fontSize="sm" color="gray.600">
+                      <HStack gap={2}>
+                        <Text>Severity</Text>
+                        {isPredicting && <Spinner size="xs" color="blue.500" />}
+                      </HStack>
+                    </Field.Label>
                     <NativeSelect.Root>
                       <NativeSelect.Field
                         name="severity"
@@ -198,9 +335,61 @@ const IncidentReports: React.FC = () => {
                         <option value="critical">Critical</option>
                       </NativeSelect.Field>
                     </NativeSelect.Root>
+
+                    {/* AI Prediction Suggestion */}
+                    {prediction && !isPredicting && (
+                      <Box
+                        mt={2}
+                        p={3}
+                        bg="blue.50"
+                        borderRadius="md"
+                        borderWidth="1px"
+                        borderColor="blue.200"
+                      >
+                        <HStack justify="space-between" mb={1}>
+                          <HStack gap={2}>
+                            <Icon as={LuBrain} color="blue.600" />
+                            <Text fontSize="sm" fontWeight="medium" color="blue.700">
+                              AI Suggestion
+                            </Text>
+                          </HStack>
+                          <Badge colorPalette="blue" size="sm">
+                            {prediction.confidence}% confidence
+                          </Badge>
+                        </HStack>
+                        <HStack justify="space-between" align="center">
+                          <Text fontSize="sm" color="blue.800">
+                            Recommended:{' '}
+                            <Text as="span" fontWeight="bold" textTransform="uppercase">
+                              {prediction.predictedSeverity}
+                            </Text>
+                          </Text>
+                          {formData.severity !== prediction.predictedSeverity && (
+                            <Button
+                              size="xs"
+                              colorPalette="blue"
+                              variant="subtle"
+                              onClick={handleApplyPrediction}
+                            >
+                              <Icon as={LuSparkles} mr={1} />
+                              Apply
+                            </Button>
+                          )}
+                        </HStack>
+                        {prediction.basedOnCount > 0 && (
+                          <Text fontSize="xs" color="gray.500" mt={1}>
+                            Based on {prediction.basedOnCount} historical incidents
+                          </Text>
+                        )}
+                      </Box>
+                    )}
                   </Field.Root>
+
+                  {/* Witnesses Field */}
                   <Field.Root>
-                    <Field.Label fontSize="sm" color="gray.600">Witnesses (comma-separated)</Field.Label>
+                    <Field.Label fontSize="sm" color="gray.600">
+                      Witnesses (comma-separated)
+                    </Field.Label>
                     <Input
                       name="witnesses"
                       value={formData.witnesses}
@@ -211,8 +400,11 @@ const IncidentReports: React.FC = () => {
                   </Field.Root>
                 </SimpleGrid>
 
+                {/* Description Field */}
                 <Field.Root required>
-                  <Field.Label fontSize="sm" color="gray.600">Description</Field.Label>
+                  <Field.Label fontSize="sm" color="gray.600">
+                    Description
+                  </Field.Label>
                   <Textarea
                     name="description"
                     value={formData.description}
@@ -223,6 +415,7 @@ const IncidentReports: React.FC = () => {
                   />
                 </Field.Root>
 
+                {/* Form Actions */}
                 <HStack justify="flex-end" gap={3} pt={2}>
                   <Button variant="ghost" onClick={() => setShowForm(false)}>
                     Cancel
@@ -239,16 +432,18 @@ const IncidentReports: React.FC = () => {
 
       {/* Filter Controls */}
       <HStack mb={5} flexWrap="wrap" gap={2}>
-        {(['all', 'open', 'under-review', 'resolved', 'closed'] as FilterStatus[]).map((status) => (
-          <Button
-            key={status}
-            onClick={() => setFilter(status)}
-            colorPalette={filter === status ? 'blue' : 'gray'}
-            variant={filter === status ? 'solid' : 'outline'}
-          >
-            {status.replace('-', ' ').toUpperCase()}
-          </Button>
-        ))}
+        {(['all', 'open', 'under-review', 'resolved', 'closed'] as FilterStatus[]).map(
+          (status) => (
+            <Button
+              key={status}
+              onClick={() => setFilter(status)}
+              colorPalette={filter === status ? 'blue' : 'gray'}
+              variant={filter === status ? 'solid' : 'outline'}
+            >
+              {status.replace('-', ' ').toUpperCase()}
+            </Button>
+          )
+        )}
       </HStack>
 
       {/* Incidents List */}
