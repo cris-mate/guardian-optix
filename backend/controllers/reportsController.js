@@ -602,7 +602,7 @@ const getReportData = async (report) => {
       $lte: endDate.toISOString().split('T')[0],
     },
   })
-    .populate('guard', 'fullName badgeNumber')
+    .populate('guard', 'fullName siaLicenceNumber')
     .populate('site', 'name')
     .lean();
 

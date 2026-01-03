@@ -5,17 +5,9 @@
  * Supports click to view shift details.
  */
 
-import React, { useMemo } from 'react';
-import {
-  Box,
-  Flex,
-  Grid,
-  GridItem,
-  VStack,
-  Text,
-  Spinner,
-} from '@chakra-ui/react';
-import { Shift, ViewMode } from '../../../types/scheduling.types';
+import React, {useMemo} from 'react';
+import {Box, Flex, Grid, GridItem, Spinner, Text, VStack,} from '@chakra-ui/react';
+import {Shift, ViewMode} from '../../../types/scheduling.types';
 import ShiftCard from './ShiftCard';
 
 interface CalendarViewProps {
@@ -29,6 +21,13 @@ interface CalendarViewProps {
 // Day names for header
 const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+// Shift order for sorting
+const SHIFT_ORDER: Record<string, number> = {
+  Morning: 1,
+  Afternoon: 2,
+  Night: 3,
+};
 
 const CalendarView: React.FC<CalendarViewProps> = ({
                                                      shifts,
@@ -108,8 +107,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Day View
   if (viewMode === 'day') {
-    const dateStr = selectedDate;
-    const dayShifts = shiftsByDate[dateStr] || [];
+    const dayShifts = shiftsByDate[selectedDate] || [];
     const date = new Date(selectedDate);
     const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1;
 
@@ -145,7 +143,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           ) : (
             <VStack align="stretch" gap={3}>
               {dayShifts
-                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                .sort((a, b) => (SHIFT_ORDER[a.shiftType] || 0) - (SHIFT_ORDER[b.shiftType] || 0))
+
                 .map((shift) => (
                   <ShiftCard
                     key={shift._id}
@@ -219,7 +218,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               >
                 <VStack align="stretch" gap={2}>
                   {dayShifts
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .sort((a, b) => (SHIFT_ORDER[a.shiftType] || 0) - (SHIFT_ORDER[b.shiftType] || 0))
+
                     .map((shift) => (
                       <ShiftCard
                         key={shift._id}

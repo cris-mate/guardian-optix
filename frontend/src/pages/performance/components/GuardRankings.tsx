@@ -185,7 +185,7 @@ const GuardRow: React.FC<GuardRowProps> = ({
               {guard.guardName}
             </Text>
             <Text fontSize="xs" color="gray.500">
-              {guard.badgeNumber} • {guard.guardType}
+              {guard.siaLicenceNumber} • {guard.guardType}
             </Text>
           </VStack>
         </HStack>

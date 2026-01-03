@@ -139,7 +139,7 @@ export interface AttendanceSummary {
 export interface GuardAttendance {
   guardId: string;
   guardName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   shiftsScheduled: number;
   shiftsWorked: number;
   hoursWorked: number;
@@ -285,7 +285,7 @@ export interface CertificationStatus {
 export interface ComplianceGuard {
   guardId: string;
   guardName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   siaLicenceStatus: 'valid' | 'expiring-soon' | 'expired';
   siaExpiryDate?: string;
   trainingCompletion: number;

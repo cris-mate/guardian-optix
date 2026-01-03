@@ -33,7 +33,7 @@ import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 interface AvailableGuard {
   _id: string;
   fullName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   availability: boolean;
 }
 
@@ -79,11 +79,11 @@ const USE_MOCK_DATA = MOCK_CONFIG.scheduling ?? true;
 
 // Mock guards data
 const mockGuards: AvailableGuard[] = [
-  { _id: 'g1', fullName: 'James Wilson', badgeNumber: 'G001', availability: true },
-  { _id: 'g2', fullName: 'Sarah Connor', badgeNumber: 'G002', availability: true },
-  { _id: 'g3', fullName: 'Michael Chen', badgeNumber: 'G003', availability: true },
-  { _id: 'g4', fullName: 'Emma Thompson', badgeNumber: 'G004', availability: false },
-  { _id: 'g5', fullName: 'Robert Brown', badgeNumber: 'G005', availability: true },
+  { _id: 'g1', fullName: 'James Wilson', siaLicenceNumber: 'G001', availability: true },
+  { _id: 'g2', fullName: 'Sarah Connor', siaLicenceNumber: 'G002', availability: true },
+  { _id: 'g3', fullName: 'Michael Chen', siaLicenceNumber: 'G003', availability: true },
+  { _id: 'g4', fullName: 'Emma Thompson', siaLicenceNumber: 'G004', availability: false },
+  { _id: 'g5', fullName: 'Robert Brown', siaLicenceNumber: 'G005', availability: true },
 ];
 
 // ============================================
@@ -141,7 +141,7 @@ const AddShiftForSiteModal: React.FC<AddShiftForSiteModalProps> = ({
         .filter((g) => g.availability)
         .map((g) => ({
           value: g._id,
-          label: `${g.fullName}${g.badgeNumber ? ` (${g.badgeNumber})` : ''}`,
+          label: `${g.fullName}${g.siaLicenceNumber ? ` (${g.siaLicenceNumber})` : ''}`,
         })),
     ],
   });

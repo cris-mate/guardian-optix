@@ -33,6 +33,7 @@ import { Shift, ShiftDrawerProps } from '../../../types/scheduling.types';
 
 // Status color mapping
 const statusColors: Record<string, string> = {
+  unassigned: 'gray',
   scheduled: 'blue',
   'in-progress': 'orange',
   completed: 'green',
@@ -63,6 +64,7 @@ const ShiftDrawer: React.FC<ShiftDrawerProps> = ({
                                                  }) => {
   if (!shift) return null;
 
+  const guardName = shift.guard?.fullName || 'Unassigned';
   const completedTasks = shift.tasks.filter((t) => t.completed).length;
   const totalTasks = shift.tasks.length;
 
@@ -138,22 +140,27 @@ const ShiftDrawer: React.FC<ShiftDrawerProps> = ({
             ) : (
               <VStack align="stretch" gap={0}>
                 {/* Guard Section */}
-                <Box p={4} bg="gray.50">
+                <Box p={4} bg={shift.guard ? 'gray.50' : 'orange.50'}>
                   <HStack gap={3}>
                     <Avatar.Root size="lg">
-                      <Avatar.Fallback name={shift.guard.fullName} />
+                      <Avatar.Fallback name={guardName} />
                     </Avatar.Root>
                     <Box flex="1">
-                      <Text fontSize="md" fontWeight="semibold" color="gray.800">
-                        {shift.guard.fullName}
+                      <Text fontSize="md" fontWeight="semibold" color={shift.guard ? 'gray.800' : 'orange.600'}>
+                        {guardName}
                       </Text>
-                      {shift.guard.badgeNumber && (
+                      {shift.guard?.siaLicenceNumber && (
                         <Text fontSize="sm" color="gray.500">
-                          Badge: {shift.guard.badgeNumber}
+                          Badge: {shift.guard.siaLicenceNumber}
+                        </Text>
+                      )}
+                      {!shift.guard && (
+                        <Text fontSize="sm" color="orange.500">
+                          This shift needs a guard assigned
                         </Text>
                       )}
                     </Box>
-                    {shift.guard.phoneNumber && (
+                    {shift.guard?.phoneNumber && (
                       <Button size="sm" variant="outline" colorPalette="blue">
                         <LuPhone size={14} />
                         Call
@@ -180,7 +187,7 @@ const ShiftDrawer: React.FC<ShiftDrawerProps> = ({
                           Time
                         </Text>
                         <Text fontSize="md" color="gray.800" fontWeight="medium">
-                          {shift.startTime} - {shift.endTime}
+                          {shift.shiftType}
                         </Text>
                       </Box>
                     </HStack>

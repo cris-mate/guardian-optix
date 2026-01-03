@@ -233,7 +233,7 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                       {guard.fullName}
                     </Text>
                     <Text fontSize="xs" color="gray.500">
-                      {guard.badgeNumber || guard.email}
+                      {guard.siaLicenceNumber || guard.email}
                     </Text>
                   </Box>
                 </HStack>

@@ -246,7 +246,7 @@ const getGuardPerformance = asyncHandler(async (req, res) => {
       guardId: guard._id,
       guardName: guard.fullName,
       guardType: guard.guardType,
-      badgeNumber: guard.badgeNumber,
+      siaLicenceNumber: guard.siaLicenceNumber,
       overallScore,
       rating: getPerformanceRating(overallScore),
       rank: index + 1,

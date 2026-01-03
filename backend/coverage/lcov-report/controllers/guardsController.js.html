@@ -830,7 +830,7 @@ const getGuards = asyncHandler(async (req, res) =&gt; {
     query.$or = [
       { fullName: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
-      { badgeNumber: { $regex: search, $options: 'i' } },
+      { siaLicenceNumber: { $regex: search, $options: 'i' } },
       { postCode: { $regex: search, $options: 'i' } },
     ];
   }
@@ -969,14 +969,10 @@ const createGuard = asyncHandler(async (req, res) =&gt; {
     postCode,
     role,
     guardType,
-    managerType,
-    shift,
-    badgeNumber,
     startDate,
     siaLicenceNumber,
     siaLicenceType,
     siaLicenceExpiry,
-    emergencyContact,
   } = req.body;
 &nbsp;
   // Check if email already exists
@@ -995,12 +991,9 @@ const createGuard = asyncHandler(async (req, res) =&gt; {
     postCode,
     role,
     guardType: role === 'Guard' ? guardType : <span class="branch-1 cbranch-no" title="branch not covered" >undefined,</span>
-    managerType: role === 'Manager' ? <span class="branch-0 cbranch-no" title="branch not covered" >managerType </span>: undefined,
-    shift,
-    badgeNumber,
+    siaLicenceNumber,
     startDate,
-    emergencyContact,
-    status: 'active',
+    status: 'off-duty',
     availability: true,
     // Generate temporary password (should be changed on first login)
     password: Math.random().toString(36).slice(-8),
@@ -1134,7 +1127,7 @@ const getAvailableGuards = asyncHandler(<span class="fstat-no" title="function n
 <span class="cstat-no" title="statement not covered" >  if (guardType) <span class="cstat-no" title="statement not covered" >query.guardType = guardType;</span></span>
 &nbsp;
   const guards = <span class="cstat-no" title="statement not covered" >await User.find(query)</span>
-    .select('fullName badgeNumber guardType shift postCode phoneNumber')
+    .select('fullName siaLicenceNumber guardType shift postCode phoneNumber')
     .sort('fullName');
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  res.status(200).json({</span>

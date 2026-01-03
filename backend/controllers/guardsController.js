@@ -39,7 +39,7 @@ const getGuards = asyncHandler(async (req, res) => {
     query.$or = [
       { fullName: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
-      { badgeNumber: { $regex: search, $options: 'i' } },
+      { siaLicenceNumber: { $regex: search, $options: 'i' } },
       { postCode: { $regex: search, $options: 'i' } },
     ];
   }
@@ -426,7 +426,7 @@ const getAvailableGuards = asyncHandler(async (req, res) => {
   if (guardType) query.guardType = guardType;
 
   const guards = await User.find(query)
-    .select('fullName badgeNumber guardType shift postCode phoneNumber')
+    .select('fullName siaLicenceNumber guardType shift postCode phoneNumber')
     .sort('fullName');
 
   res.status(200).json({

@@ -2,8 +2,6 @@
  * Shift Entity Types
  *
  * Mirrors: backend/models/Shift.js
- *
- * Shifts include embedded Task subdocuments.
  */
 
 import type {
@@ -45,6 +43,16 @@ export interface ShiftTaskInput {
 }
 
 // ============================================
+// Guard Reference (nullable for unassigned shifts)
+// ============================================
+
+export type ShiftGuardRef = (UserRef & {
+  siaLicenceNumber?: string;
+  phoneNumber?: string;
+  email?: string;
+}) | null;
+
+// ============================================
 // Core Shift Entity
 // ============================================
 
@@ -54,15 +62,13 @@ export interface ShiftTaskInput {
  */
 export interface ShiftBase {
   _id: string;
-  guard: string;
+  guard: string | null;
   site: string;
-  date: string; // YYYY-MM-DD format
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
+  date: string; // YYYY-MM-DD
   shiftType: ShiftType;
+  status: ShiftStatus;
   tasks: ShiftTask[];
   notes?: string;
-  status: ShiftStatus;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -70,26 +76,19 @@ export interface ShiftBase {
 
 /**
  * Shift with populated references
- * This is what the API returns after .populate()
  */
 export interface Shift {
   _id: string;
-  guard: UserRef & {
-    badgeNumber?: string;
-    phoneNumber?: string;
-    profileImage?: string;
-  };
+  guard: ShiftGuardRef;
   site: SiteRef & {
     address?: string;
     postCode?: string;
   };
   date: string;
-  startTime: string;
-  endTime: string;
   shiftType: ShiftType;
+  status: ShiftStatus;
   tasks: ShiftTask[];
   notes?: string;
-  status: ShiftStatus;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -108,11 +107,9 @@ export interface Shift {
  * Payload for creating a new shift
  */
 export interface CreateShiftPayload {
-  guard: string; // ObjectId
-  site: string; // ObjectId
+  guard: string | null;
+  site: string;
   date: string;
-  startTime: string;
-  endTime: string;
   shiftType: ShiftType;
   tasks?: ShiftTaskInput[];
   notes?: string;
@@ -143,13 +140,11 @@ export interface CompleteTaskPayload {
  */
 export interface ShiftSummary {
   _id: string;
-  guardName: string;
+  guardName: string | null;
   guardId: string | null;
   siteName: string;
   siteId: string | null;
   date: string;
-  startTime: string;
-  endTime: string;
   shiftType: ShiftType;
   status: ShiftStatus;
   tasksTotal: number;

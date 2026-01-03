@@ -16,7 +16,7 @@ const asyncHandler = require('../utils/asyncHandler');
  * @desc    Get all shifts with filtering
  * @access  Private
  */
-const getShifts = asyncHandler(async (req, res) => {
+const getShift = asyncHandler(async (req, res) => {
   const {
     startDate,
     endDate,
@@ -69,7 +69,7 @@ const getShifts = asyncHandler(async (req, res) => {
 
   const [shifts, total] = await Promise.all([
     Shift.find(query)
-      .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
+      .populate('guard', 'fullName siaLicenceNumber phoneNumber email')
       .populate('site', 'name address postCode')
       .sort(sortObj)
       .skip(skip)
@@ -145,7 +145,7 @@ const getShiftStats = asyncHandler(async (req, res) => {
  */
 const getShiftById = asyncHandler(async (req, res) => {
   const shift = await Shift.findById(req.params.id)
-    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName siaLicenceNumber phoneNumber email')
     .populate('site', 'name address postCode');
 
   if (!shift) {
@@ -169,49 +169,45 @@ const createShift = asyncHandler(async (req, res) => {
     guardId: guardId,
     siteId,
     date,
-    startTime,
-    endTime,
     shiftType,
     tasks,
     notes,
   } = req.body;
 
-  // Validate guard exists and is available
-  const guard = await User.findById(guardId);
-  if (!guard) {
-    res.status(400);
-    throw new Error('Guard not found');
-  }
-
-  // Validate site exists
+  // Validate site
   const site = await Site.findById(siteId);
   if (!site) {
     res.status(400);
     throw new Error('Site not found');
   }
 
-  // Check for conflicting shifts
-  const conflictingShift = await Shift.findOne({
-    guard: guardId,
-    date,
-    status: { $ne: 'cancelled' },
-    $or: [
-      { startTime: { $lt: endTime }, endTime: { $gt: startTime } },
-    ],
-  });
+  // Validate guard if provided
+  if (guardId) {
+    const guard = await User.findById(guardId);
+    if (!guard) {
+      res.status(400);
+      throw new Error('Guard not found');
+    }
 
-  if (conflictingShift) {
-    res.status(400);
-    throw new Error('Guard already has a shift during this time');
+    // Check for conflicting shifts (only if guard assigned)
+    const conflictingShift = await Shift.findOne({
+      guard: guardId,
+      date,
+      shiftType,
+      status: { $ne: 'cancelled' },
+    });
+
+    if (conflictingShift) {
+      res.status(400);
+      throw new Error('Guard already has a shift during this time');
+    }
   }
 
-  // Create shift
+  // Create shift (guard can be null)
   const shift = await Shift.create({
-    guard: guardId,
+    guard: guardId || null,
     site: siteId,
     date,
-    startTime,
-    endTime,
     shiftType,
     tasks: tasks || [],
     notes,
@@ -221,7 +217,7 @@ const createShift = asyncHandler(async (req, res) => {
 
   // Populate and return
   const populatedShift = await Shift.findById(shift._id)
-    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName phoneNumber email siaLicence')
     .populate('site', 'name address postCode');
 
   res.status(201).json({
@@ -249,7 +245,7 @@ const updateShift = asyncHandler(async (req, res) => {
     { ...req.body, updatedAt: new Date() },
     { new: true, runValidators: true }
   )
-    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName siaLicenceNumber phoneNumber email')
     .populate('site', 'name address postCode');
 
   res.status(200).json({
@@ -350,7 +346,7 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
   await shift.save();
 
   const updatedShift = await Shift.findById(shiftId)
-    .populate('guard', 'fullName badgeNumber phoneNumber profileImage')
+    .populate('guard', 'fullName siaLicenceNumber phoneNumber email')
     .populate('site', 'name address postCode');
 
   res.status(200).json({
@@ -375,9 +371,9 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
 const getAvailableGuards = asyncHandler(async (req, res) => {
   const guards = await User.find({
     role: 'Guard',
-    status: 'active',
+    status: 'off-duty',
   })
-    .select('fullName badgeNumber guardType availability')
+    .select('fullName siaLicenceNumber guardType availability')
     .sort('fullName');
 
   res.status(200).json({
@@ -418,10 +414,10 @@ const getRecommendedGuards = asyncHandler(async (req, res) => {
 
   const siteCoords = await getPostcodeCoords(site.address.postCode);
 
-  // Get eligible guards (active, valid licence, available)
+  // Get eligible guards (off-duty, valid licence, available)
   const guards = await User.find({
     role: 'Guard',
-    status: 'active',
+    status: 'off-duty',
     'siaLicence.status': { $in: ['valid', 'expiring-soon'] },
   });
 
@@ -431,7 +427,6 @@ const getRecommendedGuards = asyncHandler(async (req, res) => {
       guard: {
         _id: guard._id,
         fullName: guard.fullName,
-        badgeNumber: guard.badgeNumber,
         guardType: guard.guardType,
         postCode: guard.postCode,
         siaLicence: guard.siaLicence,
@@ -450,7 +445,7 @@ const getRecommendedGuards = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getShifts,
+  getShifts: getShift,
   getShiftStats,
   getShiftById,
   createShift,

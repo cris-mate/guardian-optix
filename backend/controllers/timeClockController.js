@@ -578,7 +578,7 @@ const getTimeEntries = asyncHandler(async (req, res) => {
   if (type) query.type = type;
 
   const entries = await TimeEntry.find(query)
-    .populate('guard', 'fullName badgeNumber')
+    .populate('guard', 'fullName siaLicenceNumber')
     .populate('site', 'name')
     .sort({ timestamp: -1 })
     .limit(parseInt(limit));
@@ -724,7 +724,7 @@ const getActiveGuards = asyncHandler(async (req, res) => {
   const sessions = await ActiveSession.find({
     clockStatus: { $ne: 'clocked-out' },
   })
-    .populate('guard', 'fullName badgeNumber profileImage')
+    .populate('guard', 'fullName siaLicenceNumber')
     .populate('site', 'name');
 
   const guardsData = await Promise.all(
@@ -742,7 +742,7 @@ const getActiveGuards = asyncHandler(async (req, res) => {
         _id: session._id,
         guardId: session.guard._id,
         fullName: session.guard.fullName,
-        badgeNumber: session.guard.badgeNumber,
+        siaLicenceNumber: session.guard.siaLicenceNumber,
         profileImage: session.guard.profileImage,
         clockStatus: session.clockStatus,
         clockedInAt: session.clockedInAt,

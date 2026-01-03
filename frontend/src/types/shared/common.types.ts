@@ -28,7 +28,7 @@ export type GuardType =
 
 export type ShiftType = 'Morning' | 'Afternoon' | 'Night';
 
-export type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+export type ShiftStatus = 'unassigned' | 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
 
 export type TaskFrequency = 'once' | 'hourly' | 'periodic';
 

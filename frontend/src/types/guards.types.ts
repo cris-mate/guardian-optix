@@ -140,8 +140,6 @@ export interface GuardsFormData {
   role: "Guard";
   guardType?: GuardType;
   availability?: boolean;
-
-  badgeNumber?: string;
   siaLicenceNumber?: string;
   siaLicenceType?: SIALicenceType;
   siaLicenceExpiry?: string;

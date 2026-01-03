@@ -20,6 +20,7 @@ import { Shift, ShiftCardProps } from '../../../types/scheduling.types';
 
 // Status color mapping
 const statusColors: Record<string, string> = {
+  unassigned: 'gray',
   scheduled: 'blue',
   'in-progress': 'orange',
   completed: 'green',
@@ -38,6 +39,7 @@ const ShiftCard: React.FC<ShiftCardProps> = ({
                                                isCompact = false,
                                                onClick,
                                              }) => {
+  const guardName = shift.guard?.fullName || 'Unassigned';
   const completedTasks = shift.tasks.filter((t) => t.completed).length;
   const totalTasks = shift.tasks.length;
 
@@ -46,20 +48,20 @@ const ShiftCard: React.FC<ShiftCardProps> = ({
     return (
       <Box
         p={1.5}
-        bg={`${shiftTypeColors[shift.shiftType]}.50`}
+        bg={shift.guard ? `${shiftTypeColors[shift.shiftType]}.50` : 'gray.100'}
         borderRadius="md"
         borderLeftWidth="3px"
-        borderLeftColor={`${shiftTypeColors[shift.shiftType]}.400`}
+        borderLeftColor={shift.guard ? `${shiftTypeColors[shift.shiftType]}.400` : 'gray.400'}
         cursor="pointer"
-        _hover={{ bg: `${shiftTypeColors[shift.shiftType]}.100` }}
+        _hover={{ bg: shift.guard ? `${shiftTypeColors[shift.shiftType]}.100` : 'gray.200' }}
         onClick={() => onClick?.(shift)}
         overflow="hidden"
       >
-        <Text fontSize="xs" fontWeight="medium" color="gray.700" lineClamp={1}>
-          {shift.guard.fullName}
+        <Text fontSize="xs" fontWeight="medium" color={shift.guard ? 'gray.700' : 'gray.500'} lineClamp={1}>
+          {guardName}
         </Text>
         <Text fontSize="xs" color="gray.500">
-          {shift.startTime} - {shift.endTime}
+          {shift.shiftType}
         </Text>
       </Box>
     );
@@ -88,15 +90,15 @@ const ShiftCard: React.FC<ShiftCardProps> = ({
         <Flex justify="space-between" align="flex-start">
           <HStack gap={2}>
             <Avatar.Root size="sm">
-              <Avatar.Fallback name={shift.guard.fullName} />
+              <Avatar.Fallback name={guardName} />
             </Avatar.Root>
             <Box>
               <Text fontSize="sm" fontWeight="semibold" color="gray.800">
-                {shift.guard.fullName}
+                {guardName}
               </Text>
-              {shift.guard.badgeNumber && (
+              {shift.guard?.siaLicenceNumber && (
                 <Text fontSize="xs" color="gray.500">
-                  {shift.guard.badgeNumber}
+                  {shift.guard.siaLicenceNumber}
                 </Text>
               )}
             </Box>
@@ -110,17 +112,13 @@ const ShiftCard: React.FC<ShiftCardProps> = ({
           </Badge>
         </Flex>
 
-        {/* Time */}
+        {/* Shift Type */}
         <HStack gap={1} color="gray.600">
           <LuClock size={14} />
-          <Text fontSize="sm">
-            {shift.startTime} - {shift.endTime}
-          </Text>
           <Badge
             colorPalette={shiftTypeColors[shift.shiftType]}
             variant="subtle"
             size="sm"
-            ml={2}
           >
             {shift.shiftType}
           </Badge>

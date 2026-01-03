@@ -82,7 +82,7 @@ const generateMockGuards = (): GuardPerformance[] => [
   {
     guardId: 'off-001',
     guardName: 'James Wilson',
-    badgeNumber: 'GO-1001',
+    siaLicenceNumber: 'GO-1001',
     guardType: 'Static',
     site: 'Corporate HQ',
     overallScore: 94,
@@ -109,7 +109,7 @@ const generateMockGuards = (): GuardPerformance[] => [
   {
     guardId: 'off-002',
     guardName: 'Sarah Chen',
-    badgeNumber: 'GO-1002',
+    siaLicenceNumber: 'GO-1002',
     guardType: 'Mobile Patrol',
     site: 'Warehouse District',
     overallScore: 91,
@@ -136,7 +136,7 @@ const generateMockGuards = (): GuardPerformance[] => [
   {
     guardId: 'off-003',
     guardName: 'Michael Brown',
-    badgeNumber: 'GO-1003',
+    siaLicenceNumber: 'GO-1003',
     guardType: 'Static',
     site: 'Tech Park',
     overallScore: 85,
@@ -163,7 +163,7 @@ const generateMockGuards = (): GuardPerformance[] => [
   {
     guardId: 'off-004',
     guardName: 'Emily Davis',
-    badgeNumber: 'GO-1004',
+    siaLicenceNumber: 'GO-1004',
     guardType: 'Dog Handler',
     site: 'Mall Complex',
     overallScore: 82,
@@ -190,7 +190,7 @@ const generateMockGuards = (): GuardPerformance[] => [
   {
     guardId: 'off-005',
     guardName: 'Robert Taylor',
-    badgeNumber: 'GO-1005',
+    siaLicenceNumber: 'GO-1005',
     guardType: 'Static',
     site: 'Corporate HQ',
     overallScore: 72,
@@ -217,7 +217,7 @@ const generateMockGuards = (): GuardPerformance[] => [
   {
     guardId: 'off-006',
     guardName: 'Lisa Anderson',
-    badgeNumber: 'GO-1006',
+    siaLicenceNumber: 'GO-1006',
     guardType: 'Close Protection',
     site: 'VIP Residence',
     overallScore: 89,

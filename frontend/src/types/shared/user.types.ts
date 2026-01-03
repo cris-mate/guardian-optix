@@ -79,7 +79,7 @@ export interface UserExtended extends User {
   status?: 'on-duty' | 'off-duty' | 'on-break' | 'scheduled' | 'late' | 'absent';
 
   // Badge number (consider adding to backend User model)
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
 
   // // Profile
   // profileImage?: string;

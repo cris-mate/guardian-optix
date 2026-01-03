@@ -57,7 +57,6 @@ const initialFormData: GuardsFormData = {
   postCode: '',
   role: 'Guard',
   guardType: undefined,
-  badgeNumber: '',
   siaLicenceNumber: '',
   siaLicenceType: undefined,
   siaLicenceExpiry: '',
@@ -244,8 +243,8 @@ const AddGuardsModal: React.FC<AddGuardsModalProps> = ({
                       <Field.Label>Badge Number</Field.Label>
                       <Input
                         placeholder="GO-2024-001"
-                        value={formData.badgeNumber || ''}
-                        onChange={(e) => handleChange('badgeNumber', e.target.value)}
+                        value={formData.siaLicenceNumber || ''}
+                        onChange={(e) => handleChange('siaLicenceNumber', e.target.value)}
                       />
                     </Field.Root>
                   </HStack>

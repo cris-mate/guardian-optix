@@ -239,7 +239,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, onSearch }) => {
             <LuSearch size={18} />
           </Box>
           <Input
-            placeholder="Search by name, email, badge, or postcode..."
+            placeholder="Search by name, email, SIA badge, or postcode..."
             value={value}
             onChange={(e) => onChange(e.target.value)}
             pl={10}

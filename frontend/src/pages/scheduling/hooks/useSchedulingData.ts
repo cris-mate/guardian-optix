@@ -25,12 +25,12 @@ const USE_MOCK_DATA = MOCK_CONFIG.scheduling;
 // ============================================
 
 const mockGuards: AvailableGuard[] = [
-  { _id: 'off1', fullName: 'James Wilson', badgeNumber: 'GO-2024-001', guardType: 'Static', availability: true },
-  { _id: 'off2', fullName: 'Sarah Mitchell', badgeNumber: 'GO-2024-002', guardType: 'Mobile Patrol', availability: true },
-  { _id: 'off3', fullName: 'David Chen', badgeNumber: 'GO-2024-003', guardType: 'Static', availability: true },
-  { _id: 'off4', fullName: 'Emma Thompson', badgeNumber: 'GO-2024-004', guardType: 'Close Protection', availability: false },
-  { _id: 'off5', fullName: 'Michael Brown', badgeNumber: 'GO-2024-005', guardType: 'Dog Handler', availability: true },
-  { _id: 'off6', fullName: 'Lisa Anderson', badgeNumber: 'GO-2024-006', guardType: 'Static', availability: true },
+  { _id: 'off1', fullName: 'James Wilson', siaLicenceNumber: 'GO-2024-001', guardType: 'Static', availability: true },
+  { _id: 'off2', fullName: 'Sarah Mitchell', siaLicenceNumber: 'GO-2024-002', guardType: 'Mobile Patrol', availability: true },
+  { _id: 'off3', fullName: 'David Chen', siaLicenceNumber: 'GO-2024-003', guardType: 'Static', availability: true },
+  { _id: 'off4', fullName: 'Emma Thompson', siaLicenceNumber: 'GO-2024-004', guardType: 'Close Protection', availability: false },
+  { _id: 'off5', fullName: 'Michael Brown', siaLicenceNumber: 'GO-2024-005', guardType: 'Dog Handler', availability: true },
+  { _id: 'off6', fullName: 'Lisa Anderson', siaLicenceNumber: 'GO-2024-006', guardType: 'Static', availability: true },
 ];
 
 const mockSites: AvailableSite[] = [
@@ -60,7 +60,7 @@ const generateMockShifts = (): Shift[] => {
         guard: {
           _id: guard._id,
           fullName: guard.fullName,
-          badgeNumber: guard.badgeNumber,
+          siaLicenceNumber: guard.siaLicenceNumber,
         },
         site: {
           _id: site._id,
@@ -68,8 +68,6 @@ const generateMockShifts = (): Shift[] => {
           postCode: site.postCode,
         },
         date: dateStr,
-        startTime: '06:00',
-        endTime: '14:00',
         shiftType: 'Morning',
         tasks: [
           {
@@ -112,7 +110,7 @@ const generateMockShifts = (): Shift[] => {
         guard: {
           _id: guard._id,
           fullName: guard.fullName,
-          badgeNumber: guard.badgeNumber,
+          siaLicenceNumber: guard.siaLicenceNumber,
         },
         site: {
           _id: site._id,
@@ -120,8 +118,6 @@ const generateMockShifts = (): Shift[] => {
           postCode: site.postCode,
         },
         date: dateStr,
-        startTime: '14:00',
-        endTime: '22:00',
         shiftType: 'Afternoon',
         tasks: [
           { _id: 't4', title: 'CCTV Monitoring', description: 'Monitor CCTV feeds', frequency: 'periodic', priority: 'medium', completed: dayOffset < 0 },
@@ -141,7 +137,7 @@ const generateMockShifts = (): Shift[] => {
         guard: {
           _id: guard._id,
           fullName: guard.fullName,
-          badgeNumber: guard.badgeNumber,
+          siaLicenceNumber: guard.siaLicenceNumber,
         },
         site: {
           _id: site._id,
@@ -149,8 +145,6 @@ const generateMockShifts = (): Shift[] => {
           postCode: site.postCode,
         },
         date: dateStr,
-        startTime: '22:00',
-        endTime: '06:00',
         shiftType: 'Night',
         tasks: [
           { _id: 't6', title: 'Patrol Rounds', description: 'Hourly patrol rounds', frequency: 'hourly', priority: 'high', completed: false },
@@ -245,6 +239,12 @@ export const useSchedulingData = () => {
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const SHIFT_HOURS: Record<string, number> = {
+    Morning: 8,    // 06:00 - 14:00
+    Afternoon: 8,  // 14:00 - 22:00
+    Night: 8,      // 22:00 - 06:00
+  };
+
   // Fetch shifts
   const fetchShifts = useCallback(async () => {
     setIsLoading(true);
@@ -286,7 +286,7 @@ export const useSchedulingData = () => {
   const filteredShifts = useMemo(() => {
     return shifts.filter((shift) => {
       // Filter by guard
-      if (filters.guardId && shift.guard._id !== filters.guardId) {
+      if (filters.guardId && shift.guard?._id !== filters.guardId) {
         return false;
       }
 
@@ -302,7 +302,6 @@ export const useSchedulingData = () => {
 
       // Filter by status
       return !(filters.status && filters.status !== 'all' && shift.status !== filters.status);
-
 
     });
   }, [shifts, filters]);
@@ -338,17 +337,15 @@ export const useSchedulingData = () => {
   // Calculate statistics
   const stats: SchedulingStats = useMemo(() => {
     const totalShifts = calendarData.length;
+    const unassignedShifts = calendarData.filter((s) => s.status === 'unassigned').length;
     const scheduledShifts = calendarData.filter((s) => s.status === 'scheduled').length;
     const inProgressShifts = calendarData.filter((s) => s.status === 'in-progress').length;
     const completedShifts = calendarData.filter((s) => s.status === 'completed').length;
     const cancelledShifts = calendarData.filter((s) => s.status === 'cancelled').length;
 
-    // Calculate total hours
+    // Calculate total hours using shiftType
     const totalHoursScheduled = calendarData.reduce((acc, shift) => {
-      const start = parseInt(shift.startTime.split(':')[0]);
-      const end = parseInt(shift.endTime.split(':')[0]);
-      const hours = end > start ? end - start : 24 - start + end;
-      return acc + hours;
+      return acc + (SHIFT_HOURS[shift.shiftType] || 8);
     }, 0);
 
     // Coverage percentage (simplified)
@@ -356,6 +353,7 @@ export const useSchedulingData = () => {
 
     return {
       totalShifts,
+      unassignedShifts,
       scheduledShifts,
       inProgressShifts,
       completedShifts,
@@ -395,28 +393,27 @@ export const useSchedulingData = () => {
       if (USE_MOCK_DATA) {
         await simulateDelay('medium');
 
-        const guard = mockGuards.find((o) => o._id === data.guardId);
         const site = mockSites.find((s) => s._id === data.siteId);
-
-        if (!guard || !site) {
-          throw new Error('Invalid guard or site');
+        if (!site) {
+          throw new Error('Invalid site');
         }
+        const guard = data.guardId
+          ? mockGuards.find((g) => g._id === data.guardId)
+          : null;
 
         const newShift: Shift = {
           _id: `shift-${Date.now()}`,
-          guard: {
+          guard: guard ? {
             _id: guard._id,
             fullName: guard.fullName,
-            badgeNumber: guard.badgeNumber,
-          },
+            siaLicenceNumber: guard.siaLicenceNumber,
+          } : null,
           site: {
             _id: site._id,
             name: site.name,
             postCode: site.postCode,
           },
           date: data.date,
-          startTime: data.startTime,
-          endTime: data.endTime,
           shiftType: data.shiftType,
           tasks: data.tasks.map((t, i) => ({
             _id: `task-${Date.now()}-${i}`,
@@ -427,18 +424,13 @@ export const useSchedulingData = () => {
             completed: false,
           })),
           notes: data.notes,
-          status: 'scheduled',
+          status: guard ? 'scheduled' : 'unassigned',
           createdAt: new Date().toISOString(),
         };
 
         setShifts((prev) => [...prev, newShift]);
       } else {
-        // API call would go here
-        await fetch('/api/scheduling/shifts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
+        await api.post('/scheduling/shifts', data);
         await fetchShifts();
       }
     } catch (err) {
@@ -479,8 +471,6 @@ export const useSchedulingData = () => {
               ...(data.guardId && { guard: shift.guard }), // Keep existing guard for now
               ...(data.siteId && { site: shift.site }), // Keep existing site for now
               ...(data.date && { date: data.date }),
-              ...(data.startTime && { startTime: data.startTime }),
-              ...(data.endTime && { endTime: data.endTime }),
               ...(data.shiftType && { shiftType: data.shiftType }),
               ...(data.notes !== undefined && { notes: data.notes }),
               tasks: updatedTasks,

@@ -288,7 +288,6 @@ const Scheduling: React.FC = () => {
     resetFilters,
     selectShift,
     createShift,
-    updateShift,
     deleteShift,
     toggleTaskComplete,
     refetch,

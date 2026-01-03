@@ -16,10 +16,6 @@ import type {
   TaskPriority,
   Shift,
   ShiftTask,
-  ShiftTaskInput,
-  ShiftSummary,
-  UserRef,
-  SiteRef,
   PaginationMeta,
 } from '@/types/shared';
 
@@ -44,16 +40,14 @@ export type ViewMode = 'day' | 'week' | 'month';
 
 /**
  * Form data for creating shifts
- * Maps to CreateShiftPayload with UI-friendly naming
+ * Maps to CreateShiftPayload
  */
 export interface ShiftFormData {
   guardId: string;
   siteId: string;
   date: string;
-  startTime: string;
-  endTime: string;
   shiftType: ShiftType;
-  tasks: ShiftTaskInput[];
+  tasks: TaskFormData[];
   notes?: string;
 }
 
@@ -80,16 +74,6 @@ export interface SchedulingFilters {
 }
 
 /**
- * Default filter values
- */
-export const DEFAULT_FILTERS: SchedulingFilters = {
-  viewMode: 'week',
-  selectedDate: new Date().toISOString().split('T')[0],
-  shiftType: 'all',
-  status: 'all',
-};
-
-/**
  * Pagination - use shared type
  */
 export type SchedulingPagination = PaginationMeta;
@@ -99,6 +83,7 @@ export type SchedulingPagination = PaginationMeta;
  */
 export interface SchedulingStats {
   totalShifts: number;
+  unassignedShifts: number;
   scheduledShifts: number;
   inProgressShifts: number;
   completedShifts: number;
@@ -113,7 +98,7 @@ export interface SchedulingStats {
 export interface AvailableGuard {
   _id: string;
   fullName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   guardType?: string;
   availability: boolean;
 }

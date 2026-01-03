@@ -40,7 +40,7 @@ interface ScoreBreakdown {
 interface RecommendedGuard {
   _id: string;
   fullName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   guardType?: string;
   postCode?: string;
   siaLicence?: {
@@ -96,7 +96,7 @@ const generateMockRecommendations = (): Recommendation[] => [
     guard: {
       _id: 'rec-1',
       fullName: 'James Wilson',
-      badgeNumber: 'GO-2024-001',
+      siaLicenceNumber: 'GO-2024-001',
       guardType: 'Static',
       postCode: 'SW1A 1AA',
       siaLicence: { status: 'valid', expiryDate: '2026-05-15' },
@@ -116,7 +116,7 @@ const generateMockRecommendations = (): Recommendation[] => [
     guard: {
       _id: 'rec-2',
       fullName: 'Sarah Thompson',
-      badgeNumber: 'GO-2024-002',
+      siaLicenceNumber: 'GO-2024-002',
       guardType: 'Static',
       postCode: 'EC1A 1BB',
       siaLicence: { status: 'valid', expiryDate: '2025-08-20' },
@@ -136,7 +136,7 @@ const generateMockRecommendations = (): Recommendation[] => [
     guard: {
       _id: 'rec-3',
       fullName: 'Michael Chen',
-      badgeNumber: 'GO-2024-003',
+      siaLicenceNumber: 'GO-2024-003',
       guardType: 'Mobile Patrol',
       postCode: 'N1 9GU',
       siaLicence: { status: 'expiring-soon', expiryDate: '2025-02-10' },
@@ -209,9 +209,9 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
               {guard.fullName}
             </Text>
             <HStack gap={2} flexWrap="wrap">
-              {guard.badgeNumber && (
+              {guard.siaLicenceNumber && (
                 <Text fontSize="xs" color="gray.500">
-                  {guard.badgeNumber}
+                  {guard.siaLicenceNumber}
                 </Text>
               )}
               {guard.guardType && (

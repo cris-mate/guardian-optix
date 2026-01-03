@@ -302,11 +302,11 @@ const generateMockAttendanceData = (): AttendanceReportData => ({
     avgLateMinutes: 11,
   },
   byGuard: [
-    { guardId: 'o1', guardName: 'James Wilson', badgeNumber: 'GO-1001', shiftsScheduled: 24, shiftsWorked: 24, hoursWorked: 192, overtimeHours: 4, punctualityRate: 100, lateCount: 0, noShowCount: 0 },
-    { guardId: 'o2', guardName: 'Sarah Chen', badgeNumber: 'GO-1002', shiftsScheduled: 22, shiftsWorked: 22, hoursWorked: 176, overtimeHours: 8, punctualityRate: 95.5, lateCount: 1, noShowCount: 0 },
-    { guardId: 'o3', guardName: 'Michael Brown', badgeNumber: 'GO-1003', shiftsScheduled: 20, shiftsWorked: 19, hoursWorked: 152, overtimeHours: 0, punctualityRate: 84.2, lateCount: 3, noShowCount: 1 },
-    { guardId: 'o4', guardName: 'Emily Davis', badgeNumber: 'GO-1004', shiftsScheduled: 18, shiftsWorked: 18, hoursWorked: 144, overtimeHours: 2, punctualityRate: 88.9, lateCount: 2, noShowCount: 0 },
-    { guardId: 'o5', guardName: 'Robert Taylor', badgeNumber: 'GO-1005', shiftsScheduled: 16, shiftsWorked: 15, hoursWorked: 120, overtimeHours: 0, punctualityRate: 75, lateCount: 4, noShowCount: 1 },
+    { guardId: 'o1', guardName: 'James Wilson', siaLicenceNumber: 'GO-1001', shiftsScheduled: 24, shiftsWorked: 24, hoursWorked: 192, overtimeHours: 4, punctualityRate: 100, lateCount: 0, noShowCount: 0 },
+    { guardId: 'o2', guardName: 'Sarah Chen', siaLicenceNumber: 'GO-1002', shiftsScheduled: 22, shiftsWorked: 22, hoursWorked: 176, overtimeHours: 8, punctualityRate: 95.5, lateCount: 1, noShowCount: 0 },
+    { guardId: 'o3', guardName: 'Michael Brown', siaLicenceNumber: 'GO-1003', shiftsScheduled: 20, shiftsWorked: 19, hoursWorked: 152, overtimeHours: 0, punctualityRate: 84.2, lateCount: 3, noShowCount: 1 },
+    { guardId: 'o4', guardName: 'Emily Davis', siaLicenceNumber: 'GO-1004', shiftsScheduled: 18, shiftsWorked: 18, hoursWorked: 144, overtimeHours: 2, punctualityRate: 88.9, lateCount: 2, noShowCount: 0 },
+    { guardId: 'o5', guardName: 'Robert Taylor', siaLicenceNumber: 'GO-1005', shiftsScheduled: 16, shiftsWorked: 15, hoursWorked: 120, overtimeHours: 0, punctualityRate: 75, lateCount: 4, noShowCount: 1 },
   ],
   dailyBreakdown: Array.from({ length: 7 }, (_, i) => ({
     date: new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0],

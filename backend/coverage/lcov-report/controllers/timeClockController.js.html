@@ -2391,7 +2391,7 @@ const getTimeEntries = <span class="cstat-no" title="statement not covered" >asy
 <span class="cstat-no" title="statement not covered" >  if (type) <span class="cstat-no" title="statement not covered" >query.type = type;</span></span>
 &nbsp;
   const entries = <span class="cstat-no" title="statement not covered" >await TimeEntry.find(query)</span>
-    .populate('guard', 'fullName badgeNumber')
+    .populate('guard', 'fullName siaLicenceNumber')
     .populate('site', 'name')
     .sort({ timestamp: -1 })
     .limit(parseInt(limit));
@@ -2537,7 +2537,7 @@ const getActiveGuards = <span class="cstat-no" title="statement not covered" >as
   const sessions = <span class="cstat-no" title="statement not covered" >await ActiveSession.find({</span>
     clockStatus: { $ne: 'clocked-out' },
   })
-    .populate('guard', 'fullName badgeNumber profileImage')
+    .populate('guard', 'fullName siaLicenceNumber')
     .populate('site', 'name');
 &nbsp;
   const guardsData = <span class="cstat-no" title="statement not covered" >await Promise.all(</span>
@@ -2555,7 +2555,7 @@ const getActiveGuards = <span class="cstat-no" title="statement not covered" >as
         _id: session._id,
         guardId: session.guard._id,
         fullName: session.guard.fullName,
-        badgeNumber: session.guard.badgeNumber,
+        siaLicenceNumber: session.guard.siaLicenceNumber,
         profileImage: session.guard.profileImage,
         clockStatus: session.clockStatus,
         clockedInAt: session.clockedInAt,

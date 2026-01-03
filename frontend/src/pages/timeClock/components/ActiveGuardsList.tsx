@@ -111,9 +111,9 @@ const GuardCard: React.FC<GuardCardProps> = ({ guard, onClick }) => {
               <Text fontWeight="medium" fontSize="sm" color="gray.800">
                 {guard.fullName}
               </Text>
-              {guard.badgeNumber && (
+              {guard.siaLicenceNumber && (
                 <Text fontSize="xs" color="gray.500">
-                  {guard.badgeNumber}
+                  {guard.siaLicenceNumber}
                 </Text>
               )}
             </VStack>

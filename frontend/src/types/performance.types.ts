@@ -86,7 +86,7 @@ export interface GuardPerformance {
   guardId: string;
   guardName: string;
   profileImage?: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   guardType?: string;
   site?: string;
 

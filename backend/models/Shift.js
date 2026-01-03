@@ -46,6 +46,15 @@ const TaskSchema = new mongoose.Schema({
 });
 
 // ============================================
+// Shift Times
+// ============================================
+const SHIFT_TIMES = {
+  Morning: { start: '06:00', end: '14:00' },
+  Afternoon: { start: '14:00', end: '22:00' },
+  Night: { start: '22:00', end: '06:00' },
+};
+
+// ============================================
 // Shift Schema
 // ============================================
 const ShiftSchema = new mongoose.Schema(
@@ -53,7 +62,7 @@ const ShiftSchema = new mongoose.Schema(
     guard: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Guard is required'],
+      default: null,  // Allow unassigned shifts
     },
     site: {
       type: mongoose.Schema.Types.ObjectId,
@@ -61,33 +70,13 @@ const ShiftSchema = new mongoose.Schema(
       required: [true, 'Site is required'],
     },
     date: {
-      type: String, // ISO date string (YYYY-MM-DD)
+      type: String, // YYYY-MM-DD
       required: [true, 'Date is required'],
       validate: {
         validator: function (v) {
           return /^\d{4}-\d{2}-\d{2}$/.test(v);
         },
         message: 'Date must be in YYYY-MM-DD format',
-      },
-    },
-    startTime: {
-      type: String, // HH:mm format
-      required: [true, 'Start time is required'],
-      validate: {
-        validator: function (v) {
-          return /^\d{2}:\d{2}$/.test(v);
-        },
-        message: 'Start time must be in HH:mm format',
-      },
-    },
-    endTime: {
-      type: String, // HH:mm format
-      required: [true, 'End time is required'],
-      validate: {
-        validator: function (v) {
-          return /^\d{2}:\d{2}$/.test(v);
-        },
-        message: 'End time must be in HH:mm format',
       },
     },
     shiftType: {
@@ -103,8 +92,8 @@ const ShiftSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['scheduled', 'in-progress', 'completed', 'cancelled'],
-      default: 'scheduled',
+      enum: ['unassigned', 'scheduled', 'in-progress', 'completed', 'cancelled'],
+      default: 'unassigned',
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -120,18 +109,28 @@ const ShiftSchema = new mongoose.Schema(
 // Indexes
 // ============================================
 
-ShiftSchema.index({ date: 1, guard: 1 });
-ShiftSchema.index({ date: 1, site: 1 });
-ShiftSchema.index({ date: 1, status: 1 });
-ShiftSchema.index({ guard: 1, status: 1 });
+ShiftSchema.index({date: 1, guard: 1});
+ShiftSchema.index({date: 1, site: 1});
+ShiftSchema.index({date: 1, status: 1});
+ShiftSchema.index({guard: 1, status: 1});
 
 // ============================================
 // Virtuals
 // ============================================
 
+ShiftSchema.virtual('startTime').get(function () {
+  return SHIFT_TIMES[this.shiftType]?.start || '00:00';
+});
+
+ShiftSchema.virtual('endTime').get(function () {
+  return SHIFT_TIMES[this.shiftType]?.end || '00:00';
+});
+
 ShiftSchema.virtual('durationHours').get(function () {
-  const start = parseInt(this.startTime.split(':')[0]);
-  const end = parseInt(this.endTime.split(':')[0]);
+  const times = SHIFT_TIMES[this.shiftType];
+  if (!times) return 8;
+  const start = parseInt(times.start.split(':')[0]);
+  const end = parseInt(times.end.split(':')[0]);
   return end > start ? end - start : 24 - start + end;
 });
 
@@ -144,7 +143,7 @@ ShiftSchema.virtual('tasksTotal').get(function () {
 });
 
 // Ensure virtuals are included in JSON output
-ShiftSchema.set('toJSON', { virtuals: true });
-ShiftSchema.set('toObject', { virtuals: true });
+ShiftSchema.set('toJSON', {virtuals: true});
+ShiftSchema.set('toObject', {virtuals: true});
 
 module.exports = mongoose.model('Shift', ShiftSchema);

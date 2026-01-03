@@ -83,7 +83,7 @@ export interface ActiveShift {
   shiftId: string;
   guardId: string;
   guardName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   site: {
     _id: string;
     name: string;
@@ -160,7 +160,7 @@ export interface ActiveGuard {
   _id: string;
   guardId: string;
   fullName: string;
-  badgeNumber?: string;
+  siaLicenceNumber?: string;
   profileImage?: string;
   clockStatus: ClockStatus;
   clockedInAt?: string;

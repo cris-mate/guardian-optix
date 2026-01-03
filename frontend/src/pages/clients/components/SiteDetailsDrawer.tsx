@@ -72,7 +72,7 @@ interface SiteShift {
   guard: {
     _id: string;
     fullName: string;
-    badgeNumber?: string;
+    siaLicenceNumber?: string;
   } | null;
 }
 
@@ -85,7 +85,7 @@ const mockShifts: SiteShift[] = [
     startTime: '06:00',
     endTime: '14:00',
     status: 'scheduled',
-    guard: { _id: 'g1', fullName: 'James Wilson', badgeNumber: 'G001' },
+    guard: { _id: 'g1', fullName: 'James Wilson', siaLicenceNumber: 'G001' },
   },
   {
     _id: 'sh2',
@@ -103,7 +103,7 @@ const mockShifts: SiteShift[] = [
     startTime: '22:00',
     endTime: '06:00',
     status: 'scheduled',
-    guard: { _id: 'g2', fullName: 'Sarah Connor', badgeNumber: 'G002' },
+    guard: { _id: 'g2', fullName: 'Sarah Connor', siaLicenceNumber: 'G002' },
   },
   {
     _id: 'sh4',
@@ -121,7 +121,7 @@ const mockShifts: SiteShift[] = [
     startTime: '22:00',
     endTime: '06:00',
     status: 'scheduled',
-    guard: { _id: 'g3', fullName: 'Michael Chen', badgeNumber: 'G003' },
+    guard: { _id: 'g3', fullName: 'Michael Chen', siaLicenceNumber: 'G003' },
   },
 ];
 

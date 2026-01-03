@@ -2301,7 +2301,7 @@ const getReportData = <span class="cstat-no" title="statement not covered" ><spa
       $lte: endDate.toISOString().split('T')[0],
     },
   })
-    .populate('guard', 'fullName badgeNumber')
+    .populate('guard', 'fullName siaLicenceNumber')
     .populate('site', 'name')
     .lean();
 &nbsp;

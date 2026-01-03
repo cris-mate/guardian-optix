@@ -3,7 +3,6 @@
  *
  * Modal form for creating new shifts with tasks.
  * Includes intelligent guard recommendations based on site requirements.
- * Uses Chakra UI components.
  */
 
 import React, { useState } from 'react';
@@ -53,7 +52,6 @@ interface AddShiftModalProps {
 // Constants
 // ============================================
 
-// Shift type options
 const shiftTypeOptions = createListCollection({
   items: [
     { value: 'Morning', label: 'Morning (06:00 - 14:00)' },
@@ -62,7 +60,6 @@ const shiftTypeOptions = createListCollection({
   ],
 });
 
-// Task frequency options
 const frequencyOptions = createListCollection({
   items: [
     { value: 'once', label: 'One-time' },
@@ -71,24 +68,28 @@ const frequencyOptions = createListCollection({
   ],
 });
 
-// Default times for shift types
-const shiftTimes: Record<ShiftType, { start: string; end: string }> = {
-  Morning: { start: '06:00', end: '14:00' },
-  Afternoon: { start: '14:00', end: '22:00' },
-  Night: { start: '22:00', end: '06:00' },
-};
-
 // Initial form state
 const getInitialFormData = (selectedDate?: string): ShiftFormData => ({
   guardId: '',
   siteId: '',
   date: selectedDate || new Date().toISOString().split('T')[0],
-  startTime: '06:00',
-  endTime: '14:00',
   shiftType: 'Morning',
   tasks: [],
   notes: '',
 });
+
+// // Create guard options for dropdown
+// const guardOptions = createListCollection({
+//   items: [
+//     { value: '', label: '— Leave Unassigned —' },  // ← ADD THIS
+//     ...availableGuards
+//       .filter((g) => g.availability)
+//       .map((g) => ({
+//         value: g._id,
+//         label: `${g.fullName}${g.siaLicenceNumber ? ` (${g.siaLicenceNumber})` : ''}`,
+//       })),
+//   ],
+// });
 
 // ============================================
 // Main Component
@@ -116,20 +117,20 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
 
   // Create guard options for dropdown
   const guardOptions = createListCollection({
-    items: availableGuards
-      .filter((o) => o.availability)
-      .map((o) => ({
-        value: o._id,
-        label: `${o.fullName}${o.badgeNumber ? ` (${o.badgeNumber})` : ''}`,
-      })),
+    items: [
+      { value: '', label: '— Leave Unassigned —' },
+      ...availableGuards
+        .filter((g: AvailableGuard) => g.availability)
+        .map((g: AvailableGuard) => ({
+          value: g._id,
+          label: `${g.fullName}${g.siaLicenceNumber ? ` (${g.siaLicenceNumber})` : ''}`,
+        })),
+    ],
   });
 
-  console.log('availableGuards:', availableGuards);
-  console.log('guardOptions:', guardOptions.items);
-
-  // Create site options for dropdown
+  // Create site options
   const siteOptions = createListCollection({
-    items: availableSites.map((s) => ({
+    items: availableSites.map((s: AvailableSite) => ({
       value: s._id,
       label: `${s.name}${s.postCode ? ` - ${s.postCode}` : ''}`,
     })),
@@ -143,21 +144,9 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
     onClose();
   };
 
-  // Handle shift type change (auto-update times)
-  const handleShiftTypeChange = (type: ShiftType) => {
-    const times = shiftTimes[type];
-    setFormData((prev) => ({
-      ...prev,
-      shiftType: type,
-      startTime: times.start,
-      endTime: times.end,
-    }));
-  };
-
   // Handle recommended guard selection
   const handleRecommendedGuardSelect = (guardId: string) => {
-    setFormData((prev) => ({ ...prev, guardId: guardId }));
-    // Clear guard error if it was set
+    setFormData((prev) => ({ ...prev, guardId }));
     if (errors.guardId) {
       setErrors((prev) => ({ ...prev, guardId: undefined }));
     }
@@ -199,13 +188,10 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
     }));
   };
 
-  // Validate form
+  // Validate form - guard is optional
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof ShiftFormData, string>> = {};
 
-    if (!formData.guardId) {
-      newErrors.guardId = 'Please select a guard';
-    }
     if (!formData.siteId) {
       newErrors.siteId = 'Please select a site';
     }
@@ -264,7 +250,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                   Shift Details
                 </Text>
                 <VStack gap={4}>
-                  {/* Site Selection (FIRST - triggers recommendations) */}
+                  {/* Site Selection */}
                   <Field.Root required invalid={!!errors.siteId}>
                     <Field.Label>Site</Field.Label>
                     <Select.Root
@@ -274,16 +260,10 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         setFormData((prev) => ({ ...prev, siteId: e.value[0] }))
                       }
                     >
-                      <Select.Trigger
-                        borderColor={errors.siteId ? 'red.300' : 'gray.300'}
-                      >
+                      <Select.Trigger borderColor={errors.siteId ? 'red.300' : 'gray.300'}>
                         <Select.ValueText placeholder="Select a site" />
                       </Select.Trigger>
-                      <Select.Content
-                        bg="white"
-                        borderColor="gray.200"
-                        boxShadow="lg"
-                      >
+                      <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
                         {siteOptions.items.map((item) => (
                           <Select.Item
                             key={item.value}
@@ -297,12 +277,10 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         ))}
                       </Select.Content>
                     </Select.Root>
-                    {errors.siteId && (
-                      <Field.ErrorText>{errors.siteId}</Field.ErrorText>
-                    )}
+                    {errors.siteId && <Field.ErrorText>{errors.siteId}</Field.ErrorText>}
                   </Field.Root>
 
-                  {/* Date & Shift Type (needed for recommendations context) */}
+                  {/* Date & Shift Type */}
                   <HStack gap={4} w="full">
                     <Field.Root required invalid={!!errors.date} flex="1">
                       <Field.Label>Date</Field.Label>
@@ -314,9 +292,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         }
                         borderColor={errors.date ? 'red.300' : 'gray.300'}
                       />
-                      {errors.date && (
-                        <Field.ErrorText>{errors.date}</Field.ErrorText>
-                      )}
+                      {errors.date && <Field.ErrorText>{errors.date}</Field.ErrorText>}
                     </Field.Root>
 
                     <Field.Root required flex="1">
@@ -325,17 +301,16 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         collection={shiftTypeOptions}
                         value={[formData.shiftType]}
                         onValueChange={(e) =>
-                          handleShiftTypeChange(e.value[0] as ShiftType)
+                          setFormData((prev) => ({
+                            ...prev,
+                            shiftType: e.value[0] as ShiftType,
+                          }))
                         }
                       >
                         <Select.Trigger>
                           <Select.ValueText placeholder="Select shift type" />
                         </Select.Trigger>
-                        <Select.Content
-                          bg="white"
-                          borderColor="gray.200"
-                          boxShadow="lg"
-                        >
+                        <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
                           {shiftTypeOptions.items.map((item) => (
                             <Select.Item
                               key={item.value}
@@ -352,10 +327,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                     </Field.Root>
                   </HStack>
 
-                  {/* ============================================ */}
-                  {/* RECOMMENDED GUARDS PANEL                   */}
-                  {/* Appears after site selection                 */}
-                  {/* ============================================ */}
+                  {/* Recommended Guards Panel */}
                   <RecommendedGuardsPanel
                     siteId={formData.siteId || null}
                     date={formData.date}
@@ -363,26 +335,20 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                     selectedGuardId={formData.guardId}
                   />
 
-                  {/* Guard Selection */}
-                  <Field.Root required invalid={!!errors.guardId}>
-                    <Field.Label>Guard</Field.Label>
+                  {/* Guard Selection - OPTIONAL */}
+                  <Field.Root invalid={!!errors.guardId}>
+                    <Field.Label>Assign Guard</Field.Label>
                     <Select.Root
                       collection={guardOptions}
-                      value={formData.guardId ? [formData.guardId] : []}
+                      value={formData.guardId ? [formData.guardId] : ['']}
                       onValueChange={(e) =>
-                        setFormData((prev) => ({ ...prev, guardId: e.value[0] }))
+                        setFormData((prev) => ({ ...prev, guardId: e.value[0] || '' }))
                       }
                     >
-                      <Select.Trigger
-                        borderColor={errors.guardId ? 'red.300' : 'gray.300'}
-                      >
-                        <Select.ValueText placeholder="Select a guard" />
+                      <Select.Trigger borderColor={errors.guardId ? 'red.300' : 'gray.300'}>
+                        <Select.ValueText placeholder="— Leave Unassigned —" />
                       </Select.Trigger>
-                      <Select.Content
-                        bg="white"
-                        borderColor="gray.200"
-                        boxShadow="lg"
-                      >
+                      <Select.Content bg="white" borderColor="gray.200" boxShadow="lg">
                         {guardOptions.items.map((item) => (
                           <Select.Item
                             key={item.value}
@@ -396,41 +362,10 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         ))}
                       </Select.Content>
                     </Select.Root>
-                    {errors.guardId && (
-                      <Field.ErrorText>{errors.guardId}</Field.ErrorText>
-                    )}
+                    {errors.guardId && <Field.ErrorText>{errors.guardId}</Field.ErrorText>}
                   </Field.Root>
 
-                  {/* Custom Times */}
-                  <HStack gap={4} w="full">
-                    <Field.Root flex="1">
-                      <Field.Label>Start Time</Field.Label>
-                      <Input
-                        type="time"
-                        value={formData.startTime}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            startTime: e.target.value,
-                          }))
-                        }
-                      />
-                    </Field.Root>
-
-                    <Field.Root flex="1">
-                      <Field.Label>End Time</Field.Label>
-                      <Input
-                        type="time"
-                        value={formData.endTime}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            endTime: e.target.value,
-                          }))
-                        }
-                      />
-                    </Field.Root>
-                  </HStack>
+                  {/* REMOVED: Custom Times inputs */}
                 </VStack>
               </Box>
 
@@ -440,7 +375,6 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                   Shift Tasks
                 </Text>
 
-                {/* Existing Tasks */}
                 {formData.tasks.length > 0 && (
                   <VStack gap={2} mb={4} align="stretch">
                     {formData.tasks.map((task, index) => (
@@ -473,7 +407,6 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                   </VStack>
                 )}
 
-                {/* Add New Task */}
                 <VStack gap={2} align="stretch">
                   <Input
                     placeholder="Task title (optional)"
@@ -495,17 +428,32 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                       collection={frequencyOptions}
                       value={[newTask.frequency]}
                       onValueChange={(e) =>
-                        setNewTask((prev) => ({ ...prev, frequency: e.value[0] as TaskFrequency }))
+                        setNewTask((prev) => ({
+                          ...prev,
+                          frequency: e.value[0] as TaskFrequency,
+                        }))
                       }
                       width="140px"
                     >
-                      {/* ... */}
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Frequency" />
+                      </Select.Trigger>
+                      <Select.Content>
+                        {frequencyOptions.items.map((item) => (
+                          <Select.Item key={item.value} item={item}>
+                            {item.label}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
                     </Select.Root>
                     <Select.Root
                       collection={priorityOptions}
                       value={[newTask.priority]}
                       onValueChange={(e) =>
-                        setNewTask((prev) => ({ ...prev, priority: e.value[0] as TaskPriority }))
+                        setNewTask((prev) => ({
+                          ...prev,
+                          priority: e.value[0] as TaskPriority,
+                        }))
                       }
                       width="120px"
                     >
@@ -520,7 +468,7 @@ const AddShiftModal: React.FC<AddShiftModalProps> = ({
                         ))}
                       </Select.Content>
                     </Select.Root>
-                    <IconButton onClick={handleAddTask} colorPalette="blue">
+                    <IconButton onClick={handleAddTask} colorPalette="blue" aria-label="Add task">
                       <LuPlus />
                     </IconButton>
                   </HStack>

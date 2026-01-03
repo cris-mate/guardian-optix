@@ -35,7 +35,7 @@ const MOCK_GUARDS: Guards[] = [
     role: 'Guard',
     guardType: 'Static',
     status: 'on-duty',
-    badgeNumber: 'GO-2024-001',
+    siaLicenceNumber: 'GO-2024-001',
     availability: true,
     assignedSite: 'Westminster Office Complex',
     siaLicence: {
@@ -64,7 +64,7 @@ const MOCK_GUARDS: Guards[] = [
     role: 'Guard',
     guardType: 'Close Protection',
     status: 'on-duty',
-    badgeNumber: 'GO-2024-002',
+    siaLicenceNumber: 'GO-2024-002',
     availability: true,
     assignedSite: 'Canary Wharf Tower',
     siaLicence: {
@@ -93,7 +93,7 @@ const MOCK_GUARDS: Guards[] = [
     role: 'Guard',
     guardType: 'Mobile Patrol',
     status: 'on-duty',
-    badgeNumber: 'GO-2024-003',
+    siaLicenceNumber: 'GO-2024-003',
     availability: false,
     assignedSite: 'Manchester Retail Park',
     siaLicence: {
@@ -122,7 +122,7 @@ const MOCK_GUARDS: Guards[] = [
     role: 'Guard',
     guardType: 'Dog Handler',
     status: 'off-duty',
-    badgeNumber: 'GO-2024-004',
+    siaLicenceNumber: 'GO-2024-004',
     availability: false,
     siaLicence: {
       licenceNumber: '4567890123456789',
@@ -146,7 +146,7 @@ const MOCK_GUARDS: Guards[] = [
     role: 'Guard',
     guardType: 'Static',
     status: 'on-duty',
-    badgeNumber: 'GO-2024-005',
+    siaLicenceNumber: 'GO-2024-005',
     availability: true,
     assignedSite: 'Leeds Business Centre',
     siaLicence: {
@@ -233,7 +233,7 @@ export const useGuardsData = (): UseGuardsDataReturn => {
         (p) =>
           p.fullName.toLowerCase().includes(searchLower) ||
           p.email.toLowerCase().includes(searchLower) ||
-          p.badgeNumber?.toLowerCase().includes(searchLower) ||
+          p.siaLicenceNumber?.toLowerCase().includes(searchLower) ||
           p.postCode.toLowerCase().includes(searchLower)
       );
     }
