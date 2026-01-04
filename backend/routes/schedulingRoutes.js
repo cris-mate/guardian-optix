@@ -71,11 +71,11 @@ router.get('/stats/coverage', getCoverageStats);
 router.get('/stats/unassigned', getUnassignedStats);
 
 /**
- * @route   GET /api/scheduling/stats/activity-hub
+ * @route   GET /api/scheduling/stats/activityHub
  * @desc    Get combined ActivityHub statistics
  * @access  Private
  */
-router.get('/stats/activity-hub', getActivityHubStats);
+router.get('/stats/activityHub', getActivityHubStats);
 
 // ============================================
 // Read Routes (all authenticated users)

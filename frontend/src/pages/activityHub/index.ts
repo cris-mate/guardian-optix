@@ -14,6 +14,7 @@ export { default as ActivityHub } from './ActivityHub';
 
 // Hooks
 export { useActivityHubData } from './hooks/useActivityHubData';
+export type { OperationalStats, ActivityHubData } from './hooks/useActivityHubData';
 
 // Types
 export type {
@@ -29,6 +30,7 @@ export type {
   Update,
   Attachment,
   UpdateStats,
+  ActivityStats,
 
   // Filter types
   ActivityFilters,

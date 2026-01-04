@@ -990,7 +990,7 @@ const getActivitySeverity = <span class="cstat-no" title="statement not covered"
 // ============================================
 &nbsp;
 /**
- * @route   GET /api/activity-hub/activities
+ * @route   GET /api/activityHub/activities
  * @desc    Get system activities with filtering
  * @access  Private
  */
@@ -1172,7 +1172,7 @@ const getActivities = <span class="cstat-no" title="statement not covered" >asyn
 });
 &nbsp;
 /**
- * @route   GET /api/activity-hub/updates
+ * @route   GET /api/activityHub/updates
  * @desc    Get system updates and announcements
  * @access  Private
  */
@@ -1187,7 +1187,7 @@ const getUpdates = <span class="cstat-no" title="statement not covered" >asyncHa
       type: 'announcement',
       title: 'System Maintenance Scheduled',
       content: 'Guardian Optix will undergo scheduled maintenance on Sunday 2am-4am GMT.',
-      priority: 'normal',
+      priority: 'medium',
       author: {
         _id: 'admin-001',
         fullName: 'System Administrator',
@@ -1232,7 +1232,7 @@ const getUpdates = <span class="cstat-no" title="statement not covered" >asyncHa
 });
 &nbsp;
 /**
- * @route   GET /api/activity-hub/stats
+ * @route   GET /api/activityHub/stats
  * @desc    Get activity statistics
  * @access  Private
  */
@@ -1293,7 +1293,7 @@ const getStats = <span class="cstat-no" title="statement not covered" >asyncHand
 });
 &nbsp;
 /**
- * @route   POST /api/activity-hub/updates
+ * @route   POST /api/activityHub/updates
  * @desc    Create a new update/announcement
  * @access  Private (Manager/Admin)
  */
@@ -1335,7 +1335,7 @@ const createUpdate = <span class="cstat-no" title="statement not covered" >async
 });
 &nbsp;
 /**
- * @route   PATCH /api/activity-hub/updates/:id/read
+ * @route   PATCH /api/activityHub/updates/:id/read
  * @desc    Mark an update as read
  * @access  Private
  */
@@ -1350,7 +1350,7 @@ const markUpdateRead = <span class="cstat-no" title="statement not covered" >asy
 });
 &nbsp;
 /**
- * @route   PATCH /api/activity-hub/updates/:id/acknowledge
+ * @route   PATCH /api/activityHub/updates/:id/acknowledge
  * @desc    Acknowledge an update
  * @access  Private
  */

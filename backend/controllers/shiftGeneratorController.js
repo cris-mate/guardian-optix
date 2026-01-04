@@ -141,7 +141,7 @@ const getUnassignedStats = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Get combined ActivityHub statistics
- * @route   GET /api/shifts/stats/activity-hub
+ * @route   GET /api/shifts/stats/activityHub
  * @access  Private
  */
 const getActivityHubStats = asyncHandler(async (req, res) => {

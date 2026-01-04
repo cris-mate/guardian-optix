@@ -1,17 +1,17 @@
 /**
  * Activity Hub Page
  *
- * Central hub for system activity logs (audit trail) and team updates/announcements.
- * Provides real-time visibility into operational events and team communications.
+ * Central hub for system activity monitoring, updates, and team communications.
+ * Provides operational overview, activity tracking, and announcements.
  *
  * Features:
- * - System activity log with filtering (audit trail for compliance)
- * - Updates & announcements with acknowledgement tracking
- * - Summary statistics and metrics
- * - Tab-based navigation between sections
+ * - Operational stats dashboard
+ * - Searchable activity log
+ * - Updates/announcements feed
+ * - Real-time Socket.io updates
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -19,27 +19,33 @@ import {
   Text,
   Icon,
   Button,
+  Input,
   Grid,
-  GridItem,
   Tabs,
   Spinner,
   Badge,
+  Flex,
 } from '@chakra-ui/react';
 import {
-  FiActivity,
-  FiBell,
-  FiRefreshCw,
-  FiClock,
-  FiAlertCircle,
-} from 'react-icons/fi';
+  LuActivity,
+  LuRefreshCw,
+  LuSearch,
+  LuShield,
+  LuTriangleAlert,
+  LuCalendarX,
+  LuBadgeAlert,
+  LuLayoutGrid,
+  LuList,
+  LuBell,
+} from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
 
+// Components
 import ActivityLog from './components/ActivityLog';
 import UpdatesFeed from './components/UpdatesFeed';
-import ActivityStats from './components/ActivityStats';
+
+// Hooks
 import { useActivityHubData } from './hooks/useActivityHubData';
-import { useShiftCoverage } from '../scheduling';
-import { ShiftCoverageCard } from '../scheduling';
 
 // ============================================
 // Tab Configuration
@@ -54,9 +60,9 @@ interface TabConfig {
 }
 
 const tabs: TabConfig[] = [
-  { value: 'all', label: 'Overview', icon: FiActivity },
-  { value: 'activity', label: 'Activity Log', icon: FiClock },
-  { value: 'updates', label: 'Updates', icon: FiBell },
+  { value: 'all', label: 'Overview', icon: LuLayoutGrid },
+  { value: 'activity', label: 'Activity Log', icon: LuList },
+  { value: 'updates', label: 'Updates', icon: LuBell },
 ];
 
 // ============================================
@@ -64,90 +70,199 @@ const tabs: TabConfig[] = [
 // ============================================
 
 interface HeaderProps {
-  lastUpdated: Date | null;
   onRefresh: () => void;
   isLoading: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoading }) => {
-  const formatLastUpdated = (date: Date | null): string => {
-    if (!date) return 'Never';
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
+const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading }) => (
+  <HStack justify="space-between" align="center" flexWrap="wrap" gap={4}>
+    <HStack gap={3}>
+      <Box p={2} borderRadius="lg" bg="blue.50" color="blue.600">
+        <LuActivity size={24} />
+      </Box>
+      <Box>
+        <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+          Activity Hub
+        </Text>
+        <Text fontSize="sm" color="gray.500">
+          System activity logs, updates, and communications
+        </Text>
+      </Box>
+    </HStack>
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  };
+    <HStack gap={2}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onRefresh}
+        disabled={isLoading}
+        color="green.600"
+        borderColor="green.300"
+        _hover={{ bg: 'green.50', borderColor: 'green.400' }}
+      >
+        <Icon
+          as={LuRefreshCw}
+          boxSize={4}
+          mr={2}
+          className={isLoading ? 'spin' : ''}
+        />
+        {isLoading ? 'Refreshing...' : 'Refresh'}
+      </Button>
+    </HStack>
+  </HStack>
+);
+
+// ============================================
+// Quick Stats Component
+// ============================================
+
+interface QuickStatsProps {
+  guardsOnDuty: number;
+  openIncidents: number;
+  coverageGaps: number;
+  complianceAlerts: number;
+  isLoading: boolean;
+}
+
+const QuickStats: React.FC<QuickStatsProps> = ({
+                                                 guardsOnDuty,
+                                                 openIncidents,
+                                                 coverageGaps,
+                                                 complianceAlerts,
+                                                 isLoading,
+                                               }) => {
+  const statCards = [
+    { label: 'Guards On Duty', value: guardsOnDuty, icon: LuShield, color: 'green' },
+    { label: 'Open Incidents', value: openIncidents, icon: LuTriangleAlert, color: openIncidents > 0 ? 'orange' : 'gray' },
+    { label: 'Coverage Gaps', value: coverageGaps, icon: LuCalendarX, color: coverageGaps > 0 ? 'red' : 'gray' },
+    { label: 'Compliance Alerts', value: complianceAlerts, icon: LuBadgeAlert, color: complianceAlerts > 0 ? 'purple' : 'gray' },
+  ];
 
   return (
-    <HStack justify="space-between" mb={6}>
-      <VStack align="flex-start" gap={1}>
-        <HStack gap={3}>
-          <Icon as={FiActivity} boxSize={6} color="blue.500" />
-          <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-            Activity Hub
-          </Text>
-        </HStack>
-        <Text fontSize="sm" color="gray.500">
-          System activity logs, updates, and team communications
-        </Text>
-      </VStack>
-
-      <HStack gap={4}>
-        <HStack gap={2}>
-          <Box w={2} h={2} borderRadius="full" bg="green.400" />
-          <Text fontSize="sm" color="gray.500">
-            Last updated: {formatLastUpdated(lastUpdated)}
-          </Text>
-        </HStack>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onRefresh}
-          disabled={isLoading}
-          color="green.600"
-          borderColor="green.300"
-          _hover={{ bg: 'green.50', borderColor: 'green.400' }}
+    <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={4}>
+      {statCards.map((stat) => (
+        <Box
+          key={stat.label}
+          bg="white"
+          borderRadius="xl"
+          borderWidth="1px"
+          borderColor="gray.200"
+          p={5}
+          transition="all 0.2s"
+          _hover={{ borderColor: `${stat.color}.300`, shadow: 'sm' }}
         >
-          <Icon as={FiRefreshCw} mr={2} className={isLoading ? 'spin' : ''} />
-          Refresh
-        </Button>
-      </HStack>
-    </HStack>
+          {isLoading ? (
+            <VStack align="flex-start" gap={2}>
+              <Box bg="gray.100" h={4} w={24} borderRadius="md" />
+              <Box bg="gray.100" h={8} w={16} borderRadius="md" />
+            </VStack>
+          ) : (
+            <HStack gap={3}>
+              <Box p={2} borderRadius="md" bg={`${stat.color}.50`} color={`${stat.color}.600`}>
+                <Icon as={stat.icon} boxSize={5} />
+              </Box>
+              <Box>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                  {stat.value}
+                </Text>
+                <Text fontSize="sm" color="gray.500">
+                  {stat.label}
+                </Text>
+              </Box>
+            </HStack>
+          )}
+        </Box>
+      ))}
+    </Grid>
   );
 };
 
 // ============================================
-// Error Banner Component
+// Search Bar Component
 // ============================================
 
-interface ErrorBannerProps {
-  message: string;
-  onRetry: () => void;
+interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSearch: () => void;
 }
 
-const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
-  <Box
-    bg="red.50"
-    borderWidth="1px"
-    borderColor="red.200"
-    borderRadius="lg"
-    p={4}
-    mb={4}
-  >
-    <HStack justify="space-between">
-      <HStack gap={2}>
-        <Icon as={FiAlertCircle} color="red.500" />
-        <Text color="red.700">{message}</Text>
+const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, onSearch }) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch();
+  };
+
+  return (
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      bg="white"
+      borderRadius="lg"
+      borderWidth="1px"
+      borderColor="gray.200"
+      p={4}
+    >
+      <HStack gap={3}>
+        <Box position="relative" flex={1} maxW="400px">
+          <Box
+            position="absolute"
+            left={3}
+            top="50%"
+            transform="translateY(-50%)"
+            color="gray.400"
+            zIndex={1}
+          >
+            <LuSearch size={18} />
+          </Box>
+          <Input
+            placeholder="Search activities, updates, or events..."
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            pl={10}
+          />
+        </Box>
+        <Button type="submit" colorPalette="blue">
+          Search
+        </Button>
       </HStack>
-      <Button size="sm" colorPalette="red" variant="outline" onClick={onRetry}>
-        Retry
-      </Button>
-    </HStack>
-  </Box>
-);
+    </Box>
+  );
+};
+
+// ============================================
+// Empty State Component
+// ============================================
+
+interface EmptyStateProps {
+  tabValue: TabValue;
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ tabValue }) => {
+  const getEmptyMessage = () => {
+    switch (tabValue) {
+      case 'activity':
+        return 'No activity recorded yet';
+      case 'updates':
+        return 'No updates or announcements';
+      default:
+        return 'No data available';
+    }
+  };
+
+  return (
+    <Flex justify="center" align="center" py={16}>
+      <VStack gap={4}>
+        <Box color="gray.400">
+          <LuActivity size={48} />
+        </Box>
+        <Text color="gray.500" fontSize="lg">
+          {getEmptyMessage()}
+        </Text>
+      </VStack>
+    </Flex>
+  );
+};
 
 // ============================================
 // Main Component
@@ -155,21 +270,21 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
 
 const ActivityHub: React.FC = () => {
   const { setTitle } = usePageTitle();
+
   const [activeTab, setActiveTab] = useState<TabValue>('all');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const { stats: coverageStats, isLoading: coverageLoading } = useShiftCoverage(7);
+  const [searchInput, setSearchInput] = useState('');
 
   // Set page title
   useEffect(() => {
     setTitle('Activity Hub');
   }, [setTitle]);
 
-  // Fetch data
+  // Fetch data using the hook
   const {
     activities,
     updates,
-    activityStats,
     updateStats,
+    operationalStats,
     isLoading,
     isLoadingMore,
     error,
@@ -184,25 +299,31 @@ const ActivityHub: React.FC = () => {
     refetch,
   } = useActivityHubData();
 
-  // Update timestamp on data load
-  useEffect(() => {
-    if (!isLoading && (activities.length > 0 || updates.length > 0)) {
-      setLastUpdated(new Date());
-    }
-  }, [isLoading, activities.length, updates.length]);
+  // Handlers
+  const handleSearch = useCallback(() => {
+    setActivityFilters({ search: searchInput });
+    setUpdateFilters({ search: searchInput });
+  }, [searchInput, setActivityFilters, setUpdateFilters]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     refetch();
-  };
+  }, [refetch]);
+
+  // Computed values
+  const guardsOnDuty = operationalStats?.guardsOnDuty ?? 0;
+  const openIncidents = operationalStats?.openIncidents ?? 0;
+  const coverageGaps = operationalStats?.unassignedShifts ?? 0;
+  const complianceAlerts = operationalStats?.complianceAlerts ?? 0;
+  const unreadUpdates = updateStats?.unread ?? 0;
 
   // Loading state
-  if (isLoading && activities.length === 0 && updates.length === 0) {
+  if (isLoading && activities.length === 0) {
     return (
-      <VStack gap={3} align="stretch">
-        <Header lastUpdated={null} onRefresh={handleRefresh} isLoading={true} />
+      <VStack gap={4} align="stretch">
+        <Header onRefresh={handleRefresh} isLoading={true} />
         <VStack py={16} gap={4}>
           <Spinner size="xl" color="blue.500" />
-          <Text color="gray.500">Loading activity hub...</Text>
+          <Text color="gray.500">Loading activity data...</Text>
         </VStack>
       </VStack>
     );
@@ -211,24 +332,26 @@ const ActivityHub: React.FC = () => {
   return (
     <VStack gap={4} align="stretch">
       {/* Header */}
-      <Header
-        lastUpdated={lastUpdated}
-        onRefresh={handleRefresh}
-        isLoading={isLoading}
+      <Header onRefresh={handleRefresh} isLoading={isLoading} />
+
+      {/* Quick Stats */}
+      <QuickStats
+        guardsOnDuty={guardsOnDuty}
+        openIncidents={openIncidents}
+        coverageGaps={coverageGaps}
+        complianceAlerts={complianceAlerts}
+        isLoading={isLoading && activities.length === 0}
       />
 
-      {/* Error Banner */}
-      {error && <ErrorBanner message={error} onRetry={handleRefresh} />}
-
-      {/* Stats Overview */}
-      <ActivityStats
-        activityStats={activityStats}
-        updateStats={updateStats}
-        isLoading={isLoading}
+      {/* Search Bar */}
+      <SearchBar
+        value={searchInput}
+        onChange={setSearchInput}
+        onSearch={handleSearch}
       />
 
       {/* Tabs */}
-      <Box mt={2}>
+      <Box>
         <Tabs.Root
           value={activeTab}
           onValueChange={(e) => setActiveTab(e.value as TabValue)}
@@ -255,11 +378,16 @@ const ActivityHub: React.FC = () => {
                 }}
               >
                 <HStack gap={2}>
-                  <Icon as={tab.icon} />
+                  <Icon as={tab.icon} boxSize={4} />
                   <Text>{tab.label}</Text>
-                  {tab.value === 'updates' && updateStats && updateStats.unread > 0 && (
+                  {tab.value === 'updates' && unreadUpdates > 0 && (
                     <Badge colorPalette="red" variant="solid" size="sm">
-                      {updateStats.unread}
+                      {unreadUpdates}
+                    </Badge>
+                  )}
+                  {tab.value === 'activity' && activities.length > 0 && (
+                    <Badge colorPalette="blue" variant="subtle" size="sm">
+                      {activities.length}
                     </Badge>
                   )}
                 </HStack>
@@ -267,63 +395,100 @@ const ActivityHub: React.FC = () => {
             ))}
           </Tabs.List>
 
-          {/* Overview Tab - Shows both */}
+          {/* Overview Tab */}
           <Tabs.Content value="all" pt={4}>
-            <Grid
-              templateColumns={{ base: '1fr', lg: '1fr 1fr' }}
-              gap={6}
+            <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={4}>
+              <Box
+                bg="white"
+                borderRadius="xl"
+                borderWidth="1px"
+                borderColor="gray.200"
+                overflow="hidden"
+              >
+                {activities.length === 0 ? (
+                  <EmptyState tabValue="activity" />
+                ) : (
+                  <ActivityLog
+                    activities={activities.slice(0, 10)}
+                    filters={activityFilters}
+                    onFiltersChange={setActivityFilters}
+                    isLoading={isLoading}
+                    onLoadMore={() => setActiveTab('activity')}
+                    hasMore={activities.length > 10}
+                  />
+                )}
+              </Box>
+              <Box
+                bg="white"
+                borderRadius="xl"
+                borderWidth="1px"
+                borderColor="gray.200"
+                overflow="hidden"
+              >
+                {updates.length === 0 ? (
+                  <EmptyState tabValue="updates" />
+                ) : (
+                  <UpdatesFeed
+                    updates={updates.slice(0, 5)}
+                    filters={updateFilters}
+                    onFiltersChange={setUpdateFilters}
+                    onMarkRead={markUpdateRead}
+                    onAcknowledge={acknowledgeUpdate}
+                    isLoading={isLoading}
+                    canCreate={false}
+                  />
+                )}
+              </Box>
+            </Grid>
+          </Tabs.Content>
+
+          {/* Activity Log Tab */}
+          <Tabs.Content value="activity" pt={4}>
+            <Box
+              bg="white"
+              borderRadius="xl"
+              borderWidth="1px"
+              borderColor="gray.200"
+              overflow="hidden"
             >
-              <GridItem>
+              {activities.length === 0 ? (
+                <EmptyState tabValue="activity" />
+              ) : (
                 <ActivityLog
-                  activities={activities.slice(0, 10)}
+                  activities={activities}
                   filters={activityFilters}
                   onFiltersChange={setActivityFilters}
-                  isLoading={isLoading}
-                  onLoadMore={() => setActiveTab('activity')}
-                  hasMore={activities.length > 10}
+                  isLoading={isLoading || isLoadingMore}
+                  onLoadMore={loadMoreActivities}
+                  hasMore={activityPagination.page < activityPagination.totalPages}
                 />
-              </GridItem>
-              <GridItem>
-                {/* Add ShiftCoverageCard in your Overview tab or sidebar */}
-                <ShiftCoverageCard stats={coverageStats} isLoading={coverageLoading} />
-              </GridItem>
-              <GridItem>
+              )}
+            </Box>
+          </Tabs.Content>
+
+          {/* Updates Tab */}
+          <Tabs.Content value="updates" pt={4}>
+            <Box
+              bg="white"
+              borderRadius="xl"
+              borderWidth="1px"
+              borderColor="gray.200"
+              overflow="hidden"
+            >
+              {updates.length === 0 ? (
+                <EmptyState tabValue="updates" />
+              ) : (
                 <UpdatesFeed
-                  updates={updates.slice(0, 5)}
+                  updates={updates}
                   filters={updateFilters}
                   onFiltersChange={setUpdateFilters}
                   onMarkRead={markUpdateRead}
                   onAcknowledge={acknowledgeUpdate}
                   isLoading={isLoading}
-                  canCreate={false}
+                  canCreate={true}
                 />
-              </GridItem>
-            </Grid>
-          </Tabs.Content>
-
-          {/* Activity Log Tab - Full view */}
-          <Tabs.Content value="activity" pt={4}>
-            <ActivityLog
-              activities={activities}
-              filters={activityFilters}
-              onFiltersChange={setActivityFilters}
-              isLoading={isLoading || isLoadingMore}
-              onLoadMore={loadMoreActivities}
-              hasMore={activityPagination.page < activityPagination.totalPages}
-            />
-          </Tabs.Content>
-
-          {/* Updates Tab - Full view */}
-          <Tabs.Content value="updates" pt={4}>
-            <UpdatesFeed
-              updates={updates}
-              filters={updateFilters}
-              onFiltersChange={setUpdateFilters}
-              onMarkRead={markUpdateRead}
-              onAcknowledge={acknowledgeUpdate}
-              isLoading={isLoading}
-              canCreate={true}
-            />
+              )}
+            </Box>
           </Tabs.Content>
         </Tabs.Root>
       </Box>

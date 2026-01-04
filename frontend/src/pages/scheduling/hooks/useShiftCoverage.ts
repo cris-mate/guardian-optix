@@ -65,7 +65,7 @@ export function useShiftCoverage(days: number = 7): UseShiftCoverageReturn {
     setError(null);
 
     try {
-      const response = await api.get('/scheduling/stats/activity-hub', {
+      const response = await api.get('/scheduling/stats/activityHub', {
         params: { days },
       });
       setStats(response.data.data);
