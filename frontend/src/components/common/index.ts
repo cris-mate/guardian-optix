@@ -2,9 +2,6 @@
  * Common Components Export
  *
  * Enables clean imports throughout the application.
- *
- * @example
- * import { QuickStatsCard } from '@/components/common';
  */
 
 export { default as QuickStatsCard } from './QuickStatsCard';

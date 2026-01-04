@@ -305,7 +305,7 @@ const ActivityHub: React.FC = () => {
   }, [searchInput, setActivityFilters, setUpdateFilters]);
 
   const handleRefresh = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   // Computed values

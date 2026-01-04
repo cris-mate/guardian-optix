@@ -242,7 +242,7 @@ const Performance: React.FC = () => {
   }, [isLoading, overview]);
 
   const handleRefresh = () => {
-    refetch();
+    void refetch();
   };
 
   const handleTimeRangeChange = (range: TimeRange) => {

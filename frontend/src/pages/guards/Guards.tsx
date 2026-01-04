@@ -7,8 +7,9 @@
  * Features:
  * - Guard portfolio overview with key metrics
  * - Searchable and filterable guard list
- * - Status-based tabs (All + each status)
+ * - Status-based tabs
  * - Guard details drawer with full profile
+ * - URL-synced tab state for deep-linking
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -50,6 +51,7 @@ import AddGuardsModal from './components/AddGuardsModal';
 
 // Hooks
 import { useGuardsData } from './hooks/useGuardsData';
+import { useUrlParam } from '../../hooks/useUrlParam';
 
 // Types
 import type { Guards as GuardsType, GuardsStatus } from '../../types/guards.types';
@@ -77,6 +79,9 @@ const tabs: TabConfig[] = [
   { value: 'absent', label: 'Absent', icon: LuUserX, color: 'red' },
   { value: 'expiring', label: 'Expiring Licences', icon: LuBadgeAlert, color: 'orange' },
 ];
+
+// Valid tab values for URL validation
+const validTabValues: TabValue[] = tabs.map((t) => t.value);
 
 // ============================================
 // Header Component
@@ -372,7 +377,7 @@ const Guards: React.FC = () => {
   const { user } = useAuth();
   const isManager = user?.role === 'Manager' || user?.role === 'Admin';
 
-  const [activeTab, setActiveTab] = useState<TabValue>('all');
+  const [activeTab, setActiveTab] = useUrlParam<TabValue>('status', 'all', validTabValues);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');

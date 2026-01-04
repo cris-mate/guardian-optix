@@ -134,7 +134,7 @@ const AddShiftForSiteModal: React.FC<AddShiftForSiteModalProps> = ({
       }
     };
 
-    fetchGuards();
+    void fetchGuards();
   }, [isOpen]);
 
   // Create guard options for dropdown

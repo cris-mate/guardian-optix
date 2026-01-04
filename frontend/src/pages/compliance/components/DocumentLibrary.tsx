@@ -40,7 +40,7 @@ const DocumentLibrary: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchDocuments();
+    void fetchDocuments();
   }, []);
 
   const fetchDocuments = async () => {

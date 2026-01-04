@@ -34,7 +34,7 @@ const CertificationTracker: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchCertifications();
+    void fetchCertifications();
   }, []);
 
   const filteredCerts = filter === 'all'

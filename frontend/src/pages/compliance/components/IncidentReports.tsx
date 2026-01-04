@@ -112,7 +112,7 @@ const IncidentReports: React.FC = () => {
   // ============================================
 
   useEffect(() => {
-    fetchIncidents();
+    void fetchIncidents();
   }, []);
 
   // Auto-apply predicted severity when prediction changes
@@ -177,7 +177,7 @@ const IncidentReports: React.FC = () => {
 
     // Trigger severity prediction when incident type changes
     if (name === 'incidentType' && value) {
-      fetchPrediction(value as IncidentTypeValue);
+      void fetchPrediction(value as IncidentTypeValue);
     }
   };
 

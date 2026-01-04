@@ -49,6 +49,7 @@ import SitesOverview from './components/SitesOverview';
 
 // Hooks
 import { useClientsData } from './hooks/useClientsData';
+import { useUrlParam } from '../../hooks';
 
 // Types
 import type { Client } from '../../types/client.types';
@@ -411,7 +412,7 @@ const Clients: React.FC = () => {
   const { user } = useAuth();
   const isManager = user?.role === 'Manager' || user?.role === 'Admin';
 
-  const [activeTab, setActiveTab] = useState<TabValue>('all');
+  const [activeTab, setActiveTab] = useUrlParam<TabValue>('tab', 'all', ['all', 'active', 'inactive', 'sites']);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
@@ -482,7 +483,7 @@ const Clients: React.FC = () => {
   }, [filters, setFilters]);
 
   const handleRefresh = () => {
-    refreshClients();
+    void refreshClients();
   };
 
   // Site creation handler

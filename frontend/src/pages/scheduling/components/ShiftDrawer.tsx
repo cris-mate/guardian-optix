@@ -29,7 +29,7 @@ import {
   LuStickyNote,
   LuPencil,
 } from 'react-icons/lu';
-import { Shift, ShiftDrawerProps } from '../../../types/scheduling.types';
+import { ShiftDrawerProps } from '../../../types/scheduling.types';
 
 // Status color mapping
 const statusColors: Record<string, string> = {

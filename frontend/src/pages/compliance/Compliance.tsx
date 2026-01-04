@@ -13,7 +13,7 @@
  * - Audit trail for managers
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -39,7 +39,6 @@ import {
   LuFileText,
   LuHistory,
   LuCircleCheck,
-  LuCircleAlert,
   LuClock,
   LuActivity,
   LuBrain,
@@ -47,6 +46,7 @@ import {
 } from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useUrlParam, useUrlAction } from '../../hooks';
 import { MOCK_CONFIG } from '../../config/api.config';
 
 // Components
@@ -132,35 +132,6 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading }) => (
       {isLoading ? 'Refreshing...' : 'Refresh'}
     </Button>
   </HStack>
-);
-
-// ============================================
-// Error Banner Component
-// ============================================
-
-interface ErrorBannerProps {
-  message: string;
-  onRetry: () => void;
-}
-
-const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
-  <Box
-    bg="red.50"
-    borderWidth="1px"
-    borderColor="red.200"
-    borderRadius="lg"
-    p={4}
-  >
-    <HStack justify="space-between">
-      <HStack gap={3}>
-        <Icon as={LuCircleAlert} color="red.500" boxSize={5} />
-        <Text color="red.700" fontSize="sm">{message}</Text>
-      </HStack>
-      <Button size="sm" colorPalette="red" variant="outline" onClick={onRetry}>
-        Retry
-      </Button>
-    </HStack>
-  </Box>
 );
 
 // ============================================
@@ -393,7 +364,7 @@ const PatternInsightsPanel: React.FC = () => {
   const { insights, isLoading, error, fetchInsights } = usePatternInsights();
 
   useEffect(() => {
-    fetchInsights();
+    void fetchInsights();
   }, [fetchInsights]);
 
   if (isLoading) {
@@ -541,7 +512,16 @@ const Compliance: React.FC = () => {
   const { user } = useAuth();
   const isManager = user?.role === 'Manager' || user?.role === 'Admin';
 
-  const [activeTab, setActiveTab] = useState<TabValue>('overview');
+  const [activeTab, setActiveTab] = useUrlParam('tab', 'overview', ['overview', 'incidents', 'certifications', 'documents', 'audit']);
+  const [action, clearAction] = useUrlAction('action', ['report', 'export']);
+
+  useEffect(() => {
+    if (action === 'report') {
+      setActiveTab('incidents');
+      // TODO: Open report modal when IncidentReports component supports it
+      clearAction();
+    }
+  }, [action, clearAction, setActiveTab]);
 
   // Set page title
   useEffect(() => {
@@ -559,7 +539,6 @@ const Compliance: React.FC = () => {
     certifications,
     incidents,
     isLoading,
-    error,
     refetch,
     dismissAlert,
   } = complianceData;
@@ -597,9 +576,6 @@ const Compliance: React.FC = () => {
     <VStack gap={4} align="stretch">
       {/* Header */}
       <Header onRefresh={handleRefresh} isLoading={isLoading} />
-
-      {/* Error Banner */}
-      {error && <ErrorBanner message={error} onRetry={handleRefresh} />}
 
       {/* Quick Stats */}
       <QuickStats metrics={metrics} isLoading={isLoading && !metrics.validCertifications} />

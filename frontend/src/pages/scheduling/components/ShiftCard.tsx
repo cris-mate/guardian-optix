@@ -16,7 +16,7 @@ import {
   Avatar,
 } from '@chakra-ui/react';
 import { LuClock, LuMapPin, LuClipboardList } from 'react-icons/lu';
-import { Shift, ShiftCardProps } from '../../../types/scheduling.types';
+import { ShiftCardProps } from '../../../types/scheduling.types';
 
 // Status color mapping
 const statusColors: Record<string, string> = {

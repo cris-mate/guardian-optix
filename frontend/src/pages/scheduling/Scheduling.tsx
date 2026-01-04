@@ -38,6 +38,7 @@ import {
 } from 'react-icons/lu';
 import { usePageTitle } from '../../context/PageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useUrlAction } from '../../hooks';
 
 // Components
 import SchedulingToolbar from './components/SchedulingToolbar';
@@ -240,6 +241,14 @@ const Scheduling: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabValue>('calendar');
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [action, clearAction] = useUrlAction('action', ['add', 'edit']);
+
+  useEffect(() => {
+    if (action === 'add') {
+      setIsAddModalOpen(true);
+      clearAction();
+    }
+  }, [action, clearAction]);
 
   // Data hook
   const {
@@ -258,7 +267,6 @@ const Scheduling: React.FC = () => {
     resetFilters,
     selectShift,
     createShift,
-    deleteShift,
     toggleTaskComplete,
     refetch,
     navigateDate,
@@ -283,17 +291,8 @@ const Scheduling: React.FC = () => {
     }
     : undefined;
 
-  const handleDelete = isManager
-    ? async () => {
-      if (selectedShiftId) {
-        await deleteShift(selectedShiftId);
-        handleCloseDrawer();
-      }
-    }
-    : undefined;
-
   const handleTaskComplete = (shiftId: string, taskId: string, completed: boolean) => {
-    toggleTaskComplete(shiftId, taskId, completed);
+    void toggleTaskComplete(shiftId, taskId, completed);
   };
 
   return (

@@ -67,7 +67,6 @@ const getSiteTypeColor = (type: string): string => {
 
 const SitesTable: React.FC<SitesTableProps> = ({
                                                  sites,
-                                                 isLoading,
                                                  onSiteSelect,
                                                  onSiteEdit,
                                                  selectedSiteId,

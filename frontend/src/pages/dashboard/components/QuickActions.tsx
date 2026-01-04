@@ -42,9 +42,7 @@ interface QuickActionsProps {
 // Main Component
 // ============================================
 
-const QuickActions: React.FC<QuickActionsProps> = ({
-                                                     userPermissions = [],
-                                                   }) => {
+const QuickActions: React.FC<QuickActionsProps> = ({}) => {
   const navigate = useNavigate();
 
   // Define available quick actions

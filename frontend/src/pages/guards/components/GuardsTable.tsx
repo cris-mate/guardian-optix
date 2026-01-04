@@ -12,17 +12,10 @@ import {
   Badge,
   HStack,
   Text,
-  IconButton,
   Flex,
-  Menu,
   Spinner,
 } from '@chakra-ui/react';
 import {
-  LuMoveVertical,
-  LuEye,
-  LuPencil,
-  LuPhone,
-  LuMail,
   LuChevronUp,
   LuChevronDown,
   LuTriangleAlert,
@@ -139,7 +132,6 @@ const GuardsTable: React.FC<GuardsTableProps> = ({
                                                          filters,
                                                          onFiltersChange,
                                                          onSelect,
-                                                         onEdit,
                                                        }) => {
   const handleSort = (sortBy: GuardsFilters['sortBy']) => {
     if (filters.sortBy === sortBy) {

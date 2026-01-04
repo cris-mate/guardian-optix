@@ -81,7 +81,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading, onNavigate 
       icon: LuUsers,
       color: 'blue' as const,
       subtext: `of ${metrics?.totalScheduled ?? 0} scheduled`,
-      path: '/guards',
+      path: '/guards?status=on-duty',
     },
     {
       label: 'Shift Coverage',

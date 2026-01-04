@@ -322,7 +322,7 @@ const RecommendedGuardsPanel: React.FC<RecommendedGuardsPanelProps> = ({
       }
     };
 
-    fetchRecommendations();
+    void fetchRecommendations();
   }, [siteId, date]);
 
   // Don't render if no site selected

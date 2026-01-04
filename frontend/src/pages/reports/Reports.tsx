@@ -53,7 +53,7 @@ import ScheduledReports from './components/ScheduledReports';
 import { useReportsData } from './hooks/useReportsData';
 
 // Types
-import type { ReportCategory, ExportFormat } from '../../types/reports.types';
+import type { ReportCategory } from '../../types/reports.types';
 
 // ============================================
 // Tab Configuration
@@ -253,7 +253,6 @@ const Reports: React.FC = () => {
     scheduledReports,
     quickStats,
     isLoading,
-    isGenerating,
     generatingTemplateId,
     error,
     activeCategory,
@@ -274,7 +273,7 @@ const Reports: React.FC = () => {
   }, [isLoading, quickStats]);
 
   const handleRefresh = () => {
-    refetch();
+    void refetch();
   };
 
   const handleGenerateReport = async (templateId: string) => {

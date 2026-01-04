@@ -16,9 +16,8 @@ import {
   Icon,
   Spinner,
   Flex,
-  Badge,
 } from '@chakra-ui/react';
-import { LuSearch, LuMapPin, LuRefreshCw, LuFilter } from 'react-icons/lu';
+import { LuSearch, LuMapPin, LuRefreshCw } from 'react-icons/lu';
 import { useSitesData, type SiteWithDetails } from '../hooks/useSitesData';
 import SitesTable from './SitesTable';
 import SiteDetailsDrawer from './SiteDetailsDrawer';
@@ -152,7 +151,7 @@ const SitesOverview: React.FC = () => {
       type: 'success',
       duration: 4000,
     });
-    refreshSites();
+    void refreshSites();
     setIsAddShiftModalOpen(false);
     setSelectedSiteForShift(null);
   }, [selectedSiteForShift, refreshSites]);
