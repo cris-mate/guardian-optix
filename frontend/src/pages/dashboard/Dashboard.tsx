@@ -1,19 +1,14 @@
 /**
  * Dashboard Page
  *
- * Central operations hub for Guardian Optix.
- * Provides real-time operational overview with live updates via Socket.io.
+ * Main operations dashboard providing real-time overview of security operations.
+ * Features 4 core KPIs, tabbed content sections, and auto-refresh polling.
  *
- * Features:
- * - Key operational metrics (4 core KPIs)
- * - Real-time activity feed with socket updates
- * - Guard status monitoring
- * - Shift overview and alerts
- * - Quick actions for common tasks
+ * Design follows consistent patterns from Guards, Clients, and other pages.
+ * Fetches real data from /api/dashboard endpoints.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -21,157 +16,119 @@ import {
   Text,
   Icon,
   Button,
-  Grid,
-  GridItem,
-  Tabs,
   Spinner,
+  Grid,
   Badge,
+  Tabs,
 } from '@chakra-ui/react';
 import {
-  LuLayoutDashboard,
-  LuRefreshCw,
-  LuActivity,
   LuUsers,
-  LuCalendarClock,
+  LuCalendarCheck,
   LuTriangleAlert,
-  LuWifi,
-  LuWifiOff,
+  LuShieldCheck,
+  LuLayoutDashboard,
+  LuActivity,
+  LuClipboardList,
+  LuCircleAlert,
 } from 'react-icons/lu';
-import { toaster } from '../../components/ui/toaster';
+import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../../context/PageContext';
+import { useDashboardData } from './hooks/useDashboardData';
+import { QuickStatsCard, PageHeader } from '../../components/common';
 
-// Components
-import QuickActions from './components/QuickActions';
-import AlertsPanel from './components/AlertsPanel';
+// Sub-components (existing files)
 import LiveActivityFeed from './components/LiveActivityFeed';
 import ShiftOverview from './components/ShiftOverview';
 import GuardStatusTable from './components/GuardStatusTable';
 import UpcomingTasks from './components/UpcomingTasks';
+import AlertsPanel from './components/AlertsPanel';
+import QuickActions from './components/QuickActions';
 
-// Hooks
-import { useDashboardData, useMockDashboardData } from './hooks/useDashboardData';
-import { useDashboardSocket } from '../../hooks/useSocket';
+import type {
+  GuardStatusEntry,
+  Task,
+  OperationalMetrics,
+} from '../../types/dashboard.types';
 
+// ============================================
 // Types
-import type { GuardStatusEntry, Task, ActivityEvent } from '../../types/dashboard.types';
-
-// ============================================
-// Configuration
 // ============================================
 
-const USE_MOCK_DATA = true;
-
-// ============================================
-// Tab Configuration
-// ============================================
-
-type TabValue = 'overview' | 'activity' | 'guards' | 'schedule';
+type TabValue = 'overview' | 'activity' | 'tasks' | 'alerts';
 
 interface TabConfig {
   value: TabValue;
   label: string;
   icon: React.ElementType;
+  badge?: number;
 }
 
-const tabs: TabConfig[] = [
-  { value: 'overview', label: 'Overview', icon: LuLayoutDashboard },
-  { value: 'activity', label: 'Activity', icon: LuActivity },
-  { value: 'guards', label: 'Guards', icon: LuUsers },
-  { value: 'schedule', label: 'Schedule', icon: LuCalendarClock },
-];
-
 // ============================================
-// Header Component
+// Quick Stats Grid Component
 // ============================================
 
-interface HeaderProps {
-  lastUpdated: Date | null;
-  onRefresh: () => void;
+interface QuickStatsProps {
+  metrics: OperationalMetrics | null;
   isLoading: boolean;
-  isConnected: boolean;
+  onNavigate: (path: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoading, isConnected }) => {
-  const formatTime = (date: Date | null) => {
-    if (!date) return '';
-    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  };
+const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading, onNavigate }) => {
+  const stats = [
+    {
+      label: 'Guards On Duty',
+      value: metrics?.activeGuards ?? 0,
+      icon: LuUsers,
+      color: 'blue' as const,
+      subtext: `of ${metrics?.totalScheduled ?? 0} scheduled`,
+      path: '/guards',
+    },
+    {
+      label: 'Shift Coverage',
+      value: metrics?.shiftsCovered ?? 0,
+      icon: LuCalendarCheck,
+      color: 'green' as const,
+      subtext: `of ${metrics?.shiftsToday ?? 0} shifts today`,
+      path: '/scheduling',
+    },
+    {
+      label: 'Open Incidents',
+      value: metrics?.openIncidents ?? 0,
+      icon: LuTriangleAlert,
+      color: 'orange' as const,
+      subtext: 'requiring attention',
+      path: '/compliance?tab=incidents',
+    },
+    {
+      label: 'Compliance Rate',
+      value: `${metrics?.complianceScore ?? 0}%`,
+      icon: LuShieldCheck,
+      color: 'teal' as const,
+      subtext: 'SIA certification health',
+      path: '/compliance',
+    },
+  ];
 
   return (
-    <HStack justify="space-between" align="center" flexWrap="wrap" gap={4}>
-      <HStack gap={3}>
-        <Box p={2} borderRadius="lg" bg="blue.50" color="blue.600">
-          <LuLayoutDashboard size={24} />
-        </Box>
-        <Box>
-          <HStack gap={2}>
-            <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-              Operations Dashboard
-            </Text>
-            <ConnectionBadge isConnected={isConnected} />
-          </HStack>
-          <HStack gap={2} fontSize="sm" color="gray.500">
-            <Text>
-              {new Date().toLocaleDateString('en-GB', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </Text>
-            {lastUpdated && (
-              <>
-                <Text>•</Text>
-                <Text>Updated {formatTime(lastUpdated)}</Text>
-              </>
-            )}
-          </HStack>
-        </Box>
-      </HStack>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onRefresh}
-        disabled={isLoading}
-        color="green.600"
-        borderColor="green.300"
-        _hover={{ bg: 'green.50', borderColor: 'green.400' }}
-      >
-        <Icon
-          as={LuRefreshCw}
-          boxSize={4}
-          mr={2}
-          className={isLoading ? 'spin' : ''}
+    <Grid
+      templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }}
+      gap={4}
+    >
+      {stats.map((stat) => (
+        <QuickStatsCard
+          key={stat.label}
+          label={stat.label}
+          value={stat.value}
+          icon={stat.icon}
+          color={stat.color}
+          subtext={stat.subtext}
+          isLoading={isLoading}
+          onClick={() => onNavigate(stat.path)}
         />
-        {isLoading ? 'Refreshing...' : 'Refresh'}
-      </Button>
-    </HStack>
+      ))}
+    </Grid>
   );
 };
-
-// ============================================
-// Connection Badge Component
-// ============================================
-
-interface ConnectionBadgeProps {
-  isConnected: boolean;
-}
-
-const ConnectionBadge: React.FC<ConnectionBadgeProps> = ({ isConnected }) => (
-  <Badge
-    colorPalette={isConnected ? 'green' : 'red'}
-    variant="subtle"
-    px={2}
-    py={1}
-    borderRadius="full"
-  >
-    <HStack gap={1}>
-      <Icon as={isConnected ? LuWifi : LuWifiOff} boxSize={3} />
-      <Text fontSize="xs">{isConnected ? 'Live' : 'Offline'}</Text>
-    </HStack>
-  </Badge>
-);
 
 // ============================================
 // Error Banner Component
@@ -191,11 +148,13 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
     p={4}
   >
     <HStack justify="space-between">
-      <HStack gap={3}>
-        <Icon as={LuTriangleAlert} color="red.500" boxSize={5} />
-        <Text color="red.700" fontSize="sm">{message}</Text>
+      <HStack gap={2}>
+        <Icon as={LuCircleAlert} color="red.500" />
+        <Text color="red.700" fontSize="sm">
+          {message}
+        </Text>
       </HStack>
-      <Button size="sm" colorPalette="red" variant="outline" onClick={onRetry}>
+      <Button size="sm" colorPalette="red" variant="ghost" onClick={onRetry}>
         Retry
       </Button>
     </HStack>
@@ -203,97 +162,12 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
 );
 
 // ============================================
-// Quick Stats Component (4 Core KPIs)
-// ============================================
-
-interface QuickStatsProps {
-  metrics: {
-    activeGuards: number;
-    totalScheduled: number;
-    shiftsToday: number;
-    shiftsCovered: number;
-    openIncidents: number;
-    pendingTasks: number;
-  } | null;
-  isLoading: boolean;
-}
-
-const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading }) => {
-  const stats = [
-    {
-      label: 'Active Guards',
-      value: metrics?.activeGuards ?? 0,
-      subtext: `of ${metrics?.totalScheduled ?? 0} scheduled`,
-      color: 'blue',
-      status: metrics && metrics.activeGuards < metrics.totalScheduled ? 'warning' : 'success',
-    },
-    {
-      label: 'Shifts Today',
-      value: metrics?.shiftsCovered ?? 0,
-      subtext: `of ${metrics?.shiftsToday ?? 0} total`,
-      color: 'green',
-      status: metrics && metrics.shiftsCovered < metrics.shiftsToday ? 'warning' : 'success',
-    },
-    {
-      label: 'Open Incidents',
-      value: metrics?.openIncidents ?? 0,
-      subtext: 'requiring attention',
-      color: 'orange',
-      status: metrics && metrics.openIncidents > 0 ? 'warning' : 'success',
-    },
-    {
-      label: 'Pending Tasks',
-      value: metrics?.pendingTasks ?? 0,
-      subtext: 'to complete today',
-      color: 'purple',
-      status: metrics && metrics.pendingTasks > 5 ? 'warning' : 'success',
-    },
-  ];
-
-  return (
-    <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={4}>
-      {stats.map((stat) => (
-        <Box
-          key={stat.label}
-          bg="white"
-          borderRadius="xl"
-          borderWidth="1px"
-          borderColor="gray.200"
-          p={5}
-          transition="all 0.2s"
-          _hover={{ borderColor: `${stat.color}.300`, shadow: 'sm' }}
-        >
-          {isLoading ? (
-            <VStack align="flex-start" gap={2}>
-              <Box bg="gray.100" h={4} w={24} borderRadius="md" />
-              <Box bg="gray.100" h={8} w={16} borderRadius="md" />
-              <Box bg="gray.100" h={3} w={20} borderRadius="md" />
-            </VStack>
-          ) : (
-            <VStack align="flex-start" gap={1}>
-              <Text fontSize="sm" color="gray.500" fontWeight="medium">
-                {stat.label}
-              </Text>
-              <Text fontSize="3xl" fontWeight="bold" color={`${stat.color}.600`}>
-                {stat.value}
-              </Text>
-              <Text fontSize="xs" color="gray.400">
-                {stat.subtext}
-              </Text>
-            </VStack>
-          )}
-        </Box>
-      ))}
-    </Grid>
-  );
-};
-
-// ============================================
 // Main Dashboard Component
 // ============================================
 
 const Dashboard: React.FC = () => {
   const { setTitle } = usePageTitle();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('overview');
 
   // Set page title
@@ -301,11 +175,7 @@ const Dashboard: React.FC = () => {
     setTitle('Dashboard');
   }, [setTitle]);
 
-  // Use either real or mock data hook
-  const dashboardData = USE_MOCK_DATA
-    ? useMockDashboardData()
-    : useDashboardData();
-
+  // Data hook - fetches real data with auto-refresh polling
   const {
     metrics,
     alerts,
@@ -315,182 +185,59 @@ const Dashboard: React.FC = () => {
     pendingTasks,
     isLoading,
     error,
-    lastUpdated,
     refresh,
     dismissAlert,
     markAlertRead,
     completeTask,
-  } = dashboardData;
+  } = useDashboardData({ autoRefresh: true });
 
-  // Real-time activity state
-  const [realtimeActivity, setRealtimeActivity] = useState<ActivityEvent[]>([]);
-
-  // ============================================
-  // Socket Event Handlers
-  // ============================================
-
-  const handleClockAction = useCallback((data: {
-    guardId: string;
-    guardName: string;
-    action: string;
-    siteName: string;
-    timestamp: string;
-  }) => {
-    const activityItem: ActivityEvent = {
-      _id: `realtime-${Date.now()}`,
-      type: data.action as ActivityEvent['type'],
-      guardId: data.guardId,
-      guardName: data.guardName,
-      siteName: data.siteName,
-      timestamp: data.timestamp,
-      description: `${data.guardName} ${
-        data.action === 'clock-in' ? 'clocked in at' : 'clocked out from'
-      } ${data.siteName}`,
-    };
-
-    setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));
-
-    toaster.create({
-      title: data.action === 'clock-in' ? 'Guard Clocked In' : 'Guard Clocked Out',
-      description: `${data.guardName} - ${data.siteName}`,
-      type: 'info',
-      duration: 4000,
-    });
-  }, []);
-
-  const handleGeofenceViolation = useCallback((data: {
-    severity: string;
-    guardName: string;
-    siteName: string;
-    timestamp: string;
-  }) => {
-    const activityItem: ActivityEvent = {
-      _id: `geofence-${Date.now()}`,
-      type: 'geofence-violation',
-      guardName: data.guardName,
-      siteName: data.siteName,
-      timestamp: data.timestamp,
-      severity: 'critical',
-      description: `${data.guardName} is outside ${data.siteName} geofence`,
-    };
-
-    setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));
-
-    toaster.create({
-      title: '⚠️ Geofence Violation',
-      description: `${data.guardName} is outside ${data.siteName} boundary`,
-      type: 'error',
-      duration: 8000,
-    });
-  }, []);
-
-  const handleIncidentReported = useCallback((data: {
-    incidentId: string;
-    type: string;
-    severity: string;
-    timestamp: string;
-  }) => {
-    const severityToast: Record<string, 'error' | 'warning' | 'info'> = {
-      critical: 'error',
-      high: 'error',
-      medium: 'warning',
-      low: 'info',
-    };
-
-    toaster.create({
-      title: ` New ${data.severity.toUpperCase()} Incident`,
-      description: `${data.type} reported`,
-      type: severityToast[data.severity] || 'info',
-      duration: 10000,
-    });
-
-    refresh();
-  }, [refresh]);
-
-  const handleShiftUpdate = useCallback((data: {
-    shiftId: string;
-    status: string;
-    guardName: string;
-    timestamp: string;
-  }) => {
-    const activityItem: ActivityEvent = {
-      _id: `shift-${Date.now()}`,
-      type: 'clock-in',
-      guardName: data.guardName,
-      siteName: null,
-      timestamp: data.timestamp,
-      description: `${data.guardName}'s shift status: ${data.status}`,
-    };
-
-    setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));
-  }, []);
-
-  const handleActivityNew = useCallback((data: unknown) => {
-    const activityData = data as Partial<ActivityEvent>;
-    const activityItem: ActivityEvent = {
-      _id: activityData._id || `activity-${Date.now()}`,
-      type: activityData.type || 'clock-in',
-      guardId: activityData.guardId,
-      guardName: activityData.guardName || 'Unknown',
-      siteName: activityData.siteName || null,
-      timestamp: activityData.timestamp || new Date().toISOString(),
-      description: activityData.description,
-      severity: activityData.severity,
-    };
-
-    setRealtimeActivity(prev => [activityItem, ...prev].slice(0, 20));
-  }, []);
-
-  const handleMetricsUpdate = useCallback(() => {
-    refresh();
-  }, [refresh]);
-
-  // Socket connection
-  const { isConnected } = useDashboardSocket({
-    onClockAction: handleClockAction,
-    onAlertGeofence: handleGeofenceViolation,
-    onIncidentReported: handleIncidentReported,
-    onShiftUpdate: handleShiftUpdate,
-    onActivityNew: handleActivityNew,
-    onMetricsUpdate: handleMetricsUpdate,
-  });
-
-  // Merged activity feed
-  const combinedActivityFeed = React.useMemo(() => {
-    const merged = [...realtimeActivity, ...activityFeed];
-    const uniqueMap = new Map<string, ActivityEvent>();
-    merged.forEach(item => {
-      if (!uniqueMap.has(item._id)) {
-        uniqueMap.set(item._id, item);
-      }
-    });
-    return Array.from(uniqueMap.values())
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 20);
-  }, [realtimeActivity, activityFeed]);
+  // Tab configuration with badges
+  const tabs: TabConfig[] = [
+    { value: 'overview', label: 'Overview', icon: LuLayoutDashboard },
+    {
+      value: 'activity',
+      label: 'Activity',
+      icon: LuActivity,
+      badge: activityFeed.length,
+    },
+    {
+      value: 'tasks',
+      label: 'Tasks',
+      icon: LuClipboardList,
+      badge: pendingTasks.length,
+    },
+    {
+      value: 'alerts',
+      label: 'Alerts',
+      icon: LuCircleAlert,
+      badge: alerts.filter((a) => !a.isRead).length,
+    },
+  ];
 
   // Handlers
-  const handleGuardClick = (guard: GuardStatusEntry) => {
-    console.log('Guard clicked:', guard._id);
-  };
+  const handleGuardClick = useCallback((guard: GuardStatusEntry) => {
+    navigate(`/guards/${guard._id}`);
+  }, [navigate]);
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = useCallback((task: Task) => {
     console.log('Task clicked:', task._id);
-  };
+  }, []);
 
-  const handleRefresh = () => {
-    refresh();
-  };
+  const handleNavigate = useCallback((path: string) => {
+    navigate(path);
+  }, [navigate]);
 
   // Loading state
   if (isLoading && !metrics) {
     return (
       <VStack gap={4} align="stretch">
-        <Header
-          lastUpdated={null}
-          onRefresh={handleRefresh}
+        <PageHeader
+          title="Dashboard"
+          description="Real-time security operations overview"
+          icon={LuLayoutDashboard}
+          iconColor="blue"
+          onRefresh={refresh}
           isLoading={true}
-          isConnected={isConnected}
         />
         <VStack py={16} gap={4}>
           <Spinner size="xl" color="blue.500" />
@@ -502,24 +249,30 @@ const Dashboard: React.FC = () => {
 
   return (
     <VStack gap={4} align="stretch">
-      {/* Header */}
-      <Header
-        lastUpdated={lastUpdated}
-        onRefresh={handleRefresh}
+      {/* Page Header with Refresh */}
+      <PageHeader
+        title="Dashboard"
+        description="Real-time security operations overview"
+        icon={LuLayoutDashboard}
+        iconColor="blue"
+        onRefresh={refresh}
         isLoading={isLoading}
-        isConnected={isConnected}
       />
 
       {/* Error Banner */}
-      {error && <ErrorBanner message={error} onRetry={handleRefresh} />}
+      {error && <ErrorBanner message={error} onRetry={refresh} />}
 
-      {/* Quick Stats (4 Core KPIs) */}
-      <QuickStats metrics={metrics} isLoading={isLoading && !metrics} />
+      {/* Quick Stats - 4 Core KPIs */}
+      <QuickStats
+        metrics={metrics}
+        isLoading={isLoading && !metrics}
+        onNavigate={handleNavigate}
+      />
 
       {/* Quick Actions */}
-      <QuickActions onRefresh={refresh} isRefreshing={isLoading} />
+      <QuickActions />
 
-      {/* Tabs */}
+      {/* Tabbed Content */}
       <Box mt={2}>
         <Tabs.Root
           value={activeTab}
@@ -549,9 +302,15 @@ const Dashboard: React.FC = () => {
                 <HStack gap={2}>
                   <Icon as={tab.icon} boxSize={4} />
                   <Text>{tab.label}</Text>
-                  {tab.value === 'activity' && combinedActivityFeed.length > 0 && (
-                    <Badge colorPalette="blue" variant="solid" size="sm">
-                      {combinedActivityFeed.length}
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <Badge
+                      colorPalette={tab.value === 'alerts' ? 'red' : 'blue'}
+                      variant="solid"
+                      borderRadius="full"
+                      fontSize="xs"
+                      px={2}
+                    >
+                      {tab.badge}
                     </Badge>
                   )}
                 </HStack>
@@ -561,121 +320,62 @@ const Dashboard: React.FC = () => {
 
           {/* Overview Tab */}
           <Tabs.Content value="overview" pt={4}>
-            <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={6}>
-              <GridItem>
-                <VStack align="stretch" gap={4}>
-                  {/* Alerts Panel */}
-                  {alerts.filter(a => !a.isDismissed).length > 0 && (
-                    <AlertsPanel
-                      alerts={alerts}
-                      onDismiss={dismissAlert}
-                      onMarkRead={markAlertRead}
-                      maxVisible={4}
-                    />
-                  )}
+            <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={4}>
+              {/* Left Column */}
+              <VStack gap={4} align="stretch">
+                <ShiftOverview
+                  overview={scheduleOverview}
+                  isLoading={isLoading}
+                />
+                <GuardStatusTable
+                  guards={guardStatuses}
+                  onGuardClick={handleGuardClick}
+                  maxVisible={5}
+                />
+              </VStack>
 
-                  {/* Shift Overview */}
-                  <ShiftOverview
-                    overview={scheduleOverview}
-                    isLoading={isLoading && !scheduleOverview}
-                  />
-                </VStack>
-              </GridItem>
-
-              <GridItem>
-                <VStack align="stretch" gap={4}>
-                  {/* Live Activity Feed (compact) */}
-                  <LiveActivityFeed
-                    activities={combinedActivityFeed}
-                    maxVisible={5}
-                    isLive={isConnected}
-                  />
-
-                  {/* Upcoming Tasks */}
-                  <UpcomingTasks
-                    tasks={pendingTasks}
-                    onTaskClick={handleTaskClick}
-                    onTaskComplete={completeTask}
-                    maxVisible={4}
-                  />
-                </VStack>
-              </GridItem>
+              {/* Right Column */}
+              <LiveActivityFeed
+                activities={activityFeed}
+                maxVisible={10}
+                onViewAll={() => navigate('/activity-hub')}
+              />
             </Grid>
           </Tabs.Content>
 
           {/* Activity Tab */}
           <Tabs.Content value="activity" pt={4}>
             <LiveActivityFeed
-              activities={combinedActivityFeed}
+              activities={activityFeed}
               maxVisible={20}
-              isLive={isConnected}
+              showViewAll={false}
             />
           </Tabs.Content>
 
-          {/* Guards Tab */}
-          <Tabs.Content value="guards" pt={4}>
-            <GuardStatusTable
-              guards={guardStatuses}
-              onGuardClick={handleGuardClick}
-              showFilters={true}
-              maxVisible={15}
+          {/* Tasks Tab */}
+          <Tabs.Content value="tasks" pt={4}>
+            <UpcomingTasks
+              tasks={pendingTasks}
+              onTaskClick={handleTaskClick}
+              onTaskComplete={completeTask}
+              maxVisible={20}
             />
           </Tabs.Content>
 
-          {/* Schedule Tab */}
-          <Tabs.Content value="schedule" pt={4}>
-            <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
-              <GridItem>
-                <ShiftOverview
-                  overview={scheduleOverview}
-                  isLoading={isLoading && !scheduleOverview}
-                />
-              </GridItem>
-              <GridItem>
-                <VStack align="stretch" gap={4}>
-                  <UpcomingTasks
-                    tasks={pendingTasks}
-                    onTaskClick={handleTaskClick}
-                    onTaskComplete={completeTask}
-                    maxVisible={8}
-                  />
-
-                  {/* Info Card */}
-                  <Box
-                    bg="blue.50"
-                    borderRadius="xl"
-                    borderWidth="1px"
-                    borderColor="blue.200"
-                    p={6}
-                    textAlign="center"
-                  >
-                    <Icon as={LuCalendarClock} boxSize={10} color="blue.400" mb={3} />
-                    <Text fontWeight="semibold" color="gray.700" mb={2}>
-                      Full Scheduling
-                    </Text>
-                    <Text fontSize="sm" color="gray.500" mb={4}>
-                      View the complete schedule, create shifts, and manage assignments
-                      in the Scheduling module.
-                    </Text>
-                    <Link to="/scheduling">
-                      <Button colorPalette="blue" size="sm">
-                        <Icon as={LuCalendarClock} boxSize={4} mr={2} />
-                        Open Scheduling
-                      </Button>
-                    </Link>
-                  </Box>
-                </VStack>
-              </GridItem>
-            </Grid>
+          {/* Alerts Tab */}
+          <Tabs.Content value="alerts" pt={4}>
+            <AlertsPanel
+              alerts={alerts}
+              onDismiss={dismissAlert}
+              onMarkRead={markAlertRead}
+              showViewAll={false}
+            />
           </Tabs.Content>
         </Tabs.Root>
       </Box>
 
       {/* CSS for spinner animation */}
       <style>{`
-        .spin {
-          animation: spin 1s linear infinite;
-        }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }

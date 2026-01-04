@@ -287,7 +287,6 @@ const ActivityHub: React.FC = () => {
     operationalStats,
     isLoading,
     isLoadingMore,
-    error,
     activityFilters,
     updateFilters,
     activityPagination,

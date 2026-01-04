@@ -2,6 +2,7 @@
  * useDashboardData Hook
  *
  * Custom hook for fetching and managing dashboard data.
+ * Fetches real data from /api/dashboard endpoints.
  * Supports auto-refresh and provides actions for alerts/tasks.
  */
 
@@ -66,7 +67,11 @@ export const useDashboardData = (
 
   const fetchAlerts = useCallback(async (): Promise<DashboardAlert[]> => {
     const response = await api.get('/dashboard/alerts');
-    return response.data;
+    // Ensure proper ID mapping
+    return (response.data || []).map((alert: Record<string, unknown>) => ({
+      ...alert,
+      _id: alert._id || alert.id,
+    }));
   }, []);
 
   const fetchScheduleOverview = useCallback(async (): Promise<TodayScheduleOverview> => {
@@ -76,32 +81,26 @@ export const useDashboardData = (
 
   const fetchGuardStatuses = useCallback(async (): Promise<GuardStatusEntry[]> => {
     const response = await api.get('/dashboard/guard-statuses');
-    return response.data;
+    return response.data || [];
   }, []);
 
   const fetchActivityFeed = useCallback(async (): Promise<ActivityEvent[]> => {
-    const response = await api.get('/dashboard/activity-feed', {
-      params: { limit: 20 },
-    });
-    return response.data;
+    const response = await api.get('/dashboard/activity-feed');
+    return response.data || [];
   }, []);
 
   const fetchPendingTasks = useCallback(async (): Promise<Task[]> => {
-    const response = await api.get('/dashboard/pending-tasks', {
-      params: { limit: 10 },
-    });
-    return response.data;
+    const response = await api.get('/dashboard/pending-tasks');
+    return response.data || [];
   }, []);
 
   const fetchRecentIncidents = useCallback(async (): Promise<IncidentSummary[]> => {
-    const response = await api.get('/dashboard/recent-incidents', {
-      params: { limit: 5 },
-    });
-    return response.data;
+    const response = await api.get('/dashboard/recent-incidents');
+    return response.data || [];
   }, []);
 
   // ----------------------------------------
-  // Main Data Fetch
+  // Aggregated Fetch
   // ----------------------------------------
 
   const fetchAllData = useCallback(async () => {
@@ -110,7 +109,6 @@ export const useDashboardData = (
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Parallel fetch for performance
       const [
         metrics,
         alerts,
@@ -144,15 +142,13 @@ export const useDashboardData = (
         lastUpdated: new Date(),
       });
     } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
       if (!mountedRef.current) return;
-
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load dashboard data';
 
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: errorMessage,
+        error: 'Failed to load dashboard data. Please try again.',
       }));
     }
   }, [
@@ -165,10 +161,7 @@ export const useDashboardData = (
     fetchRecentIncidents,
   ]);
 
-  // ----------------------------------------
-  // Activity Feed Refresh (More Frequent)
-  // ----------------------------------------
-
+  // Refresh just the activity feed (more frequent)
   const refreshActivityFeed = useCallback(async () => {
     if (!mountedRef.current) return;
 
@@ -179,6 +172,7 @@ export const useDashboardData = (
       setState((prev) => ({
         ...prev,
         activityFeed,
+        lastUpdated: new Date(),
       }));
     } catch (err) {
       console.error('Failed to refresh activity feed:', err);
@@ -194,9 +188,7 @@ export const useDashboardData = (
       await api.patch(`/dashboard/alerts/${alertId}/dismiss`);
       setState((prev) => ({
         ...prev,
-        alerts: prev.alerts.map((alert) =>
-          alert._id === alertId ? { ...alert, isDismissed: true } : alert
-        ),
+        alerts: prev.alerts.filter((alert) => alert._id !== alertId),
       }));
     } catch (err) {
       console.error('Failed to dismiss alert:', err);
@@ -292,11 +284,11 @@ export const useDashboardData = (
 };
 
 // ============================================
-// Mock Data Hook (for development)
+// Mock Data Hook (for development/testing)
 // ============================================
 
 export const useMockDashboardData = (): UseDashboardDataReturn => {
-  const [state, setState] = useState<DashboardState>({
+  const [state] = useState<DashboardState>({
     ...DEFAULT_DASHBOARD_STATE,
     isLoading: false,
     lastUpdated: new Date(),
@@ -305,206 +297,45 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
       totalScheduled: 15,
       shiftsToday: 18,
       shiftsCovered: 16,
-      attendanceRate: 88.9,
-      patrolCompletionRate: 92.5,
+      attendanceRate: 94.5,
+      patrolCompletionRate: 87.3,
       openIncidents: 2,
-      pendingTasks: 7,
+      pendingTasks: 5,
       geofenceViolations: 1,
-      complianceScore: 94,
+      complianceScore: 92,
     },
-    alerts: [
-      {
-        _id: 'alert-1',
-        type: 'attendance',
-        severity: 'warning',
-        title: 'Late Arrival',
-        message: 'James Wilson arrived 12 minutes late for morning shift',
-        timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
-        actionRequired: false,
-        actionUrl: '/guards/guard-1',
-        isRead: false,
-        isDismissed: false,
-      },
-      {
-        _id: 'alert-2',
-        type: 'compliance',
-        severity: 'warning',
-        title: 'Certification Expiring',
-        message: '2 guard certifications expiring within 30 days',
-        timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
-        actionRequired: true,
-        actionUrl: '/compliance',
-        isRead: false,
-        isDismissed: false,
-      },
-    ],
+    alerts: [],
     scheduleOverview: {
       totalShifts: 18,
       activeShifts: 8,
-      completedShifts: 4,
-      scheduledShifts: 5,
-      cancelledShifts: 1,
-      upcomingShifts: 5,
+      completedShifts: 6,
+      scheduledShifts: 4,
+      cancelledShifts: 0,
+      upcomingShifts: 4,
       noShows: 0,
-      lateArrivals: 2,
-      shifts: [
-        {
-          _id: 'shift-1',
-          guardId: 'guard-1',
-          guardName: 'James Wilson',
-          siteName: 'Westfield Shopping Centre',
-          siteId: 'site-1',
-          role: 'Static',
-          startTime: '2024-01-15T06:00:00',
-          endTime: '2024-01-15T14:00:00',
-          status: 'in-progress',
-          shiftType: 'Morning',
-          tasksTotal: 5,
-          tasksCompleted: 3,
-        },
-        {
-          _id: 'shift-2',
-          guardId: 'guard-2',
-          guardName: 'Sarah Chen',
-          siteName: 'Tech Park Building A',
-          siteId: 'site-2',
-          role: 'Mobile Patrol',
-          startTime: '2024-01-15T07:00:00',
-          endTime: '2024-01-15T15:00:00',
-          status: 'in-progress',
-          shiftType: 'Morning',
-          tasksTotal: 8,
-          tasksCompleted: 6,
-        },
-      ],
+      lateArrivals: 1,
+      shifts: [],
     },
-    guardStatuses: [
-      {
-        _id: 'guard-1',
-        name: 'James Wilson',
-        role: 'Guard',
-        guardType: 'Static',
-        status: 'on-duty',
-        currentSite: 'Westfield Shopping Centre',
-        shiftTime: 'Morning',
-        contactInfo: { phone: '07700 900123', email: 'james.wilson@example.com' },
-        availability: true,
-        lastActivity: new Date(Date.now() - 15 * 60000).toISOString(),
-        avatar: undefined,
-      },
-      {
-        _id: 'guard-2',
-        name: 'Sarah Chen',
-        role: 'Guard',
-        guardType: 'Mobile Patrol',
-        status: 'on-duty',
-        currentSite: 'Tech Park Building A',
-        shiftTime: 'Morning',
-        contactInfo: { phone: '07700 900124', email: 'sarah.chen@example.com' },
-        availability: true,
-        lastActivity: new Date(Date.now() - 5 * 60000).toISOString(),
-        avatar: undefined,
-      },
-      {
-        _id: 'guard-3',
-        name: 'Michael Brown',
-        role: 'Guard',
-        guardType: 'Dog Handler',
-        status: 'scheduled',
-        currentSite: null,
-        shiftTime: 'Afternoon',
-        contactInfo: { phone: '07700 900125', email: 'michael.brown@example.com' },
-        availability: true,
-        lastActivity: undefined,
-        avatar: undefined,
-      },
-    ],
-    activityFeed: [
-      {
-        _id: 'activity-1',
-        type: 'clock-in',
-        guardId: 'guard-1',
-        guardName: 'James Wilson',
-        siteName: 'Westfield Shopping Centre',
-        timestamp: new Date(Date.now() - 3 * 3600000).toISOString(),
-        geofenceStatus: 'inside',
-        description: 'Clocked in for morning shift',
-      },
-      {
-        _id: 'activity-2',
-        type: 'task-completed',
-        guardId: 'guard-2',
-        guardName: 'Sarah Chen',
-        siteName: 'Tech Park Building A',
-        timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
-        notes: 'Morning patrol completed',
-        description: 'Completed morning patrol checkpoint',
-      },
-    ],
-    pendingTasks: [
-      {
-        _id: 'task-1',
-        title: 'Fire Exit Check',
-        description: 'Check fire exits - North Wing',
-        frequency: 'once',
-        priority: 'high',
-        completed: false,
-      },
-      {
-        _id: 'task-2',
-        title: 'Perimeter Patrol',
-        description: 'Hourly patrol - Perimeter',
-        frequency: 'hourly',
-        priority: 'medium',
-        completed: false,
-      },
-    ],
-    recentIncidents: [
-      {
-        _id: 'incident-1',
-        title: 'Suspicious Activity - Car Park',
-        incidentType: 'suspicious-activity',
-        severity: 'medium',
-        status: 'under-review',
-        location: 'Car Park Level 2',
-        description: 'Unknown individual observed checking vehicle doors',
-        reportedAt: new Date(Date.now() - 4 * 3600000).toISOString(),
-        reportedBy: { _id: 'guard-1', name: 'James Wilson' },
-      },
-    ],
+    guardStatuses: [],
+    activityFeed: [],
+    pendingTasks: [],
+    recentIncidents: [],
   });
 
-  // Mock actions
   const refresh = useCallback(async () => {
-    setState((prev) => ({ ...prev, lastUpdated: new Date() }));
+    console.log('Mock refresh called');
   }, []);
 
   const dismissAlert = useCallback(async (alertId: string) => {
-    setState((prev) => ({
-      ...prev,
-      alerts: prev.alerts.map((alert) =>
-        alert._id === alertId ? { ...alert, isDismissed: true } : alert
-      ),
-    }));
+    console.log('Mock dismiss alert:', alertId);
   }, []);
 
   const markAlertRead = useCallback(async (alertId: string) => {
-    setState((prev) => ({
-      ...prev,
-      alerts: prev.alerts.map((alert) =>
-        alert._id === alertId ? { ...alert, isRead: true } : alert
-      ),
-    }));
+    console.log('Mock mark alert read:', alertId);
   }, []);
 
   const completeTask = useCallback(async (taskId: string) => {
-    setState((prev) => ({
-      ...prev,
-      pendingTasks: prev.pendingTasks.filter((task) => task._id !== taskId),
-      metrics: prev.metrics
-        ? { ...prev.metrics, pendingTasks: prev.metrics.pendingTasks - 1 }
-        : null,
-    }));
+    console.log('Mock complete task:', taskId);
   }, []);
 
   return {
@@ -515,3 +346,5 @@ export const useMockDashboardData = (): UseDashboardDataReturn => {
     completeTask,
   };
 };
+
+export default useDashboardData;
