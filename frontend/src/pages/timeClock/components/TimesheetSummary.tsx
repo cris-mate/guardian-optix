@@ -1,7 +1,7 @@
 /**
  * TimesheetSummary Component
  *
- * Displays today's timesheet summary with hours breakdown.
+ * Displays timesheet summary with hours breakdown.
  * Shows total hours, breaks, and overtime calculations.
  */
 
@@ -11,7 +11,6 @@ import {
   VStack,
   HStack,
   Text,
-  Badge,
   Progress,
   Separator,
 } from '@chakra-ui/react';
@@ -20,9 +19,8 @@ import {
   LuCoffee,
   LuTrendingUp,
   LuCalendarDays,
-  LuFileCheck,
 } from 'react-icons/lu';
-import type { TodayTimesheet, WeeklySummary, TimesheetStatus } from '../../../types/timeClock.types';
+import type { TodayTimesheet, WeeklySummary } from '../../../types/timeClock.types';
 
 // ============================================
 // Props Interface
@@ -35,28 +33,19 @@ interface TimesheetSummaryProps {
 }
 
 // ============================================
-// Status Configuration
-// ============================================
-
-const statusConfig: Record<TimesheetStatus, { color: string; label: string }> = {
-  pending: { color: 'yellow', label: 'Pending' },
-  submitted: { color: 'blue', label: 'Submitted' },
-  approved: { color: 'green', label: 'Approved' },
-  rejected: { color: 'red', label: 'Rejected' },
-};
-
-// ============================================
 // Helper Functions
 // ============================================
 
-const formatHours = (hours: number): string => {
+const formatHours = (hours: number | undefined | null): string => {
+  if (hours === null || hours === undefined || isNaN(hours)) return '0h';
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
   if (m === 0) return `${h}h`;
   return `${h}h ${m}m`;
 };
 
-const formatMinutes = (minutes: number): string => {
+const formatMinutes = (minutes: number | undefined | null): string => {
+  if (minutes === null || minutes === undefined || isNaN(minutes)) return '0m';
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -114,7 +103,6 @@ const StatItem: React.FC<StatItemProps> = ({
 const TimesheetSummary: React.FC<TimesheetSummaryProps> = ({
                                                              todayTimesheet,
                                                              weeklySummary,
-                                                             isLoading,
                                                            }) => {
   // Calculate weekly progress (assuming 40 hours target)
   const weeklyTarget = 40;
@@ -128,25 +116,6 @@ const TimesheetSummary: React.FC<TimesheetSummaryProps> = ({
       borderColor="gray.200"
       overflow="hidden"
     >
-      {/* Header */}
-      <Box px={5} py={4} borderBottomWidth="1px" borderColor="gray.200">
-        <HStack justify="space-between">
-          <HStack gap={2}>
-            <LuFileCheck size={20} color="var(--chakra-colors-blue-500)" />
-            <Text fontWeight="semibold" color="gray.800">
-              Timesheet Summary
-            </Text>
-          </HStack>
-          {todayTimesheet && (
-            <Badge
-              colorPalette={statusConfig[todayTimesheet.status].color}
-              variant="subtle"
-            >
-              {statusConfig[todayTimesheet.status].label}
-            </Badge>
-          )}
-        </HStack>
-      </Box>
 
       {/* Content */}
       <VStack align="stretch" p={5} gap={5}>
@@ -159,13 +128,13 @@ const TimesheetSummary: React.FC<TimesheetSummaryProps> = ({
             <StatItem
               icon={LuClock}
               label="Hours Worked"
-              value={todayTimesheet ? formatHours(todayTimesheet.totalHours) : '0h'}
+              value={formatHours(todayTimesheet?.totalHours)}
               colorScheme="blue"
             />
             <StatItem
               icon={LuCoffee}
               label="Break Time"
-              value={todayTimesheet ? formatMinutes(todayTimesheet.breakMinutes) : '0m'}
+              value={formatMinutes(todayTimesheet?.breakMinutes)}
               colorScheme="orange"
             />
           </SimpleGrid>
@@ -241,7 +210,7 @@ const TimesheetSummary: React.FC<TimesheetSummaryProps> = ({
 };
 
 // ============================================
-// SimpleGrid Helper (inline to avoid import issues)
+// SimpleGrid Helper
 // ============================================
 
 interface SimpleGridProps {

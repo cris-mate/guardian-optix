@@ -14,12 +14,8 @@ import {
   Button,
   Badge,
   Spinner,
-  Menu,
-  Portal,
 } from '@chakra-ui/react';
 import {
-  LuClock,
-  LuMapPin,
   LuLogIn,
   LuLogOut,
   LuCoffee,
@@ -32,7 +28,6 @@ import {
 import SimulationPanel from './SimulationPanel';
 import type {
   ClockStatus,
-  BreakType,
   ActiveShift,
   GPSLocation,
   GeofenceStatus,
@@ -54,7 +49,7 @@ interface ClockWidgetProps {
   isLocationLoading: boolean;
   onClockIn: () => void;
   onClockOut: () => void;
-  onBreakStart: (breakType: BreakType) => void;
+  onBreakStart: () => void;
   onBreakEnd: () => void;
   onRefreshLocation: () => void;
   // Simulation props
@@ -139,6 +134,7 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({
   const GeoIcon = geoStyle.icon;
 
   const isProcessing = isClockingIn || isClockingOut || isProcessingBreak;
+  const handleStartBreak = () => onBreakStart();
 
   return (
     <Box>
@@ -246,7 +242,7 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({
             colorPalette="green"
             size="lg"
             w="full"
-            onClick={onClockIn}
+            onClick={() => onClockIn()}
             disabled={isProcessing}
           >
             {isClockingIn ? (
@@ -260,40 +256,29 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({
 
         {clockStatus === 'clocked-in' && (
           <VStack gap={3}>
-            {/* Break Menu */}
-            <Menu.Root>
-              <Menu.Trigger asChild>
-                <Button
-                  colorPalette="orange"
-                  variant="outline"
-                  size="md"
-                  w="full"
-                  disabled={isProcessing}
-                >
-                  <LuCoffee size={18} style={{ marginRight: 8 }} />
-                  Start Break
-                </Button>
-              </Menu.Trigger>
-              <Portal>
-                <Menu.Positioner>
-                  <Menu.Content>
-                    <Menu.Item value="paid" onClick={() => onBreakStart('paid')}>
-                      Paid Break
-                    </Menu.Item>
-                    <Menu.Item value="unpaid" onClick={() => onBreakStart('unpaid')}>
-                      Unpaid Break
-                    </Menu.Item>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Portal>
-            </Menu.Root>
+            {/* Break Button */}
+            <Button
+              colorPalette="orange"
+              variant="outline"
+              size="md"
+              w="full"
+              onClick={handleStartBreak}
+              disabled={isProcessing}
+            >
+              {isProcessingBreak ? (
+                <Spinner size="sm" mr={2} />
+              ) : (
+                <LuCoffee size={18} style={{ marginRight: 8 }} />
+              )}
+              {isProcessingBreak ? 'Starting Break...' : 'Start Break'}
+            </Button>
 
             {/* Clock Out */}
             <Button
               colorPalette="red"
               size="lg"
               w="full"
-              onClick={onClockOut}
+              onClick={() => onClockOut()}
               disabled={isProcessing}
             >
               {isClockingOut ? (
@@ -311,7 +296,7 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({
             colorPalette="blue"
             size="lg"
             w="full"
-            onClick={onBreakEnd}
+            onClick={() => onBreakEnd()}
             disabled={isProcessing}
           >
             {isProcessingBreak ? (

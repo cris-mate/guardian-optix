@@ -10,7 +10,6 @@ import { api } from '../../../utils/api';
 import { MOCK_CONFIG, simulateDelay } from '../../../config/api.config';
 import {
   ClockStatus,
-  BreakType,
   GeofenceStatus,
   GPSLocation,
   TimeEntry,
@@ -251,7 +250,7 @@ interface UseTimeClockDataReturn {
   // Actions
   clockIn: (notes?: string) => Promise<void>;
   clockOut: (notes?: string) => Promise<void>;
-  startBreak: (breakType: BreakType) => Promise<void>;
+  startBreak: () => Promise<void>;
   endBreak: () => Promise<void>;
   refreshLocation: () => Promise<GPSLocation | null | undefined>;
   refetch: () => Promise<void>;
@@ -263,6 +262,7 @@ interface UseTimeClockDataReturn {
 
   // Simulation controls
   geofenceConfig: GeofenceConfig | null;
+  geofenceViolations: number;
   simulationEnabled: boolean;
   setSimulationEnabled: (enabled: boolean) => void;
   selectedScenario: string;
@@ -284,6 +284,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [stats, setStats] = useState<TimeClockStats | null>(null);
   const [activeGuards, setActiveGuards] = useState<ActiveGuard[]>([]);
+  const [geofenceViolations, setGeofenceViolations] = useState<number>(0);
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -426,6 +427,11 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
 
         if (timesheetRes.data.success) {
           setTodayTimesheet(timesheetRes.data.data);
+        }
+        const statsRes = await api.get('/timeClock/stats');
+        if (statsRes.data.success) {
+          setStats(statsRes.data.data);
+          setGeofenceViolations(statsRes.data.data.geofenceViolations || 0);
         }
       }
       await refreshLocation();
@@ -583,7 +589,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
   // ============================================
   // Start Break
   // ============================================
-  const startBreak = useCallback(async (breakType: BreakType) => {
+  const startBreak = useCallback(async () => {
     setIsProcessingBreak(true);
     setError(null);
 
@@ -613,10 +619,9 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
           });
         }
       } else {
-        const payload: ClockActionPayload & { simulationScenario?: string; breakType: BreakType } = {
+        const payload: ClockActionPayload & { simulationScenario?: string } = {
           type: 'break-start',
           location: currentLocation || undefined,
-          breakType,
         };
 
         if (simulationEnabled && geofenceConfig?.simulationEnabled) {
@@ -743,6 +748,7 @@ export const useTimeClockData = (): UseTimeClockDataReturn => {
     setSimulationEnabled,
     selectedScenario,
     setSelectedScenario,
+    geofenceViolations,
   };
 };
 

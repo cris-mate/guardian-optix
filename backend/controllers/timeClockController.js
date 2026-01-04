@@ -39,6 +39,119 @@ const calculateMinutesWorked = (startTime, endTime) => {
 };
 
 /**
+ * Calculate hours from time entries
+ */
+const calculateTodayHours = async (guardId) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const entries = await TimeEntry.find({
+    guard: guardId,
+    timestamp: { $gte: today, $lt: tomorrow },
+  }).sort({ timestamp: 1 });
+
+  let totalWorkedMs = 0;
+  let totalBreakMs = 0;
+  let clockInTime = null;
+  let breakStartTime = null;
+
+  for (const entry of entries) {
+    const time = new Date(entry.timestamp);
+
+    switch (entry.type) {
+      case 'clock-in':
+        clockInTime = time;
+        break;
+      case 'clock-out':
+        if (clockInTime) {
+          totalWorkedMs += time - clockInTime;
+          clockInTime = null;
+        }
+        break;
+      case 'break-start':
+        breakStartTime = time;
+        break;
+      case 'break-end':
+        if (breakStartTime) {
+          totalBreakMs += time - breakStartTime;
+          breakStartTime = null;
+        }
+        break;
+    }
+  }
+
+  // If still clocked in, count time until now
+  if (clockInTime) {
+    totalWorkedMs += Date.now() - clockInTime;
+  }
+
+  // If still on break, count break time until now
+  if (breakStartTime) {
+    totalBreakMs += Date.now() - breakStartTime;
+  }
+
+  // Subtract break time from worked time
+  const netWorkedMs = totalWorkedMs - totalBreakMs;
+
+  return {
+    totalHours: Math.max(0, netWorkedMs / (1000 * 60 * 60)),
+    breakMinutes: Math.max(0, totalBreakMs / (1000 * 60)),
+  };
+};
+
+/**
+ * Get on-duty guards count for now
+ */
+const getScheduledGuardsNow = async () => {
+  const now = new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Find shifts that are scheduled for right now
+  const scheduledShifts = await Shift.find({
+    date: { $gte: today, $lt: tomorrow },
+    status: { $in: ['Scheduled', 'In-Progress'] },
+    guard: { $ne: null },
+  }).populate('guard', '_id');
+
+  // Filter shifts where current time is within shift hours
+  const activeShifts = scheduledShifts.filter((shift) => {
+    const shiftStart = new Date(shift.date);
+    const shiftEnd = new Date(shift.date);
+
+    // Parse shift times based on shiftType or explicit times
+    if (shift.shiftType === 'Morning') {
+      shiftStart.setHours(6, 0, 0, 0);
+      shiftEnd.setHours(14, 0, 0, 0);
+    } else if (shift.shiftType === 'Afternoon') {
+      shiftStart.setHours(14, 0, 0, 0);
+      shiftEnd.setHours(22, 0, 0, 0);
+    } else if (shift.shiftType === 'Night') {
+      shiftStart.setHours(22, 0, 0, 0);
+      shiftEnd.setDate(shiftEnd.getDate() + 1);
+      shiftEnd.setHours(6, 0, 0, 0);
+    } else if (shift.startTime && shift.endTime) {
+      // Use explicit times if available
+      const [startH, startM] = shift.startTime.split(':').map(Number);
+      const [endH, endM] = shift.endTime.split(':').map(Number);
+      shiftStart.setHours(startH, startM, 0, 0);
+      shiftEnd.setHours(endH, endM, 0, 0);
+    }
+
+    return now >= shiftStart && now <= shiftEnd;
+  });
+
+  return {
+    scheduledCount: activeShifts.length,
+    scheduledGuardIds: activeShifts.map((s) => s.guard?._id?.toString()).filter(Boolean),
+  };
+};
+
+/**
  * Enrich location with reverse geocoded address
  */
 const enrichLocationWithAddress = async (location) => {
@@ -637,26 +750,34 @@ const getTimeEntries = asyncHandler(async (req, res) => {
  */
 const getTodayTimesheet = asyncHandler(async (req, res) => {
   const guardId = req.user._id;
-  const today = getTodayDate();
 
-  let timesheet = await Timesheet.findOne({ guard: guardId, date: today }).populate('entries');
+  // Calculate actual hours from time entries
+  const { totalHours, breakMinutes } = await calculateTodayHours(guardId);
 
-  if (!timesheet) {
-    timesheet = {
-      date: today,
-      clockInTime: null,
-      clockOutTime: null,
-      totalMinutesWorked: 0,
-      totalBreakMinutes: 0,
-      entries: [],
-      breaks: [],
-      status: 'pending',
-    };
-  }
+  // Get today's entries for reference
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const entries = await TimeEntry.find({
+    guard: guardId,
+    timestamp: { $gte: today, $lt: tomorrow },
+  }).sort({ timestamp: -1 });
 
   res.json({
     success: true,
-    data: timesheet,
+    data: {
+      date: today.toISOString().split('T')[0],
+      guardId: guardId.toString(),
+      guardName: req.user.fullName,
+      entries,
+      totalHours: Math.round(totalHours * 100) / 100,
+      regularHours: Math.round(totalHours * 100) / 100, // Same as totalHours for now
+      overtimeHours: 0, // Ignored for now
+      breakMinutes: Math.round(breakMinutes),
+      status: 'pending',
+    },
   });
 });
 
@@ -723,28 +844,67 @@ const getWeeklySummary = asyncHandler(async (req, res) => {
  * @access  Private (Manager/Admin)
  */
 const getStats = asyncHandler(async (req, res) => {
-  const today = getTodayDate();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const [activeSessions, onBreak, todayTimesheets] = await Promise.all([
-    ActiveSession.countDocuments({ clockStatus: { $ne: 'clocked-out' } }),
-    ActiveSession.countDocuments({ clockStatus: 'on-break' }),
-    Timesheet.find({ date: today }),
-  ]);
+  // Get active sessions
+  const activeSessions = await ActiveSession.find({
+    clockStatus: { $in: ['clocked-in', 'on-break'] },
+  }).select('guard clockStatus');
 
-  const totalMinutesToday = todayTimesheets.reduce(
-    (sum, ts) => sum + (ts.totalMinutesWorked || 0),
-    0
-  );
+  const activeGuardsCount = activeSessions.filter(
+    (s) => s.clockStatus === 'clocked-in'
+  ).length;
+  const guardsOnBreak = activeSessions.filter(
+    (s) => s.clockStatus === 'on-break'
+  ).length;
+
+  // Get scheduled guards for current time
+  const { scheduledCount, scheduledGuardIds } = await getScheduledGuardsNow();
+
+  // Count how many scheduled guards are actually clocked in
+  const activeGuardIds = activeSessions.map((s) => s.guard?.toString());
+  const onTimeClockIns = scheduledGuardIds.filter((id) =>
+    activeGuardIds.includes(id)
+  ).length;
+
+  // Calculate total hours today (all guards)
+  const todayEntries = await TimeEntry.find({
+    timestamp: { $gte: today, $lt: tomorrow },
+  });
+
+  // Group entries by guard and calculate
+  const guardEntries = {};
+  todayEntries.forEach((entry) => {
+    const guardId = entry.guard?.toString();
+    if (!guardEntries[guardId]) guardEntries[guardId] = [];
+    guardEntries[guardId].push(entry);
+  });
+
+  let totalHoursAllGuards = 0;
+  for (const guardId of Object.keys(guardEntries)) {
+    const result = await calculateTodayHours(guardId);
+    totalHoursAllGuards += result.totalHours;
+  }
+
+  // Get geofence violations today
+  const geofenceViolations = await TimeEntry.countDocuments({
+    timestamp: { $gte: today, $lt: tomorrow },
+    geofenceStatus: 'outside',
+  });
 
   res.json({
     success: true,
     data: {
-      guardsOnDuty: activeSessions,
-      onBreak,
-      clockedOut: 0,
-      totalHoursToday: Math.round((totalMinutesToday / 60) * 100) / 100,
-      lateArrivals: 0,
-      activeBreaks: onBreak,
+      activeGuardsCount: activeGuardsCount + guardsOnBreak,
+      guardsOnBreak,
+      todayHours: Math.round(totalHoursAllGuards * 100) / 100,
+      onTimeClockIns,
+      scheduledNow: scheduledCount,
+      lateClockIns: Math.max(0, scheduledCount - onTimeClockIns),
+      geofenceViolations,
     },
   });
 });
