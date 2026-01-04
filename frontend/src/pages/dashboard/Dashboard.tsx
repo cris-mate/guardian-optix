@@ -3,9 +3,6 @@
  *
  * Main operations dashboard providing real-time overview of security operations.
  * Features 4 core KPIs, tabbed content sections, and auto-refresh polling.
- *
- * Design follows consistent patterns from Guards, Clients, and other pages.
- * Fetches real data from /api/dashboard endpoints.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -15,7 +12,6 @@ import {
   HStack,
   Text,
   Icon,
-  Button,
   Spinner,
   Grid,
   Badge,
@@ -43,6 +39,7 @@ import GuardStatusTable from './components/GuardStatusTable';
 import UpcomingTasks from './components/UpcomingTasks';
 import AlertsPanel from './components/AlertsPanel';
 import QuickActions from './components/QuickActions';
+import BroadcastModal from './components/BroadcastModal';
 
 import type {
   GuardStatusEntry,
@@ -131,37 +128,6 @@ const QuickStats: React.FC<QuickStatsProps> = ({ metrics, isLoading, onNavigate 
 };
 
 // ============================================
-// Error Banner Component
-// ============================================
-
-interface ErrorBannerProps {
-  message: string;
-  onRetry: () => void;
-}
-
-const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, onRetry }) => (
-  <Box
-    bg="red.50"
-    borderWidth="1px"
-    borderColor="red.200"
-    borderRadius="lg"
-    p={4}
-  >
-    <HStack justify="space-between">
-      <HStack gap={2}>
-        <Icon as={LuCircleAlert} color="red.500" />
-        <Text color="red.700" fontSize="sm">
-          {message}
-        </Text>
-      </HStack>
-      <Button size="sm" colorPalette="red" variant="ghost" onClick={onRetry}>
-        Retry
-      </Button>
-    </HStack>
-  </Box>
-);
-
-// ============================================
 // Main Dashboard Component
 // ============================================
 
@@ -169,6 +135,7 @@ const Dashboard: React.FC = () => {
   const { setTitle } = usePageTitle();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('overview');
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
 
   // Set page title
   useEffect(() => {
@@ -184,7 +151,6 @@ const Dashboard: React.FC = () => {
     activityFeed,
     pendingTasks,
     isLoading,
-    error,
     refresh,
     dismissAlert,
     markAlertRead,
@@ -259,9 +225,6 @@ const Dashboard: React.FC = () => {
         isLoading={isLoading}
       />
 
-      {/* Error Banner */}
-      {error && <ErrorBanner message={error} onRetry={refresh} />}
-
       {/* Quick Stats - 4 Core KPIs */}
       <QuickStats
         metrics={metrics}
@@ -270,7 +233,7 @@ const Dashboard: React.FC = () => {
       />
 
       {/* Quick Actions */}
-      <QuickActions />
+      <QuickActions onBroadcastClick={() => setIsBroadcastOpen(true)} />
 
       {/* Tabbed Content */}
       <Box mt={2}>
@@ -373,6 +336,12 @@ const Dashboard: React.FC = () => {
           </Tabs.Content>
         </Tabs.Root>
       </Box>
+
+      {/* Broadcast Modal */}
+      <BroadcastModal
+        isOpen={isBroadcastOpen}
+        onClose={() => setIsBroadcastOpen(false)}
+      />
 
       {/* CSS for spinner animation */}
       <style>{`

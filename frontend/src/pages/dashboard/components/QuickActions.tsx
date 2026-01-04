@@ -36,13 +36,14 @@ interface QuickAction {
 
 interface QuickActionsProps {
   userPermissions?: string[];
+  onBroadcastClick?: () => void;
 }
 
 // ============================================
 // Main Component
 // ============================================
 
-const QuickActions: React.FC<QuickActionsProps> = ({}) => {
+const QuickActions: React.FC<QuickActionsProps> = ({ onBroadcastClick }) => {
   const navigate = useNavigate();
 
   // Define available quick actions
@@ -54,14 +55,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({}) => {
       colorScheme: 'blue',
       variant: 'solid',
       action: () => navigate('/scheduling?action=add'),
-    },
-    {
-      id: 'broadcast-message',
-      label: 'Broadcast',
-      icon: LuMessageSquare,
-      colorScheme: 'teal',
-      variant: 'outline',
-      action: () => navigate('/messages/broadcast'),
     },
     {
       id: 'report-incident',
@@ -78,6 +71,14 @@ const QuickActions: React.FC<QuickActionsProps> = ({}) => {
       colorScheme: 'purple',
       variant: 'outline',
       action: () => navigate('/clients?tab=sites'),
+    },
+    {
+      id: 'broadcast-message',
+      label: 'Broadcast',
+      icon: LuMessageSquare,
+      colorScheme: 'teal',
+      variant: 'outline',
+      action: () => onBroadcastClick?.(),
     },
   ];
 
